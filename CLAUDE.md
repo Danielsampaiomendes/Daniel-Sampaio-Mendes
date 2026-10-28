@@ -13,7 +13,7 @@ A pasta completa (com vídeos, imagens, áudios e fontes) fica no Mac do Renato:
 
 ## Editar vídeo novo: use o Divine Studio
 
-Jeito mais fácil: `python3 -m divine_studio painel` (interface no navegador). Pela linha de comando:
+Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 -m divine_studio painel`), que abre a interface no navegador. Pela linha de comando:
 
 1. `python3 -m divine_studio novo "<tema>"` cria `projetos/AAAA-MM-DD_<tema>/`.
 2. Brutos em `bruto/`; preencha `projeto.yaml` com clipes, 3 hooks do banco (`hook_id`, ou `hook: auto` para sortear), mensagens, fechamento e legenda.

@@ -22,6 +22,8 @@ Fotos oficiais de perfil para os cartões de nome: `assets/pessoas/daniel_perfil
 
 ## Jeito mais fácil: o painel
 
+Dois cliques em **`Divine Studio.command`** (na pasta do projeto). Na primeira vez, clique com o botão direito > Abrir, porque o macOS pede confirmação. Ou, no Terminal:
+
 ```bash
 python3 -m divine_studio painel
 ```
