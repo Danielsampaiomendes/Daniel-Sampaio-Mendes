@@ -1,0 +1,31 @@
+# Biblioteca_SFX/1_kit_original_divine (só sons livres para uso comercial)
+pasta: Biblioteca_SFX/1_kit_original_divine
+
+# Ganho padrão em dB relativo ao arquivo (o kit sai normalizado em -1 dBFS); tudo bem abaixo da trilha
+ganho_db: -24
+
+# Ciclo do som de abertura (hook): muda a cada vídeo/versão, nunca repete a variação recente
+abertura:
+  - [impacto_grave_suave_a]
+  - [brilho_dourado_a]
+  - [swell_reverso_a, brilho_dourado_b]
+  - [notificacao_suave_a]
+  - [camera_shutter_a]
+  - [impacto_grave_suave_b]
+  - [brilho_dourado_c]
+  - [swell_reverso_b]
+  - [notificacao_suave_b]
+  - [pop_suave_b, ding_suave_b]
+  - [riser_suave_a, cristal_a]
+  - [impacto_grave_suave_c]
+
+# Som do fechamento (um só, leve)
+fechamento:
+  - [cristal_a]
+  - [ding_suave_c]
+  - [whoosh_suave_b, brilho_dourado_c]
+  - [cristal_b]
+  - [ding_suave_a]
+
+# Em transições entre mensagens: por padrão nenhum som (o Renato achou o ping repetitivo)
+mensagens: []

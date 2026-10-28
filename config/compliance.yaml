@@ -1,0 +1,53 @@
+# Revisor de compliance (docs/CONHECIMENTO_DIVINE.md, seção 6). Erros bloqueiam a exportação; avisos só aparecem no relatório.
+# Os padrões são expressões regulares (sem diferenciar maiúsculas e minúsculas).
+
+erros:
+  - id: percentual
+    padrao: '\d+\s*%'
+    motivo: "CFM 2.336/2023: sem percentuais de resultado. Percentual de tempo (ex.: 4% do dia) só com 'permitir_percentual: true' no projeto."
+  - id: prazo_garantido
+    padrao: '\b(em|após|depois de)\s+\d+\s+(dias?|semanas?|meses|sessões?)\b.{0,30}\b(resultado|some|desaparece|elimina|perde)'
+    motivo: "CFM: sem prazo garantido de resultado."
+  - id: promessa
+    padrao: '\b(garantid[oa]s?|definitiv[oa]s?|milagros[oa]s?|elimina(r)? de vez|resultado imediato|100\s*%|sem dor nenhuma|zero dor)\b'
+    motivo: "CFM: sem promessa de resultado ou sensacionalismo."
+  - id: comparacao
+    padrao: '\b(melhor (clínica|médico|resultado) (de|do|da)|mais resultado que|comigo você vai ter muito mais)\b'
+    motivo: "CFM: sem comparação com outros profissionais."
+  - id: medicamento
+    padrao: '\b(glp-?1|tirzepatida|semaglutida|retatrutida|liraglutida|ozempic|wegovy|mounjaro|saxenda|minoxidil|finasterida|isotretino[ií]na|roacutan|botox|sibutramina)\b'
+    motivo: "Anvisa RDC 96/2008: não citar medicamento de prescrição ou marca. Use 'acompanhamento médico' ou 'tratamento individualizado'."
+  - id: implante_hormonal
+    padrao: '\bimplantes? hormona(l|is)\b'
+    motivo: "Usar 'reposição hormonal' e 'pellets', nunca 'implante hormonal'."
+  - id: nutrologo
+    padrao: '\bnutr[oó]log[oa]\b'
+    motivo: "'Nutrólogo' só com RQE em nutrologia (o Dr. Daniel não tem). Use 'pós-graduado em Nutrologia'."
+  - id: comenta_palavra
+    padrao: '\b(?i:comenta(r)?)\s+((?i:a palavra)\s+)?["“]?[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9]+["”]?(?=\s|$|[.!,:])'
+    sensivel_maiusculas: true
+    motivo: "Regra de out/2026: nunca pedir para comentar uma palavra. Use envio, seguir, direct ou WhatsApp."
+
+avisos:
+  - id: travessao
+    padrao: '\s[—–-]\s'
+    motivo: "Evitar travessões e tracinhos (cara de IA): usar vírgula, ponto ou dois-pontos."
+  - id: numeracao_tela
+    padrao: '^\s*0?\d{1,2}\s*[.)·|]?\s*$|^\s*0\d\b'
+    motivo: "Sem numeração na tela (01, 02, 03)."
+  - id: antes_depois
+    padrao: '\bantes\s*(e|x|vs\.?|/)\s*depois\b'
+    motivo: "Antes e depois de paciente só no template de uso interno. Para postar: Mito vs. Verdade ou Expectativa vs. Realidade."
+  - id: promocional
+    padrao: '\b(imperd[ií]vel|últimas vagas|corre que|só hoje)\b'
+    motivo: "Tom: evitar linguagem de promoção."
+  - id: divine_texto
+    padrao: '\bdivine medical spa\b'
+    motivo: "Na arte, 'Divine Medical Spa' é sempre a logomarca, nunca texto comum (na legenda pode)."
+    so_tela: true
+
+# Obrigatórios
+exigir:
+  rt_em_conteudo_medico: true      # RT no fechamento ou na legenda quando conteudo_medico: true
+  aviso_resultados: true           # "Resultados variam de pessoa para pessoa." na legenda
+  autorizacao_imagem: true         # campo autorizacao_imagem preenchido (sim | nao_aparece); "pendente" sai marcado

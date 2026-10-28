@@ -1,0 +1,59 @@
+# Projeto de vídeo Divine Studio. Textos: *palavra* = destaque dourado; " / " = quebra de linha.
+titulo: "Tema do vídeo"
+data: "{data}"
+template: divine            # divine (outros templates chegam nas próximas fases)
+formato: reels              # reels | stories | feed45 | feed11 | tv
+conteudo_medico: true       # mostra o RT no fechamento e exige na legenda
+autorizacao_imagem: pendente  # sim | pendente | nao_aparece | proprio
+posicao_texto: topo         # topo | centro | base (texto nunca sobre o rosto)
+audio:
+  original: true            # voz/som do vídeo
+  trilha: true              # trilha lounge original (ducking automático sob a fala)
+
+clipes:
+  - arquivo: bruto/IMG_0001.MOV
+    inicio: 0
+    fim: 8
+    velocidade: 1.0         # < 1 = câmera lenta suave
+    foco: [0.5, 0.4]        # âncora do recorte (x, y)
+
+selo: ""                    # rótulo fixo depois do hook, ex.: "LASER DE CO2 · BASTIDORES"
+cta_antecipado: "Manda pra amiga que precisa ver isso."
+
+mensagens:
+  - titulo: "Primeira ideia / com *destaque.*"
+    apoio: "linha de apoio opcional"
+  # inicio/fim em segundos são opcionais (padrão: em sequência, com tempo de leitura)
+
+fechamento:
+  frase: "Cada pele tem o *seu tempo.*"
+  cta: "Agende sua avaliação"   # ou "Agende sua sessão" (tecnologias sem avaliação)
+
+versoes:
+  - nome: V1
+    hook_id: ""             # código no docs/BANCO_HOOKS.md
+    # fontes: B             # opcional; sem isso o rodízio escolhe
+    hook:
+      - titulo: "Frase curta / de *gancho.*"
+  - nome: V2
+    hook:
+      - titulo: "Segunda opção"
+        apoio: "com apoio"
+  - nome: V3
+    hook:
+      - titulo: "Primeira batida."
+        duracao: 2.0
+      - titulo: "Segunda *batida.*"
+
+legenda: |
+  Gancho na primeira linha.
+
+  Já aproveita para seguir, porque aqui a gente mostra o processo de verdade.
+
+  Agende sua avaliação pelo direct ou WhatsApp (11) 94200-9282.
+  📍 Av. Paulista 1636 - Ao lado do MASP
+
+  Resultados variam de pessoa para pessoa.
+  Resp. técnico: Dr. Daniel Sampaio Mendes · CRM/SP 186.470
+
+  #esteticasp #avenidapaulista #divinemedicalspa

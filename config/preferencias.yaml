@@ -1,0 +1,35 @@
+# Regras de edição do Renato (docs/CONHECIMENTO_DIVINE.md, seção 7). Valores numéricos usados pelo template.
+versoes_por_video: 3
+max_fontes_por_video: 2
+
+animacao:
+  entrada_s: 0.9          # fade + deslize lento
+  saida_s: 0.6
+  deslize_px: 34
+  dissolve_entre_clipes_s: 0.35   # 0 = corte seco
+  zoom_respiro: {amplitude: 0.035, ciclo_s: 26}
+
+texto:
+  leitura_palavras_por_s: 3.2     # tempo mínimo na tela = palavras / esse valor
+  tempo_minimo_s: 1.6
+  largura_max_px: 900
+  sombra: true
+  placa_escura: auto              # auto | sempre | nunca
+
+fechamento:
+  duracao_s: 2.6                  # curto: Código Viral pede "porta na cara"
+  escurecer_final_s: 0.5
+
+trilha:
+  usar: true
+  bpm: 84
+  volume_db: -22
+  ducking_db: -34                 # volume da trilha embaixo de fala
+  entrada_s: 2.0
+
+progresso:
+  altura_px: 6
+  cor: dourado
+
+# Regras aprendidas: o comando `divine regra "texto"` acrescenta aqui (e em docs/CONHECIMENTO_DIVINE.md)
+regras_aprendidas: []

@@ -1,0 +1,83 @@
+# Banco de combinações de fontes (Biblioteca_Fontes/LEIA-ME.md). Máximo 2 famílias por vídeo.
+# titulo/apoio: arquivo em Biblioteca_Fontes/ttf, peso (eixo wght quando a fonte é variável),
+# caixa_alta, tracking (fração do tamanho), escala (título: x92 px no hook; apoio: x57 px).
+# destaque: como a palavra-chave (*assim*) é desenhada: arquivo + peso, sempre em dourado.
+pasta: Biblioteca_Fontes/ttf
+
+combinacoes:
+  A:
+    nome: Bilhete
+    titulo: {arquivo: InstrumentSerif-Regular.ttf, caixa_alta: true, tracking: 0.01, escala: 1.0}
+    apoio: {arquivo: "Caveat[wght].ttf", peso: 500, escala: 1.3}
+    destaque: {arquivo: InstrumentSerif-Italic.ttf}
+  B:
+    nome: Vogue
+    titulo: {arquivo: "BodoniModa[opsz,wght].ttf", peso: 500, escala: 0.95}
+    apoio: {arquivo: "Jost[wght].ttf", peso: 300, caixa_alta: true, tracking: 0.22, escala: 0.7}
+    destaque: {arquivo: "BodoniModa[opsz,wght].ttf", peso: 500}
+  C:
+    nome: Revista
+    titulo: {arquivo: "PlayfairDisplay[wght].ttf", peso: 700, escala: 0.92}
+    apoio: {arquivo: Poppins-Light.ttf, escala: 0.85}
+    destaque: {arquivo: "PlayfairDisplay-Italic[wght].ttf", peso: 600}
+  D:
+    nome: Clássico quente
+    titulo: {arquivo: DMSerifDisplay-Regular.ttf, escala: 0.95}
+    apoio: {arquivo: "Lora-Italic[wght].ttf", peso: 400, escala: 0.95}
+    destaque: {arquivo: "Lora-Italic[wght].ttf", peso: 500}
+  E:
+    nome: Assinatura
+    titulo: {arquivo: Italiana-Regular.ttf, escala: 1.0}
+    apoio: {arquivo: MrsSaintDelafield-Regular.ttf, escala: 1.6}
+    destaque: {arquivo: Italiana-Regular.ttf}
+  F:
+    nome: Contemporâneo
+    titulo: {arquivo: "Fraunces[SOFT,WONK,opsz,wght].ttf", peso: 500, escala: 0.9}
+    apoio: {arquivo: "Manrope[wght].ttf", peso: 400, escala: 0.82}
+    destaque: {arquivo: "Fraunces[SOFT,WONK,opsz,wght].ttf", peso: 600}
+  G:
+    nome: Diário
+    titulo: {arquivo: Gloock-Regular.ttf, escala: 0.92}
+    apoio: {arquivo: CourierPrime-Regular.ttf, escala: 0.82}
+    destaque: {arquivo: Gloock-Regular.ttf}
+  H:
+    nome: Impacto chique
+    titulo: {arquivo: BebasNeue-Regular.ttf, caixa_alta: true, tracking: 0.02, escala: 1.15}
+    apoio: {arquivo: PinyonScript-Regular.ttf, escala: 1.35}
+    destaque: {arquivo: BebasNeue-Regular.ttf}
+  I:
+    nome: Spa minimal
+    titulo: {arquivo: TenorSans-Regular.ttf, caixa_alta: true, tracking: 0.12, escala: 0.78}
+    apoio: {arquivo: "Lora-Italic[wght].ttf", peso: 400, escala: 0.95}
+    destaque: {arquivo: "Lora-Italic[wght].ttf", peso: 500}
+  J:
+    nome: Bilhete noturno
+    titulo: {arquivo: InstrumentSerif-Italic.ttf, escala: 1.0}
+    apoio: {arquivo: "Caveat[wght].ttf", peso: 500, escala: 1.3}
+    destaque: {arquivo: InstrumentSerif-Italic.ttf}
+  K:
+    nome: Doce
+    titulo: {arquivo: "Rubik[wght].ttf", peso: 900, escala: 0.9}
+    apoio: {arquivo: Allura-Regular.ttf, escala: 1.55}
+    destaque: {arquivo: "Rubik[wght].ttf", peso: 900}
+  L:
+    nome: Romântica ousada
+    titulo: {arquivo: DelaGothicOne-Regular.ttf, escala: 0.82}
+    apoio: {arquivo: MonsieurLaDoulaise-Regular.ttf, escala: 1.6}
+    destaque: {arquivo: DelaGothicOne-Regular.ttf}
+  M:
+    nome: Editorial
+    titulo: {arquivo: AbrilFatface-Regular.ttf, condensar: 0.74, escala: 1.05}
+    apoio: {arquivo: TitilliumWeb-Light.ttf, caixa_alta: true, tracking: 0.16, escala: 0.72}
+    destaque: {arquivo: AbrilFatface-Regular.ttf, condensar: 0.74}
+  N:
+    nome: Moderna
+    titulo: {arquivo: "Unbounded[wght].ttf", peso: 900, escala: 0.78}
+    apoio: {arquivo: AguafinaScript-Regular.ttf, escala: 1.6}
+    destaque: {arquivo: "Unbounded[wght].ttf", peso: 900}
+
+# Fontes fixas da marca (não contam no limite de 2)
+marca:
+  rodape: Poppins-Light.ttf
+  pill: Poppins-Medium.ttf
+  rotulo: "Jura[wght].ttf"

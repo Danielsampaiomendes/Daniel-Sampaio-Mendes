@@ -1,0 +1,5 @@
+Pillow>=9.5
+numpy>=1.23
+PyYAML>=6.0
+soundfile>=0.12   # só para regenerar o kit de SFX
+pytest>=7         # testes

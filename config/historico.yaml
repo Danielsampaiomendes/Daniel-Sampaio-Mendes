@@ -1,0 +1,6 @@
+# Rodízio de fontes e SFX entre vídeos (o Divine Studio atualiza sozinho a cada render aprovado).
+# Mais recente por último. Estado inicial copiado do docs/BANCO_HOOKS.md em 27/10/2026.
+fontes: [F, J, M, B, E, I, H, K, C, A, H, D, B, L, N, C, I, M, D, E, G, J, F, K, F, K, A]
+sfx_abertura: [notificacao_suave_a, impacto_grave_suave_b, swell_reverso_a, brilho_dourado_c, camera_shutter_a, swell_reverso_b]
+sfx_fechamento: [cristal_a, cristal_b]
+videos: []

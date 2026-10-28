@@ -35,5 +35,8 @@ titilliumweb TitilliumWeb-Regular.ttf
 abrilfatface AbrilFatface-Regular.ttf
 unbounded Unbounded%5Bwght%5D.ttf
 aguafinascript AguafinaScript-Regular.ttf
+cormorantgaramond CormorantGaramond%5Bwght%5D.ttf
+jura Jura%5Bwght%5D.ttf
+lora Lora%5Bwght%5D.ttf
 LIST
 ls ttf | wc -l

@@ -1,0 +1,43 @@
+# Identidade visual Divine Medical Spa (fonte de verdade: docs/CONHECIMENTO_DIVINE.md, seção 3)
+cores:
+  fundo: "#12110F"
+  dourado: "#CCBD91"
+  dourado_escuro: "#B8A169"
+  dourado_destaque: "#D6C08A"
+  off_white: "#F5F4F1"
+  texto: "#CDCDCB"
+  rodape: "#96948C"
+
+logo:
+  # Símbolo oficial (trevo dourado com textura). Se o PNG não existir, usa o SVG vetorial.
+  simbolo_png: divine-simbolo-1024.png
+  simbolo_svg: Logo_Divine.svg
+  # Letreiro: composição do site (DIVINE em Cormorant Garamond espaçado sobre MEDICAL SPA em Jost Light)
+  letreiro:
+    linha1: DIVINE
+    fonte1: "CormorantGaramond[wght].ttf"
+    peso1: 500
+    tracking1: 0.18
+    linha2: MEDICAL SPA
+    fonte2: "Jost[wght].ttf"
+    peso2: 300
+    tracking2: 0.40
+    cor: "#B8A169"
+
+clinica:
+  endereco: "Av. Paulista 1636 - Ao lado do MASP"
+  whatsapp: "(11) 94200-9282"
+  instagram: "@dvmedicalspa"
+
+responsavel_tecnico:
+  curto: "Resp. técnico: Dr. Daniel Sampaio Mendes · CRM/SP 186.470"
+  completo: "Resp. técnico: Dr. Daniel Mendes · CRM/SP 186.470 · RQE 105302 · RQE 130995"
+
+aviso_resultados: "Resultados variam de pessoa para pessoa."
+
+# Área segura do Instagram em 1080x1920 (px): nada de texto importante fora disso
+area_segura:
+  topo: 220
+  base: 380
+  direita: 140
+  esquerda: 60
