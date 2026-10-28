@@ -23,6 +23,12 @@ erros:
   - id: nutrologo
     padrao: '\bnutr[oó]log[oa]\b'
     motivo: "'Nutrólogo' só com RQE em nutrologia (o Dr. Daniel não tem). Use 'pós-graduado em Nutrologia'."
+  - id: antes_depois
+    padrao: '\bantes\s*(e|x|vs\.?|/)\s*depois\b'
+    motivo: "Antes e depois de paciente só no uso interno (uso_interno: true, sai marcado 'não postar'). Para postar: Mito vs. Verdade ou Expectativa vs. Realidade."
+  - id: dr_george
+    padrao: '\b(dr|doutor)\.?\s+george\b'
+    motivo: "George é enfermeiro: nas peças sempre 'Enf. George Albuquerque' (o @ mantém 'dr' por ser o handle real)."
   - id: comenta_palavra
     padrao: '\b(?i:comenta(r)?)\s+((?i:a palavra)\s+)?["“]?[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9]+["”]?(?=\s|$|[.!,:])'
     sensivel_maiusculas: true
@@ -35,9 +41,6 @@ avisos:
   - id: numeracao_tela
     padrao: '^\s*0?\d{1,2}\s*[.)·|]?\s*$|^\s*0\d\b'
     motivo: "Sem numeração na tela (01, 02, 03)."
-  - id: antes_depois
-    padrao: '\bantes\s*(e|x|vs\.?|/)\s*depois\b'
-    motivo: "Antes e depois de paciente só no template de uso interno. Para postar: Mito vs. Verdade ou Expectativa vs. Realidade."
   - id: promocional
     padrao: '\b(imperd[ií]vel|últimas vagas|corre que|só hoje)\b'
     motivo: "Tom: evitar linguagem de promoção."
@@ -51,3 +54,13 @@ exigir:
   rt_em_conteudo_medico: true      # RT no fechamento ou na legenda quando conteudo_medico: true
   aviso_resultados: true           # "Resultados variam de pessoa para pessoa." na legenda
   autorizacao_imagem: true         # campo autorizacao_imagem preenchido (sim | nao_aparece); "pendente" sai marcado
+  musica_licenciada: true          # audio.musica (faixa de fora) só com musica_licenciada: true no projeto
+
+# Nota de revisão viral (0 a 10 por critério; Código Viral + glamour Divine)
+nota_viral:
+  hook_palavras_max: 10            # 1ª batida curta
+  hook_ate_s: 4.0                  # frase do gancho completa antes de 4 s
+  duracao_alvo: [25, 40]
+  troca_visual_s: 2.5              # média entre mudanças visuais
+  fechamento_max_s: 3.0            # porta na cara
+  entrada_min_s: 0.5               # glamour: textos entram devagar

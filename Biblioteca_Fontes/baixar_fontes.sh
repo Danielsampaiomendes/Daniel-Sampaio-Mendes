@@ -28,6 +28,7 @@ pinyonscript PinyonScript-Regular.ttf
 tenorsans TenorSans-Regular.ttf
 rubik Rubik%5Bwght%5D.ttf
 allura Allura-Regular.ttf
+greatvibes GreatVibes-Regular.ttf
 delagothicone DelaGothicOne-Regular.ttf
 monsieurladoulaise MonsieurLaDoulaise-Regular.ttf
 titilliumweb TitilliumWeb-Light.ttf

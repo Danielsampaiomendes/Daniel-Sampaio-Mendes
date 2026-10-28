@@ -105,8 +105,9 @@ def envelope_fala(voz: np.ndarray, janela_s: float = 0.25) -> np.ndarray:
 
 
 def mixar(duracao: float, voz: np.ndarray | None, eventos: list, usar_trilha: bool = True,
-          volume_trilha_db: float | None = None, semente: int = 7) -> np.ndarray:
-    """voz: áudio original da base (ou None); eventos: [(segundos, nome_sfx, ganho_db)]."""
+          volume_trilha_db: float | None = None, semente: int = 7, musica: np.ndarray | None = None) -> np.ndarray:
+    """voz: áudio original da base (ou None); eventos: [(segundos, nome_sfx, ganho_db)].
+    musica: faixa licenciada no lugar da trilha sintetizada (repete em loop se for curta)."""
     pref = load("preferencias")["trilha"]
     n = int(duracao * SR)
     mix = np.zeros((n, 2), np.float32)
@@ -118,7 +119,12 @@ def mixar(duracao: float, voz: np.ndarray | None, eventos: list, usar_trilha: bo
         if tem_fala:
             mix += v
     if usar_trilha:
-        tr = trilha_lounge(duracao, pref["bpm"], semente)
+        if musica is not None and len(musica):
+            reps = int(np.ceil(n / len(musica)))
+            tr = np.tile(musica, (reps, 1))[:n]
+            tr = tr / (np.abs(tr).max() + 1e-9)
+        else:
+            tr = trilha_lounge(duracao, pref["bpm"], semente)
         vol = db(volume_trilha_db if volume_trilha_db is not None else pref["volume_db"])
         if tem_fala:
             env = envelope_fala(mix)

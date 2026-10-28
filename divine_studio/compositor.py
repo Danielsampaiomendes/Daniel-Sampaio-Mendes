@@ -11,7 +11,7 @@ class Camada:
     """Imagem RGBA que entra com fade + deslize lento e sai com fade."""
 
     def __init__(self, img: Image.Image, x: int, y: int, t0: float, t1: float,
-                 entrada: float = 0.9, saida: float = 0.6, deslize: float = 34.0, nome: str = ""):
+                 entrada: float = 0.9, saida: float = 0.6, deslize: float = 34.0, nome: str = "", texto: str = ""):
         a = np.asarray(img.convert("RGBA"), dtype=np.float32) / 255.0
         self.alpha = a[..., 3:4]
         self.rgb_p = a[..., :3] * self.alpha * 255.0
@@ -20,6 +20,7 @@ class Camada:
         self.t0, self.t1 = t0, t1
         self.entrada, self.saida, self.deslize = entrada, saida, deslize
         self.nome = nome
+        self.texto = texto      # texto mostrado (para o tempo de leitura na nota viral)
 
     def pintar(self, frame: np.ndarray, t: float) -> None:
         op, pin = envelope(t, self.t0, self.t1, self.entrada, self.saida)

@@ -38,7 +38,7 @@ def fonte(arquivo: str, tamanho: int, peso: int | None = None) -> ImageFont.Free
 
 
 def combinacao(codigo: str) -> dict:
-    combos = load("fontes")["combinacoes"]
+    combos = {**load("fontes")["combinacoes"], **(load("fontes").get("combinacoes_fixas") or {})}
     if codigo not in combos:
         raise SystemExit(f"Combinação de fontes '{codigo}' não existe. Opções: {', '.join(combos)}")
     c = dict(combos[codigo])

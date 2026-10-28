@@ -107,6 +107,12 @@ def _letreiro(tamanho1: float, tamanho2: float, gap: float):
 
 
 @lru_cache(maxsize=8)
+def letreiro(altura: int = 40) -> Image.Image:
+    """Só o letreiro DIVINE / MEDICAL SPA (topo da TV)."""
+    return _letreiro(altura * 0.62, altura * 0.25, altura * 0.16)
+
+
+@lru_cache(maxsize=8)
 def horizontal(altura: int = 56) -> Image.Image:
     s = simbolo(altura)
     let = _letreiro(altura * 0.50, altura * 0.20, altura * 0.13)

@@ -63,32 +63,54 @@ def _formato(p):
     return int(f["largura"]), int(f["altura"])
 
 
-def _digital_base(p) -> str:
+def _digital_base(p, tamanho=None) -> str:
     """Tudo o que muda a base: se nada disso mudou, a base é reaproveitada."""
-    return json.dumps({k: p.get(k) for k in ("clipes", "dissolve", "zoom_respiro", "formato")},
-                      sort_keys=True, default=str)
+    return json.dumps({**{k: p.get(k) for k in ("clipes", "dissolve", "zoom_respiro", "formato", "template")},
+                       "tamanho": tamanho}, sort_keys=True, default=str)
 
 
-def _base_atualizada(p, base: Path) -> bool:
-    meta = base.with_suffix(".json")
-    if not base.exists() or not meta.exists():
-        return False
-    try:
-        return json.loads(meta.read_text(encoding="utf-8")).get("_digital") == _digital_base(p)
-    except Exception:
-        return False
+def _base(p, arq: Path, w: int, h: int, refazer: bool = False) -> dict:
+    """Monta (ou reaproveita) uma base de vídeo do tamanho pedido."""
+    from .ingest import construir_base
+    meta_arq = arq.with_suffix(".json")
+    dig = _digital_base(p, [w, h])
+    if not refazer and arq.exists() and meta_arq.exists():
+        try:
+            meta = json.loads(meta_arq.read_text(encoding="utf-8"))
+            if meta.get("_digital") == dig:
+                return meta
+        except Exception:
+            pass
+    print(f"• Montando {arq.stem} (cortes, HDR, recorte, dissolve)…")
+    meta = construir_base(p, w, h, arq)
+    meta["_digital"] = dig
+    meta_arq.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    return meta
 
 
-def _transcritor(pasta: Path, motor: str | None = None, refazer: bool = False):
+def _transcritor(pasta: Path, motor: str | None = None, refazer: bool = False, ocr: dict | None = None):
+    """Fala de cada bruto: transcrição (padrão) ou OCR da legenda queimada (texto_da_fala: ocr)."""
     from .transcricao import transcrever
     cache = {}
 
     def fn(arq: Path) -> list:
         k = str(arq)
         if k not in cache:
-            cache[k] = transcrever(arq, pasta / "trabalho" / "transcricoes", motor, refazer)
+            if ocr is not None:
+                from .ocr import ler_legenda_queimada
+                cache[k] = ler_legenda_queimada(arq, pasta / "trabalho" / "transcricoes",
+                                                tuple(ocr.get("faixa", (0.70, 0.88))), float(ocr.get("passo", 0.4)))
+            else:
+                cache[k] = transcrever(arq, pasta / "trabalho" / "transcricoes", motor, refazer)
         return cache[k]
     return fn
+
+
+def _ocr_cfg(p):
+    t = p.get("texto_da_fala")
+    if t == "ocr":
+        return {}
+    return t if isinstance(t, dict) and t.get("modo") == "ocr" else None
 
 
 def _precisa_fala(p) -> bool:
@@ -125,7 +147,7 @@ def cmd_editar(a):
     from .audio import ler_audio, mixar, salvar_wav
     from .compliance import linha_checklist, revisar
     from .exportar import exportar, quadros
-    from .ingest import construir_base
+    from .compliance import nota_viral
     from .render import renderizar
     from .rodizio import escolher_fontes, escolher_sfx, registrar
     from .templates import TEMPLATES
@@ -133,15 +155,21 @@ def cmd_editar(a):
     t_ini = time.time()
     p = ler_projeto(Path(a.projeto))
     pasta = p["_pasta"]
+    if p.get("template", "divine") not in TEMPLATES:
+        raise SystemExit(f"Template '{p.get('template')}' não existe. Opções: {', '.join(TEMPLATES)}")
+    tmpl = TEMPLATES[p.get("template", "divine")]
+    if hasattr(tmpl, "preparar"):
+        tmpl.preparar(p)
     W, H = _formato(p)
     fps = load("exportacao")["fps"]
     trabalho, saida = pasta / "trabalho", pasta / "saida"
     trabalho.mkdir(exist_ok=True)
     saida.mkdir(exist_ok=True)
 
-    print(f"Divine Studio {__version__} · {p.get('titulo')} · {p.get('formato', 'reels')} {W}x{H}")
+    print(f"Divine Studio {__version__} · {p.get('titulo')} · template {p.get('template', 'divine')} · "
+          f"{p.get('formato', 'reels')} {W}x{H}")
     _resolver_hooks(p)
-    transcrever_fn = _transcritor(pasta) if _precisa_fala(p) else None
+    transcrever_fn = _transcritor(pasta, ocr=_ocr_cfg(p)) if _precisa_fala(p) else None
     md_cortes = ""
     if transcrever_fn and (p.get("corte_limpo") or any(c.get("corte_limpo") for c in p.get("clipes") or [])):
         from .corte import expandir_clipes
@@ -156,12 +184,13 @@ def cmd_editar(a):
         raise SystemExit("Revisor bloqueou a exportação. Corrija os erros acima (ou use --forcar para um teste interno).")
 
     base = trabalho / "base.mov"
-    if a.refazer_base or not _base_atualizada(p, base):
-        print("• Montando a base (cortes, HDR, recorte, dissolve)…")
-        meta = construir_base(p, W, H, base)
-        meta["_digital"] = _digital_base(p)
-        base.with_suffix(".json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
-    meta = json.loads(base.with_suffix(".json").read_text(encoding="utf-8"))
+    bw, bh = tmpl.tamanho_base(p, W, H) if hasattr(tmpl, "tamanho_base") else (W, H)
+    meta = _base(p, base, bw, bh, a.refazer_base)
+    extras_video = []
+    for ex in (tmpl.extras(p, W, H) if hasattr(tmpl, "extras") else []):
+        arq_ex = trabalho / f"{ex['nome']}.mov"
+        _base({**p, "clipes": ex["clipes"]}, arq_ex, ex["largura"], ex["altura"], a.refazer_base)
+        extras_video.append((arq_ex, ex["largura"], ex["altura"]))
     dur = float(meta["duracao"])
     print(f"  base: {dur:.1f}s · alta qualidade: {'sim' if meta['alta_qualidade'] else 'não'}")
     p["_base_meta"] = meta
@@ -186,7 +215,6 @@ def cmd_editar(a):
     sfx_t = escolher_sfx("transicao", len(versoes), [v.get("sfx_transicao") for v in versoes],
                          ocupados=[a_ + f_ for a_, f_ in zip(sfx_a, sfx_f)])
 
-    tmpl = TEMPLATES[p.get("template", "divine")]
     aud = p.get("audio") or {}
     voz = ler_audio(base, dur) if aud.get("original", True) else None
     modo_voz = "sem voz"
@@ -205,23 +233,29 @@ def cmd_editar(a):
             for x in ach_v:
                 print("  " + x.linha())
             raise SystemExit(f"Revisor bloqueou {nome}.")
-        mix = mixar(plano.duracao_total, voz, plano.eventos_sfx, aud.get("trilha", True), semente=7 + i)
+        mix = mixar(plano.duracao_total, voz, plano.eventos_sfx, aud.get("trilha", True), semente=7 + i,
+                    musica=_musica(p))
         wav = trabalho / f"{nome}_mix.wav"
         salvar_wav(mix, wav)
         master = trabalho / f"{nome}_master.mov"
-        seg = renderizar(base, plano, W, H, fps, wav, master, dur)
+        seg = renderizar(base, plano, W, H, fps, wav, master, dur, (bw, bh), extras_video)
         hook_txt = " ".join(b.get("titulo", "") for b in (v.get("hook") or [])) if isinstance(v.get("hook"), list) \
             else (v.get("hook") or {}).get("titulo", "")
+        hook_slug = slug(hook_txt.replace("*", ""), 28) if hook_txt.strip() else ""
         arq = f"{p.get('data', hoje())}_{p.get('formato', 'reels')}_{slug(p.get('titulo', 'video'), 30)}_{nome}_" \
-              f"{slug(hook_txt.replace('*', ''), 28)}{'_autorizacao-pendente' if pendente else ''}.mp4"
+              f"{hook_slug}{'_autorizacao-pendente' if pendente else ''}" \
+              f"{'_USO-INTERNO-NAO-POSTAR' if p.get('uso_interno') else ''}.mp4"
+        arq = arq.replace("__", "_").replace("_.mp4", ".mp4")
         if a.rapido:
             arq = arq.replace(".mp4", "_PREVIA.mp4")
-        ex = exportar(master, saida / arq, alta_qualidade=meta["alta_qualidade"], rapido=a.rapido)
+        ex = exportar(master, saida / arq, alta_qualidade=meta["alta_qualidade"], rapido=a.rapido,
+                      limite_mb=p.get("limite_mb"))
+        nota = nota_viral(p, plano, ach_v, voz is not None)
         folha = quadros(saida / arq, trabalho / f"{nome}_quadros.jpg")
         print(f"  ✓ {arq} · {ex['mb']} MB · render {seg:.0f}s")
         resultado.append({"nome": nome, "arquivo": arq, "mb": ex["mb"], "fontes": fontes[i], "hook_id": v.get("hook_id"),
                           "hook": hook_txt, "sfx_abertura": sfx_a[i], "sfx_fechamento": sfx_f[i],
-                          "sfx_transicao": usou_t,
+                          "sfx_transicao": usou_t, "nota": nota,
                           "duracao": round(plano.duracao_total, 1), "quadros": str(folha.relative_to(pasta))})
 
     if p.get("legenda"):
@@ -237,6 +271,16 @@ def cmd_editar(a):
     if not a.teste and not a.rapido:
         registrar(p.get("titulo", pasta.name), resultado)
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
+
+
+def _musica(p):
+    """Música de fora só com licença comercial declarada (o revisor bloqueia sem ela)."""
+    m = (p.get("audio") or {}).get("musica")
+    if not m:
+        return None
+    from .audio import ler_audio
+    from .ingest import resolver
+    return ler_audio(resolver(p, m))
 
 
 def _clipe_mudo(p, meta_clipe) -> bool:
@@ -272,6 +316,11 @@ def _relatorio(p, res, checklist, achados, segundos, extras=None):
                       f"{' + '.join(r['sfx_abertura'] + r.get('sfx_transicao', []) + r['sfx_fechamento'])} | {r['duracao']}s | {r['mb']} MB | "
                       f"`saida/{r['arquivo']}` |")
     linhas += [""] + [f"- {x}" for x in extras or []]
+    for r in res:
+        n = r.get("nota")
+        if n:
+            linhas.append(f"- **Nota viral {r['nome']}:** " + " · ".join(f"{k} {v}" for k, v in n["notas"].items())
+                          + (f" (dicas: {'; '.join(n['dicas'])})" if n["dicas"] else ""))
     linhas += ["", f"**Compliance:** {checklist}"]
     if achados:
         linhas += [""] + [f"- {x.linha()}" for x in achados]

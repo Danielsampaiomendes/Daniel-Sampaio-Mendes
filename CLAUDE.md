@@ -32,7 +32,8 @@ A pasta completa (com vídeos, imagens, áudios e fontes) fica no Mac do Renato:
 - **Uso interno (nunca postar)**: `Bumbum Up - Uso Interno/`, `Endolaser Bracos - Uso Interno/`.
 - **Tráfego pago (jun/2026)**: briefings Meta, plano Google Ads e ClassPass na raiz.
 - **Divine Studio**: `divine_studio/` (código), `config/` (regras em YAML), `tests/`, `projetos/` (um projeto por vídeo; exemplo: `projetos/2026-10-28_teste-co2-loops/`).
-- **Ainda não existem** (ver seção 3 do mapa): templates TV, Daniel, George e React no Divine Studio (fase 3), índices `claude/indice-videos-editados*.md` (estão só no projeto do app).
+- **Templates do Divine Studio**: `divine` (suave), `daniel`, `george`, `tv`, `react`, `pessoal` (ver `docs/DIVINE_STUDIO.md`); fotos oficiais de perfil em `assets/pessoas/` (só no Mac).
+- **Ainda não existem** (ver seção 3 do mapa): índices `claude/indice-videos-editados*.md` (estão só no projeto do app).
 
 ## Regras que valem sempre
 

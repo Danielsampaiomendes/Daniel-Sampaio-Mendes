@@ -65,7 +65,8 @@ def familias(*grupos) -> set:
 def registrar(projeto_nome: str, versoes: list) -> None:
     """versoes: [{'nome','fontes','sfx_abertura','sfx_fechamento','hook_id'}]"""
     h = dict(load("historico"))
-    h["fontes"] = (h.get("fontes", []) + [v["fontes"] for v in versoes])[-40:]
+    rodam = set(todas_combinacoes())   # combinações fixas de template (TV, PESSOAL) não entram no rodízio
+    h["fontes"] = (h.get("fontes", []) + [v["fontes"] for v in versoes if v["fontes"] in rodam])[-40:]
     h["sfx_abertura"] = (h.get("sfx_abertura", []) + [s for v in versoes for s in v["sfx_abertura"]])[-30:]
     h["sfx_fechamento"] = (h.get("sfx_fechamento", []) + [s for v in versoes for s in v["sfx_fechamento"]])[-20:]
     h["sfx_transicao"] = (h.get("sfx_transicao", []) + [s for v in versoes for s in v.get("sfx_transicao", [])])[-12:]

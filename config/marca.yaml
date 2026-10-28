@@ -7,6 +7,9 @@ cores:
   off_white: "#F5F4F1"
   texto: "#CDCDCB"
   rodape: "#96948C"
+  navy: "#0E194A"           # destaques do Enf. George
+  petroleo: "#143A3F"       # posts do Dr. Daniel
+  creme: "#FBF8F1"          # card estilo tweet
 
 logo:
   # Símbolo oficial (trevo dourado com textura). Se o PNG não existir, usa o SVG vetorial.

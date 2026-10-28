@@ -12,8 +12,33 @@ from .compositor import desfocado_escuro
 from .config import cor, load
 
 
+class _Leitor:
+    """Decodifica um vídeo quadro a quadro (segura o último quadro quando acaba)."""
+
+    def __init__(self, arquivo: Path, w: int, h: int):
+        self.w, self.h = w, h
+        self.p = subprocess.Popen(["ffmpeg", "-v", "error", "-i", str(arquivo), "-f", "rawvideo", "-pix_fmt", "rgb24",
+                                   "-"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        self.ultimo = None
+
+    def ler(self):
+        buf = self.p.stdout.read(self.w * self.h * 3) if self.p else b""
+        if len(buf) == self.w * self.h * 3:
+            self.ultimo = np.frombuffer(buf, np.uint8).reshape(self.h, self.w, 3).copy()
+            return self.ultimo
+        return None
+
+    def fechar(self):
+        if self.p:
+            self.p.kill()
+            self.p.stdout.close()
+            self.p.wait()
+            self.p = None
+
+
 def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida: Path,
-               duracao_base: float) -> float:
+               duracao_base: float, base_tamanho: tuple | None = None, extras: list | None = None) -> float:
+    """extras: [(arquivo, w, h)] decodificados junto (React); a moldura do plano compõe o quadro final."""
     pref = load("preferencias")
     total = plano.duracao_total
     n = int(round(total * fps))
@@ -23,26 +48,28 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
     barra_h = int(pref["progresso"]["altura_px"])
     barra_cor = np.array(cor(pref["progresso"]["cor"]), dtype=np.uint8)
 
-    dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", str(base), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    bw, bh = base_tamanho or (W, H)
+    dec = _Leitor(base, bw, bh)
+    outros = [_Leitor(a, w, h) for a, w, h in (extras or [])]
     enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
                             "-r", str(fps), "-i", "-", "-i", str(mix_wav), "-map", "0:v", "-map", "1:a",
                             "-c:v", "libx264", "-preset", "veryfast", "-crf", "12", "-pix_fmt", "yuv420p",
                             "-c:a", "pcm_s16le", "-shortest", str(saida)], stdin=subprocess.PIPE)
-    tam = W * H * 3
-    ultimo = None
     fundo_fech = None
     t_ini = time.time()
     for i in range(n):
         t = i / fps
-        quadro = None
-        if i < nbase:
-            buf = dec.stdout.read(tam)
-            if len(buf) == tam:
-                quadro = np.frombuffer(buf, np.uint8).reshape(H, W, 3).copy()
-                ultimo = quadro
+        quadro = dec.ler() if i < nbase else None
         if quadro is None:
-            quadro = ultimo.copy() if ultimo is not None else np.zeros((H, W, 3), np.uint8)
+            quadro = dec.ultimo.copy() if dec.ultimo is not None else np.zeros((bh, bw, 3), np.uint8)
+        ext = []
+        for o in outros:
+            q = o.ler()
+            ext.append(q if q is not None else (o.ultimo if o.ultimo is not None else np.zeros((o.h, o.w, 3), np.uint8)))
+        for ef in plano.efeitos_quadro:
+            quadro = ef(quadro, t)
+        if plano.moldura is not None:
+            quadro = plano.moldura(quadro, ext, t)
 
         # transição para o fundo desfocado do fechamento
         if t >= ini_f:
@@ -62,8 +89,9 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
                 c.pintar(quadro, t)
 
         # barra de progresso dourada
-        larg = int(W * min(1.0, (t + 1 / fps) / total))
-        quadro[0:barra_h, 0:larg] = barra_cor
+        if plano.barra_progresso:
+            larg = int(W * min(1.0, (t + 1 / fps) / total))
+            quadro[0:barra_h, 0:larg] = barra_cor
 
         # escurece no fim para o loop
         if t > total - escurecer:
@@ -75,9 +103,8 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
             print(f"    {t:5.1f}s / {total:.1f}s", flush=True)
     enc.stdin.close()
     enc.wait()
-    dec.kill()
-    dec.stdout.close()
-    dec.wait()
+    for d in [dec] + outros:
+        d.fechar()
     if enc.returncode != 0:
         raise SystemExit("Falha ao gravar o master do vídeo")
     return time.time() - t_ini

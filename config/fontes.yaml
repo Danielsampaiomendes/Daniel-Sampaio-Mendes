@@ -76,6 +76,19 @@ combinacoes:
     apoio: {arquivo: AguafinaScript-Regular.ttf, escala: 1.6}
     destaque: {arquivo: "Unbounded[wght].ttf", peso: 900}
 
+# Combinações fixas de templates específicos (fora do rodízio A a N)
+combinacoes_fixas:
+  PESSOAL:
+    nome: Pessoal do Renato
+    titulo: {arquivo: "BodoniModa[opsz,wght].ttf", peso: 700, caixa_alta: true, tracking: 0.04, escala: 0.9}
+    apoio: {arquivo: GreatVibes-Regular.ttf, escala: 1.7}
+    destaque: {arquivo: "BodoniModa[opsz,wght].ttf", peso: 700}
+  TV:
+    nome: TV (Italiana + Lora)
+    titulo: {arquivo: Italiana-Regular.ttf, escala: 1.0}
+    apoio: {arquivo: "Lora-Italic[wght].ttf", peso: 400, escala: 0.75}
+    destaque: {arquivo: Italiana-Regular.ttf}
+
 # Fontes fixas da marca (não contam no limite de 2)
 marca:
   rodape: Poppins-Light.ttf

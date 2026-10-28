@@ -54,6 +54,19 @@ Saída de cada projeto:
 - `relatorio.md`: hook, código do banco, fontes, SFX, duração, tamanho e a linha de compliance de cada versão
 - `trabalho/V1_quadros.jpg`: folha de contato para conferir rápido
 
+## Templates (`template:` no projeto.yaml)
+
+| Template | Para quê | O que muda |
+|---|---|---|
+| `divine` | Reels e Stories da clínica (padrão) | Suave/glamour: header, hook, CTA antecipado, mensagens, fechamento com logo, endereço, aviso e RT |
+| `daniel` | Vídeos do @drdanielmendess | Placas verde-petróleo; cartão com a foto oficial, nome, selo verificado e @ (≈3,5 a 9 s e antes do fim) |
+| `george` | Vídeos do Enf. George | Placas navy; selo do tema a partir de 3,3 s; cartão com COREN; placa navy 100% opaca no terço de baixo cobrindo a legenda queimada (a nova vai em cima; `texto_da_fala: ocr` lê a queimada) |
+| `tv` | TV 16:9 da clínica | Janela 4:5 com cantoneiras sobre o vídeo desfocado, painel esquerdo com mensagens a cada 4 s, painel direito fixo (`tv: {tratamento, indicacao}`), tela final de 6 s, rodapé com RT; 1 versão, 0,72× e dissolve 0,8 s |
+| `react` | Tela dividida | `clipes_referencia` em cima (com `credito` fixo), quem fala embaixo, legenda logo acima da cabeça |
+| `pessoal` | Perfil pessoal do Renato | Sem nenhuma marca Divine; Bodoni Moda caixa alta + Great Vibes; traço fino (linha, arco ou moldura, um por versão); sem RT |
+
+Medidas e textos fixos de cada template ficam em `config/templates.yaml`; pessoas (nome, registro, @, foto, cor) em `config/pessoas.yaml`.
+
 ## O que a ferramenta faz sozinha
 
 | Etapa | Regra aplicada (fonte: docs/CONHECIMENTO_DIVINE.md) |
@@ -72,7 +85,8 @@ Saída de cada projeto:
 | SFX | Um som leve na abertura, um whoosh bem baixo na troca entre clipes diferentes (no máximo 3, longe um do outro) e um no fechamento; nunca o mesmo som duas vezes na versão, até 4 famílias e 1 impacto por vídeo, variações fora das usadas por último; sem ping a cada texto |
 | Trilha | Lounge original sintetizada (84 bpm), entrada gradual, ducking automático sob a fala |
 | Fechamento | 2,6 s: logo empilhado, frase, pill de CTA, endereço oficial, aviso de resultados e RT; escurece para o loop |
-| Compliance | Bloqueia percentual, promessa, prazo garantido, comparação, medicamento, "implante hormonal", "nutrólogo" e "comenta PALAVRA"; avisa travessão, numeração, antes e depois e linguagem promocional; exige aviso e RT na legenda |
+| Revisão viral | Nota de 0 a 10 por versão (hook, retenção, leitura, áudio, glamour, compliance) com dicas no `relatorio.md` |
+| Compliance | Bloqueia antes e depois fora do uso interno, "Dr. George", marca Divine no template pessoal, música de fora sem licença, percentual, promessa, prazo garantido, comparação, medicamento, "implante hormonal", "nutrólogo" e "comenta PALAVRA"; avisa travessão, numeração, antes e depois e linguagem promocional; exige aviso e RT na legenda |
 | Exportação | x264 slow, tune film, aq-mode=3, crf 17; −16 LUFS; refaz em 2 passes se passar de 30 MB |
 
 ## Arquivos
@@ -83,7 +97,7 @@ Saída de cada projeto:
 
 ## Roteiro das próximas fases
 
-1. **Fase 2 (feita em 28/10/2026)**: transcrição com tempo por palavra, corte limpo, limpeza de voz, legenda da fala palavra a palavra, mensagens sincronizadas com a fala, sorteio e cadastro de hooks, SFX de transição com limite de famílias. Falta: OCR para vídeo com legenda queimada (entra com o template George, fase 3).
-2. **Fase 3**: templates TV 16:9 (janela 4:5 com cantoneiras, painéis laterais), Daniel (foto oficial, selo verificado), George (navy + legenda que cobre a queimada), React/tela dividida e pessoal.
+1. **Fase 2 (feita em 28/10/2026)**: transcrição com tempo por palavra, corte limpo, limpeza de voz, legenda da fala palavra a palavra, mensagens sincronizadas com a fala, sorteio e cadastro de hooks, SFX de transição com limite de famílias.
+2. **Fase 3 (feita em 28/10/2026)**: templates Daniel, George (com OCR da legenda queimada), TV, React e Pessoal; revisor ampliado e nota de revisão viral.
 3. **Fase 4**: efeitos EC/EV com recorte da pessoa (texto atrás da cabeça, capa de revista, card 3D, círculo + freeze + spoiler), pacote por categorias, registro automático no índice de vídeos.
 4. **Fase 5**: interface web local para arrastar vídeos, comparar as 3 versões lado a lado e aprovar.

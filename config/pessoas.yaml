@@ -1,0 +1,26 @@
+# Pessoas que aparecem nas peças (docs/CONHECIMENTO_DIVINE.md, seção 2).
+# foto: foto OFICIAL de perfil (PNG/JPG quadrado). Sem a foto, o cartão sai com as iniciais e um aviso.
+daniel:
+  nome: "Dr. Daniel Mendes"
+  subtitulo: "Pós-graduado em Nutrologia · Einstein"
+  registro: "CRM/SP 186.470 · RQE 105302 · RQE 130995"
+  instagram: "@drdanielmendess"
+  verificado: true
+  foto: assets/pessoas/daniel_perfil.png      # terno azul (nunca recorte aleatório)
+  cor: "#143A3F"                              # verde-petróleo dos posts dele
+george:
+  nome: "Enf. George Albuquerque"
+  subtitulo: "Enfermeiro esteta · harmonização corporal"
+  registro: "COREN-SP 613.383"
+  instagram: "@drgeorgealbuquerque"
+  verificado: false
+  foto: assets/pessoas/george_perfil.png
+  cor: "#0E194A"                              # azul-marinho dos destaques dele
+isis:
+  nome: "Dra. Isis Aoyagi"
+  subtitulo: "Cirurgia do Aparelho Digestivo"
+  registro: "CRM-SP 174.381 · RQE 91.799"
+  instagram: "@draisisaoyagi"
+  verificado: false
+  foto: assets/pessoas/isis_perfil.png
+  cor: "#12110F"

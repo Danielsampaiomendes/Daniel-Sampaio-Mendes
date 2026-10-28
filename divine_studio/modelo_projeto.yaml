@@ -1,7 +1,7 @@
 # Projeto de vídeo Divine Studio. Textos: *palavra* = destaque dourado; " / " = quebra de linha.
 titulo: "Tema do vídeo"
 data: "{data}"
-template: divine            # divine (outros templates chegam nas próximas fases)
+template: divine            # divine | daniel | george | tv | react | pessoal
 formato: reels              # reels | stories | feed45 | feed11 | tv
 conteudo_medico: true       # mostra o RT no fechamento e exige na legenda
 autorizacao_imagem: pendente  # sim | pendente | nao_aparece | proprio
@@ -13,6 +13,10 @@ audio:
 corte_limpo: false          # true: tira muletas, takes repetidos e pausas longas da fala (revise em trabalho/cortes.md)
 remover_trechos: []         # frases exatas que saíram ruins, ex.: ["então assim né"]
 legendas: false             # true: legenda da fala na tela, palavra a palavra
+# texto_da_fala: ocr        # George: lê a legenda queimada (Tesseract) em vez de transcrever
+# uso_interno: true         # antes e depois de consulta: libera o revisor e marca o arquivo NAO-POSTAR
+# tv: {tratamento: "Laser de CO2", indicacao: "Manchas senis nas mãos"}   # template tv
+# clipes_referencia: [...]  e  credito: "@perfil"                        # template react
 correcoes: {}               # erros da transcrição, ex.: {"divaine": "Divine"}
 
 clipes:

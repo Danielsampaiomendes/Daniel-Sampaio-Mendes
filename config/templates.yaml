@@ -1,0 +1,46 @@
+# Medidas e textos fixos de cada template (docs/CONHECIMENTO_DIVINE.md, seção 5). Em px no tamanho final.
+
+tv:                                   # 5.2 TV 16:9 (ref. "CO2 em manchas senis")
+  janela: [688, 860]                  # 4:5 central
+  janela_y: 118
+  raio: 22
+  margem_lateral: 100
+  fundo_escurecer: 0.40               # fundo = o mesmo vídeo muito desfocado
+  velocidade: 0.72                    # câmera lenta com mescla de quadros
+  dissolve: 0.8
+  mensagem_s: 4.0                     # painel esquerdo: uma mensagem a cada ~4 s
+  fechamento_s: 6.0
+  duracao_alvo: [18, 30]              # ~23 s em loop
+  rotulo: "TRATAMENTO"
+  pergunta: "Ficou interessada?"
+  pill: "FALE COM O ATENDIMENTO"
+  apoio_pill: "Nossa equipe tira suas dúvidas"
+  pill_final: "FALE COM O NOSSO ATENDIMENTO"
+  frase_final: "Cuidado que *respeita o seu tempo.*"
+  rodape: "Conteúdo informativo · Resultados variam de pessoa para pessoa · Resp. técnico: Dr. Daniel Sampaio Mendes · CRM/SP 186.470"
+  limite_mb: 30
+
+daniel:                               # 5.3 vídeos no template Daniel
+  pessoa: daniel
+  cor_placa: petroleo
+  cartao: [3.5, 9.0]                  # cartão de nome (s); volta nos 3 s antes do fechamento
+  cartao_fim_s: 3.0
+
+george:                               # 5.4
+  pessoa: george
+  cor_placa: navy
+  selo_inicio: 3.3
+  cartao: [3.5, 9.0]
+  cartao_fim_s: 3.0
+  placa_legenda: {y: 1500, largura: 940, altura: 190, opacidade: 255}   # cobre a legenda queimada (100% opaca)
+  y_cta: 1230                         # CTA antecipado sobe para não bater na placa
+
+react:                                # 5.5 tela dividida
+  divisoria: 0.5                      # referência em cima, quem fala embaixo
+  legenda_posicao: 0.565              # logo acima da cabeça de quem fala, nunca sobre a referência
+  credito_prefixo: "fonte:"
+
+pessoal:                              # 5.7 template pessoal do Renato (sem marca Divine)
+  fontes: PESSOAL
+  ornamentos: [linha, arco, moldura]  # traço fino ligado ao tema, um por versão
+  cor_traco: off_white
