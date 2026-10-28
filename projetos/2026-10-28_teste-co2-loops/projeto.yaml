@@ -1,0 +1,48 @@
+# Teste real da fase 1 com os loops de laser de CO2 da pasta (animação horizontal 1840x760)
+titulo: "Teste CO2 loops"
+data: "2026-10-28"
+template: divine
+formato: reels
+conteudo_medico: true
+autorizacao_imagem: nao_aparece
+posicao_texto: topo
+audio: {original: false, trilha: true}
+clipes:
+  - {arquivo: "Videos/Laser CO2/Laser_CO2_superficial_loop.mp4", velocidade: 0.8, foco: [0.5, 0.5]}
+  - {arquivo: "Videos/Laser CO2/Laser_CO2_resurfacing_loop.mp4", velocidade: 0.8, foco: [0.45, 0.5]}
+selo: "LASER DE CO2 · POR DENTRO"
+cta_antecipado: "Manda pra amiga que vive *adiando o CO2.*"
+mensagens:
+  - titulo: "Microcolunas de energia / que *estimulam* a renovação."
+  - titulo: "A pele responde / no *seu tempo.*"
+    apoio: "cada protocolo começa na avaliação"
+fechamento:
+  frase: "Tecnologia a favor / da *sua pele.*"
+  cta: "Agende sua avaliação"
+versoes:
+  - nome: V1
+    hook_id: A-H18
+    hook:
+      - {titulo: "Essa luz vermelha / é só a *mira.*", duracao: 2.2}
+      - {titulo: "O laser de verdade / é *invisível.*", duracao: 2.2}
+  - nome: V2
+    hook_id: A-H17
+    hook:
+      - titulo: "É isso que o CO2 / faz *na sua pele:*"
+  - nome: V3
+    hook_id: C-H116
+    hook:
+      - {titulo: "Não é só uma luz / na pele.", duracao: 2.0}
+      - {titulo: "É um *chamado* / para o *colágeno.*", duracao: 2.4}
+legenda: |
+  A luz vermelha do laser de CO2 é só a mira. O que trabalha na sua pele é invisível 👀
+
+  Já aproveita para seguir, porque aqui a gente mostra o processo de verdade.
+
+  📍 Av. Paulista 1636 - Ao lado do MASP
+  Agende sua avaliação pelo direct ou WhatsApp (11) 94200-9282.
+
+  Resultados variam de pessoa para pessoa.
+  Resp. técnico: Dr. Daniel Sampaio Mendes · CRM/SP 186.470
+
+  #laserco2 #co2fracionado #colageno #esteticasp #avenidapaulista #divinemedicalspa
