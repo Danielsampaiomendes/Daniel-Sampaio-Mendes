@@ -1,5 +1,9 @@
 """Kit original de SFX Divine (sintetizado, livre de direitos). Gera WAV 24 bit 48 kHz."""
-import numpy as np, soundfile as sf, os, sys
+import numpy as np, os, sys, wave
+try:
+    import soundfile as sf
+except ImportError:  # sem soundfile: grava WAV 24 bit com o módulo wave da biblioteca padrão
+    sf = None
 SR = 48000
 OUT = sys.argv[1]
 os.makedirs(OUT, exist_ok=True)
@@ -35,7 +39,14 @@ def save(name, x, rev=0.2, size=1.0, width=0.3):
     nz = np.where(np.abs(x).max(1) > 2e-3 * np.abs(x).max())[0]; x = x[: nz[-1] + 1]
     f = int(0.02 * SR); x[-f:] *= np.linspace(1, 0, f)[:, None]
     x = x / np.abs(x).max() * 10 ** (-1 / 20)
-    sf.write(f"{OUT}/{name}.wav", x, SR, subtype="PCM_24"); print(name, round(len(x) / SR, 2))
+    if sf is not None:
+        sf.write(f"{OUT}/{name}.wav", x, SR, subtype="PCM_24")
+    else:
+        q = (np.clip(x, -1, 1) * 8388607).astype("<i4")
+        raw = np.frombuffer(q.tobytes(), np.uint8).reshape(-1, 4)[:, :3].tobytes()
+        with wave.open(f"{OUT}/{name}.wav", "wb") as w:
+            w.setnchannels(2); w.setsampwidth(3); w.setframerate(SR); w.writeframes(raw)
+    print(name, round(len(x) / SR, 2))
 
 def bell(f0, d, ratios=(1, 2.76, 5.4, 8.93), amps=(1, .5, .25, .12), decay=5):
     tt = t(d); x = sum(a * np.sin(2 * np.pi * f0 * r * tt) * np.exp(-decay * r ** .5 * tt) for r, a in zip(ratios, amps))

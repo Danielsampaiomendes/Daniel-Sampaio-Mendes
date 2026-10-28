@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as _dt
+import re
 
 from .config import load, save
 from .fonts import todas_combinacoes
@@ -29,8 +30,9 @@ def escolher_fontes(n: int, fixas: list | None = None, evitar_ultimas: int = 6) 
     return escolhidas
 
 
-def escolher_sfx(tipo: str, n: int, fixos: list | None = None) -> list:
-    """Lista de n grupos de SFX (cada grupo = lista de nomes) evitando variações recentes."""
+def escolher_sfx(tipo: str, n: int, fixos: list | None = None, ocupados: list | None = None) -> list:
+    """Lista de n grupos de SFX (cada grupo = lista de nomes) evitando variações recentes.
+    ocupados[k]: sons que a versão k já usa em outro momento (não repete o mesmo som no vídeo)."""
     cfg = load("sfx")[tipo]
     hist = load("historico").get(f"sfx_{tipo}", [])
     recentes = set(hist[-6:])
@@ -42,11 +44,22 @@ def escolher_sfx(tipo: str, n: int, fixos: list | None = None) -> list:
             escolhidos.append(g)
             usados.update(g)
             continue
-        cand = [g for g in cfg if not (set(g) & recentes) and not (set(g) & usados)] or \
-               [g for g in cfg if not (set(g) & usados)] or cfg
+        ja = set(ocupados[k]) if ocupados and k < len(ocupados) else set()
+        cand = [g for g in cfg if not (set(g) & (recentes | usados | ja))] or \
+               [g for g in cfg if not (set(g) & (usados | ja))] or \
+               [g for g in cfg if not (set(g) & ja)] or cfg
         escolhidos.append(cand[0])
         usados.update(cand[0])
     return escolhidos
+
+
+def familia(nome: str) -> str:
+    """whoosh_suave_b -> whoosh_suave; camera_shutter_b_duplo -> camera_shutter."""
+    return re.sub(r"_(?:[a-c])(?:_duplo)?$", "", nome)
+
+
+def familias(*grupos) -> set:
+    return {familia(n) for g in grupos for n in (g or [])}
 
 
 def registrar(projeto_nome: str, versoes: list) -> None:
@@ -55,9 +68,11 @@ def registrar(projeto_nome: str, versoes: list) -> None:
     h["fontes"] = (h.get("fontes", []) + [v["fontes"] for v in versoes])[-40:]
     h["sfx_abertura"] = (h.get("sfx_abertura", []) + [s for v in versoes for s in v["sfx_abertura"]])[-30:]
     h["sfx_fechamento"] = (h.get("sfx_fechamento", []) + [s for v in versoes for s in v["sfx_fechamento"]])[-20:]
+    h["sfx_transicao"] = (h.get("sfx_transicao", []) + [s for v in versoes for s in v.get("sfx_transicao", [])])[-12:]
     vids = h.get("videos", []) or []
     vids.append({"data": _dt.date.today().isoformat(), "projeto": projeto_nome,
                  "versoes": {v["nome"]: {"fontes": v["fontes"], "hook": v.get("hook_id"),
-                                         "sfx": v["sfx_abertura"] + v["sfx_fechamento"]} for v in versoes}})
+                                         "sfx": v["sfx_abertura"] + v.get("sfx_transicao", []) + v["sfx_fechamento"]}
+                                 for v in versoes}})
     h["videos"] = vids[-60:]
     save("historico", h, CAB)

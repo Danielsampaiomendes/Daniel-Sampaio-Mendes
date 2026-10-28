@@ -1,0 +1,3 @@
+# Tipo de cada hook (positivo | curiosidade | negativo) quando a classificação automática erra.
+# O comando `python3 -m divine_studio hooks novo "texto" --tipo curiosidade` acrescenta aqui sozinho.
+tipos: {}

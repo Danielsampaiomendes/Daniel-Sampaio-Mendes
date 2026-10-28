@@ -14,9 +14,10 @@ A pasta completa (com vídeos, imagens, áudios e fontes) fica no Mac do Renato:
 ## Editar vídeo novo: use o Divine Studio
 
 1. `python3 -m divine_studio novo "<tema>"` cria `projetos/AAAA-MM-DD_<tema>/`.
-2. Brutos em `bruto/`; preencha `projeto.yaml` com clipes, 3 hooks do banco (com `hook_id`), mensagens, fechamento e legenda.
-3. `python3 -m divine_studio editar <pasta> --rapido` para prévia; sem `--rapido` para a final.
-4. Toda regra nova vai para `config/` (YAML) ou `python3 -m divine_studio regra "..."`, nunca escondida no código.
+2. Brutos em `bruto/`; preencha `projeto.yaml` com clipes, 3 hooks do banco (`hook_id`, ou `hook: auto` para sortear), mensagens, fechamento e legenda.
+3. Vídeo falado: `corte_limpo: true` e `legendas: true`; confira com `python3 -m divine_studio cortar <pasta>` (precisa de faster-whisper ou ASSEMBLYAI_API_KEY).
+4. `python3 -m divine_studio editar <pasta> --rapido` para prévia; sem `--rapido` para a final.
+5. Toda regra nova vai para `config/` (YAML) ou `python3 -m divine_studio regra "..."`, nunca escondida no código.
 
 ## Onde está cada coisa (mapeado em 27/10/2026)
 

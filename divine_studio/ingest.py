@@ -102,6 +102,8 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         hq = forcar_hq if forcar_hq is not None else (min(p["largura"], p["altura"]) < hqcfg["altura_minima"] or c.get("alta_qualidade", False))
         hq_geral = hq_geral or hq
         entradas += ["-ss", f"{ini:.3f}", "-t", f"{fim - ini:.3f}", "-i", str(arq)]
+        if dissolve <= 0:
+            c = {**c, "_corte_seco": True}
 
         v = []
         if p["hdr"]:
@@ -116,35 +118,38 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         v.append(f"crop={W}:{H}:(iw-{W})*{fx}:(ih-{H})*{fy}")
         if hq:
             v.append(hqcfg["nitidez"])
-        v.append(f"fps={fps},format=yuv420p,setsar=1")
+        v.append(f"fps={fps},format=yuv420p,setsar=1,settb=AVTB")
         filtros.append(f"[{i}:v]{','.join(v)}[v{i}]")
 
         if p["audio"] and not c.get("mudo", False):
-            filtros.append(f"[{i}:a]asetpts=PTS-STARTPTS,{_atempo(vel)},aresample=48000,"
-                           f"aformat=sample_fmts=fltp:channel_layouts=stereo[a{i}]")
+            # micro fade nas pontas: corte seco no meio da fala sem estalo
+            filtros.append(f"[{i}:a:0]asetpts=PTS-STARTPTS,{_atempo(vel)},aresample=48000,"
+                           f"aformat=sample_fmts=fltp:channel_layouts=stereo,afade=t=in:d=0.012,"
+                           f"afade=t=out:st={max(0.0, dur_out - 0.012):.3f}:d=0.012[a{i}]")
         else:
             filtros.append(f"anullsrc=r=48000:cl=stereo,atrim=0:{dur_out:.3f}[a{i}]")
-        info_clipes.append({"arquivo": c["arquivo"], "duracao": round(dur_out, 3), "hdr": p["hdr"], "hq": hq,
-                            "resolucao": f"{p['largura']}x{p['altura']}"})
+        info_clipes.append({"arquivo": c["arquivo"], "caminho": str(arq), "inicio": ini, "velocidade": vel,
+                            "duracao": round(dur_out, 3), "hdr": p["hdr"], "hq": hq,
+                            "resolucao": f"{p['largura']}x{p['altura']}",
+                            "transicao": 0.0 if (i == 0 or c.get("_corte_seco")) else dissolve})
 
-    n = len(clipes)
-    if n == 1:
-        filtros.append("[v0]null[vc];[a0]anull[ac]")
-        total = info_clipes[0]["duracao"]
-    elif dissolve > 0:
-        L = info_clipes[0]["duracao"]
-        pv, pa = "v0", "a0"
-        for k in range(1, n):
-            off = L - dissolve
-            filtros.append(f"[{pv}][v{k}]xfade=transition=fade:duration={dissolve}:offset={off:.3f}[vx{k}]")
-            filtros.append(f"[{pa}][a{k}]acrossfade=d={dissolve}[ax{k}]")
-            pv, pa = f"vx{k}", f"ax{k}"
-            L = L + info_clipes[k]["duracao"] - dissolve
-        filtros.append(f"[{pv}]null[vc];[{pa}]anull[ac]")
-        total = L
-    else:
-        filtros.append("".join(f"[v{k}][a{k}]" for k in range(n)) + f"concat=n={n}:v=1:a=1[vc][ac]")
-        total = sum(c["duracao"] for c in info_clipes)
+    # dissolve entre clipes diferentes; corte seco entre trechos do mesmo take (corte limpo)
+    pv, pa = "v0", "a0"
+    L = info_clipes[0]["duracao"]
+    info_clipes[0]["inicio_base"] = 0.0
+    for k in range(1, len(clipes)):
+        d = info_clipes[k]["transicao"]
+        if d > 0:
+            filtros.append(f"[{pv}][v{k}]xfade=transition=fade:duration={d}:offset={L - d:.3f}[vx{k}]")
+            filtros.append(f"[{pa}][a{k}]acrossfade=d={d}[ax{k}]")
+        else:
+            filtros.append(f"[{pv}][v{k}]concat=n=2:v=1:a=0,settb=AVTB[vx{k}]")
+            filtros.append(f"[{pa}][a{k}]concat=n=2:v=0:a=1[ax{k}]")
+        info_clipes[k]["inicio_base"] = round(L - d, 3)
+        pv, pa = f"vx{k}", f"ax{k}"
+        L = L + info_clipes[k]["duracao"] - d
+    filtros.append(f"[{pv}]null[vc];[{pa}]anull[ac]")
+    total = L
 
     zr = pref["animacao"]["zoom_respiro"]
     amp = float(projeto.get("zoom_respiro", zr["amplitude"]))

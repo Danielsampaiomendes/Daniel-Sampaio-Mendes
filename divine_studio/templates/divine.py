@@ -15,7 +15,9 @@ from .. import brand
 from ..compositor import Camada, gradiente_vertical
 from ..config import cor, load
 from ..fonts import combinacao, marca
+from ..rodizio import familias
 from ..text import Estilo, contar_palavras, pill, render
+from .. import legendas
 
 
 @dataclass
@@ -69,7 +71,7 @@ def _placa(img, escala: float, opacidade: int = 150):
 
 
 def montar(projeto: dict, versao: dict, combo_codigo: str, duracao_base: float, W: int, H: int,
-           sfx_abertura: list, sfx_fechamento: list) -> Plano:
+           sfx_abertura: list, sfx_fechamento: list, sfx_transicao: list | None = None) -> Plano:
     pref = load("preferencias")
     marca_cfg = load("marca")
     sfx_cfg = load("sfx")
@@ -160,6 +162,13 @@ def montar(projeto: dict, versao: dict, combo_codigo: str, duracao_base: float, 
     for k, m in enumerate(projeto.get("mensagens") or []):
         tit, apo = m.get("titulo", ""), m.get("apoio")
         ini = float(m.get("inicio", t_msg))
+        if m.get("na_fala"):
+            t_fala = legendas.achar_fala(projeto.get("_fala") or [], m["na_fala"])
+            if t_fala is None:
+                print(f"  aviso: não achei \"{m['na_fala']}\" na fala; mensagem entra em sequência")
+            else:
+                # nunca em cima do hook nem da mensagem anterior (mesma zona da tela)
+                ini = max(t_fala, plano.hook_fim + 0.1, t_msg - 0.2 if k else 0.0)
         dur = float(m["fim"]) - ini if "fim" in m else tempo_leitura(tit + " " + (apo or ""))
         fim = min(ini + dur, inicio_fech)
         if fim - ini < 0.8:
@@ -175,6 +184,28 @@ def montar(projeto: dict, versao: dict, combo_codigo: str, duracao_base: float, 
                                         entrada=ent, saida=sai, deslize=desl * 0.7, nome=f"msg{k}_apoio"))
         plano.textos_tela += [tit] + ([apo] if apo else [])
         t_msg = fim + 0.25
+
+    # Legenda da fala sincronizada (fonte fixa da marca)
+    if legendas.ativas(projeto) and projeto.get("_fala"):
+        cam, txts = legendas.camadas(projeto, projeto["_fala"], W, H, inicio_fech)
+        plano.camadas += cam
+        plano.textos_tela += txts
+
+    # Whoosh baixo só na troca entre clipes diferentes, se couber no limite de famílias por vídeo
+    if sfx_transicao and len(familias(sfx_abertura, sfx_fechamento, sfx_transicao)) <= int(sfx_cfg.get("max_familias", 4)):
+        ultimo_t = -99.0
+        n_tr = 0
+        for c in (projeto.get("_base_meta") or {}).get("clipes", [])[1:]:
+            d = float(c.get("transicao", 0))
+            t_tr = float(c.get("inicio_base", 0))
+            if d <= 0 or t_tr < plano.hook_fim or t_tr > inicio_fech - 0.5:
+                continue
+            if t_tr - ultimo_t < float(sfx_cfg.get("transicao_intervalo_s", 4.0)) \
+                    or n_tr >= int(sfx_cfg.get("transicao_max", 3)):
+                continue
+            for nome in sfx_transicao:
+                plano.eventos_sfx.append((max(0.0, t_tr - 0.15), nome, float(sfx_cfg.get("transicao_ganho_db", -30))))
+            ultimo_t, n_tr = t_tr, n_tr + 1
 
     # Fechamento curto
     f0 = inicio_fech + 0.35

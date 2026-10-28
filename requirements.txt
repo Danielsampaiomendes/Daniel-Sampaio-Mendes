@@ -1,5 +1,7 @@
 Pillow>=9.5
 numpy>=1.23
 PyYAML>=6.0
-soundfile>=0.12   # só para regenerar o kit de SFX
+soundfile>=0.12   # opcional: o kit de SFX também é gerado sem ele
 pytest>=7         # testes
+# opcional: transcrição local para corte limpo e legenda da fala (ou use ASSEMBLYAI_API_KEY)
+# faster-whisper>=1.0

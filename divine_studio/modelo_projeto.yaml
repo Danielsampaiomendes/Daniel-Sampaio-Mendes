@@ -9,6 +9,11 @@ posicao_texto: topo         # topo | centro | base (texto nunca sobre o rosto)
 audio:
   original: true            # voz/som do vídeo
   trilha: true              # trilha lounge original (ducking automático sob a fala)
+  limpeza: auto             # auto | minima | leve | forte | elevenlabs | nenhuma
+corte_limpo: false          # true: tira muletas, takes repetidos e pausas longas da fala (revise em trabalho/cortes.md)
+remover_trechos: []         # frases exatas que saíram ruins, ex.: ["então assim né"]
+legendas: false             # true: legenda da fala na tela, palavra a palavra
+correcoes: {}               # erros da transcrição, ex.: {"divaine": "Divine"}
 
 clipes:
   - arquivo: bruto/IMG_0001.MOV
@@ -16,6 +21,7 @@ clipes:
     fim: 8
     velocidade: 1.0         # < 1 = câmera lenta suave
     foco: [0.5, 0.4]        # âncora do recorte (x, y)
+    # mudo: true            # b-roll sem som (não é transcrito)
 
 selo: ""                    # rótulo fixo depois do hook, ex.: "LASER DE CO2 · BASTIDORES"
 cta_antecipado: "Manda pra amiga que precisa ver isso."
@@ -23,6 +29,8 @@ cta_antecipado: "Manda pra amiga que precisa ver isso."
 mensagens:
   - titulo: "Primeira ideia / com *destaque.*"
     apoio: "linha de apoio opcional"
+  - titulo: "Entra junto com a *fala*"
+    na_fala: "frase que a pessoa diz"   # sincroniza com a transcrição
   # inicio/fim em segundos são opcionais (padrão: em sequência, com tempo de leitura)
 
 fechamento:
@@ -39,6 +47,8 @@ versoes:
     hook:
       - titulo: "Segunda opção"
         apoio: "com apoio"
+  # Atalhos: só hook_id (sem hook) usa a frase do banco; hook: auto sorteia um do banco
+  #   (positivo, curiosidade e negativo, fora dos usados por último) e guarda a escolha.
   - nome: V3
     hook:
       - titulo: "Primeira batida."

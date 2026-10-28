@@ -27,6 +27,45 @@ trilha:
   ducking_db: -34                 # volume da trilha embaixo de fala
   entrada_s: 2.0
 
+transcricao:
+  motor: auto                     # auto | assemblyai | faster_whisper | whisper
+  idioma: pt
+  modelo_whisper: small           # small é bom no Mac; medium acerta mais nomes, mas é mais lento
+
+corte:                            # corte limpo (tirar enrolação, takes ruins e pausas)
+  cortar_pausas_acima_s: 0.9      # pausa maior que isso é encurtada
+  pausa_natural_s: 0.5            # ...para ficar com esta pausa
+  margem_antes_s: 0.12            # respiro antes da 1ª palavra de cada trecho
+  margem_depois_s: 0.3            # respiro depois da última palavra do clipe
+  trecho_minimo_s: 0.5            # trechos menores que isso se juntam ao vizinho
+  retake_min_palavras: 3          # recomeçou a frase com as mesmas 3 palavras = take repetido
+  retake_janela_palavras: 25
+  muletas: [hum, humm, hmm, ahn, ãh, hã, eh, éé, ééé, ãã, uhm]
+
+voz:
+  modo: auto                      # auto | minima | leve | forte | elevenlabs | nenhuma
+  highpass_hz: 80
+  snr_ruido_leve_db: 32           # distância fala/ruído abaixo disso: limpeza leve
+  snr_ruido_pesado_db: 18         # abaixo disso: forte (ou ElevenLabs, se houver ELEVENLABS_API_KEY)
+  modelo_rnnoise: config/rnnoise/sh.rnnn   # opcional (github.com/GregorR/rnnoise-models); sem ele usa redução FFT
+
+legendas:                         # legenda da fala na tela (liga com `legendas: true` no projeto)
+  tamanho: 58
+  cor: off_white
+  cor_destaque: dourado           # palavra sendo falada
+  palavra_a_palavra: true
+  caixa_alta: false
+  max_palavras: 4
+  max_caracteres: 24
+  pausa_quebra_s: 0.35
+  posicao: 0.66                   # centro do bloco (fração da altura); acima do CTA e fora da UI
+  largura_max_px: 820
+  entrada_s: 0.18                 # fade curto com deslize leve: acompanha a fala sem piscar
+  saida_s: 0.15
+  deslize_px: 10
+  segurar_s: 0.35
+  minimo_s: 0.7
+
 progresso:
   altura_px: 6
   cor: dourado

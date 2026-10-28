@@ -27,5 +27,19 @@ fechamento:
   - [cristal_b]
   - [ding_suave_a]
 
+# Troca entre clipes diferentes (dissolve): whoosh bem baixo, no máximo 3 por vídeo, longe um do outro.
+# Cortes secos do corte limpo (mesmo take) nunca têm som.
+transicao:
+  - [whoosh_suave_a]
+  - [whoosh_suave_b]
+  - [whoosh_suave_c]
+transicao_ganho_db: -30
+transicao_max: 3
+transicao_intervalo_s: 4.0
+
+# Limites por vídeo (docs/CONHECIMENTO_DIVINE.md, seção 10)
+max_familias: 4
+max_impactos: 1
+
 # Em transições entre mensagens: por padrão nenhum som (o Renato achou o ping repetitivo)
 mensagens: []
