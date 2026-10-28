@@ -55,3 +55,4 @@ node_modules/
 
 # Divine Studio: arquivos de trabalho dos projetos (mídia já ignorada acima)
 projetos/*/trabalho/
+projetos/*teste-sintetico*/
