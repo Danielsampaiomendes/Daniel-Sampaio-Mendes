@@ -1,0 +1,54 @@
+# Mídia pesada e brutos: ficam só no Mac
+*.mp4
+*.mov
+*.m4v
+*.avi
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.m4a
+*.aac
+*.flac
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.heic
+*.gif
+*.tif
+*.tiff
+*.psd
+*.pdf
+
+# Fontes (baixar com Biblioteca_Fontes/baixar_fontes.sh)
+*.ttf
+*.otf
+*.woff
+*.woff2
+
+# Kits de SFX (regenerar com Biblioteca_SFX/gerar_kit_sfx.py)
+Biblioteca_SFX/1_kit_original_divine/
+Biblioteca_SFX/2_extraidos_referencia/
+
+# Pastas de saída e versões antigas
+Videos/_Versoes anteriores/
+**/_web_720p/
+
+# Documentos de escritório e temporários
+*.docx
+*.xlsx
+*.pptx
+~$*
+.~lock*
+.DS_Store
+
+# Logo vetorial e páginas de anúncio (assets de marca, ficam no Mac)
+*.svg
+*.html
+
+# Ambiente
+__pycache__/
+*.pyc
+.venv/
+node_modules/
