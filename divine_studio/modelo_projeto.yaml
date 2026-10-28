@@ -33,8 +33,8 @@ cta_antecipado: "Manda pra amiga que precisa ver isso."
 mensagens:
   - titulo: "Primeira ideia / com *destaque.*"
     apoio: "linha de apoio opcional"
-  - titulo: "Entra junto com a *fala*"
-    na_fala: "frase que a pessoa diz"   # sincroniza com a transcrição
+  # - titulo: "Entra junto com a *fala*"
+  #   na_fala: "frase que a pessoa diz"   # sincroniza com a transcrição
   # inicio/fim em segundos são opcionais (padrão: em sequência, com tempo de leitura)
 
 fechamento:

@@ -8,12 +8,16 @@ Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 
 cd "~/Documents/Claude/Projects/Divine Medical Spa Marketing"
 brew install ffmpeg                       # se ainda não tiver
 pip3 install -r requirements.txt
-bash Biblioteca_Fontes/baixar_fontes.sh   # 32 fontes
+bash Biblioteca_Fontes/baixar_fontes.sh   # 33 fontes
 pip3 install faster-whisper               # transcrição local (corte limpo e legenda da fala)
 python3 -m divine_studio verificar        # confere tudo
 ```
 
 Transcrição na nuvem em vez da local: `export ASSEMBLYAI_API_KEY=...`. Limpeza de voz com IA para ruído pesado: `export ELEVENLABS_API_KEY=...` (sem a chave, usa a redução de ruído do próprio FFmpeg).
+
+## Painel (o jeito mais fácil)
+
+`python3 -m divine_studio painel` abre `http://127.0.0.1:8765` (só na sua máquina): criar projeto, arrastar os brutos, escolher template, revisar, ver o corte, gerar prévias, comparar as versões lado a lado, aprovar e exportar a final, copiar a legenda e ensinar regras novas. Usa só a biblioteca padrão do Python.
 
 ## Uso
 
@@ -116,4 +120,9 @@ Medidas e textos fixos de cada template ficam em `config/templates.yaml`; pessoa
 1. **Fase 2 (feita em 28/10/2026)**: transcrição com tempo por palavra, corte limpo, limpeza de voz, legenda da fala palavra a palavra, mensagens sincronizadas com a fala, sorteio e cadastro de hooks, SFX de transição com limite de famílias.
 2. **Fase 3 (feita em 28/10/2026)**: templates Daniel, George (com OCR da legenda queimada), TV, React e Pessoal; revisor ampliado e nota de revisão viral.
 3. **Fase 4 (feita em 28/10/2026)**: efeitos EC/EV (21 módulos; os sem módulo estão marcados em `config/efeitos.yaml`), recorte da pessoa opcional (mediapipe ou rembg), pacote por categorias, legenda do post e registro automático.
-4. **Fase 5**: interface web local para arrastar vídeos, comparar as 3 versões lado a lado e aprovar.
+4. **Fase 5 (feita em 28/10/2026)**: painel web local (arrastar vídeos, revisar, comparar as versões lado a lado, aprovar) e `README.md`.
+
+### Próximos passos sugeridos
+- Rodar cada template num vídeo real no Mac e comparar com as referências aprovadas (TV "CO2 em manchas senis", Reels lipedema suave, Reels do George, Endolaser); ajustar medidas em `config/templates.yaml`.
+- Colocar as fotos oficiais em `assets/pessoas/` e o logo PNG oficial na raiz.
+- Efeitos ainda sem módulo (marcados em `config/efeitos.yaml`): órbita de cards, parede de imagens, quebra de moldura, vertigem e similares.

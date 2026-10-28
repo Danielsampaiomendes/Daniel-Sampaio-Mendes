@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Divine Studio</title>
+<link rel="stylesheet" href="/estilo.css">
+</head>
+<body>
+<header class="topo">
+  <div class="marca"><span class="divine">DIVINE</span><span class="studio">STUDIO</span></div>
+  <div class="sub">edição de vídeo · Divine Medical Spa</div>
+</header>
+
+<div class="app">
+  <aside class="lateral">
+    <form id="form-novo" class="novo">
+      <input id="novo-nome" placeholder="Novo projeto: tema do vídeo" autocomplete="off">
+      <button type="submit" title="Criar projeto">+</button>
+    </form>
+    <input id="filtro" class="filtro" placeholder="Buscar projeto" autocomplete="off">
+    <ul id="lista" class="lista"></ul>
+  </aside>
+
+  <main id="principal" class="principal">
+    <div class="vazio" id="vazio">
+      <h1>Escolha um projeto à esquerda</h1>
+      <p>ou crie um novo com o tema do vídeo. Depois é só arrastar os vídeos brutos para cá.</p>
+    </div>
+
+    <section id="projeto" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1 id="p-titulo"></h1>
+          <div class="pasta" id="p-pasta"></div>
+        </div>
+        <div class="acoes">
+          <button data-acao="revisar" title="Compliance CFM/Anvisa e regras do Renato">Revisar</button>
+          <button data-acao="cortar" title="Mostra o que sai e o que fica no corte limpo">Ver corte</button>
+          <button data-acao="previa" class="dourado" title="Prévia rápida das versões">Gerar prévias</button>
+          <button data-acao="pacote" title="Cria as peças por categoria (longo, curto, viral, TV...)">Pacote</button>
+        </div>
+      </div>
+
+      <nav class="abas">
+        <button data-aba="config" class="ativa">Projeto</button>
+        <button data-aba="versoes">Versões <span id="n-versoes"></span></button>
+        <button data-aba="relatorio">Relatório e legenda</button>
+      </nav>
+
+      <div class="aba" id="aba-config">
+        <div class="grade">
+          <div class="cartao">
+            <h2>Ajustes rápidos</h2>
+            <label>Template
+              <select id="c-template"></select></label>
+            <label>Formato
+              <select id="c-formato">
+                <option value="reels">Reels 9:16</option><option value="stories">Stories 9:16</option>
+                <option value="feed45">Feed 4:5</option><option value="feed11">Feed 1:1</option>
+                <option value="tv">TV 16:9</option>
+              </select></label>
+            <label>Autorização de imagem
+              <select id="c-autorizacao">
+                <option value="sim">sim, assinada</option><option value="pendente">pendente</option>
+                <option value="nao_aparece">ninguém aparece</option><option value="proprio">conteúdo próprio</option>
+              </select></label>
+            <div class="hooks">
+              <button id="b-hooks" class="link">Sugerir 3 hooks do banco</button>
+              <div id="hooks-sugeridos"></div>
+            </div>
+          </div>
+
+          <div class="cartao">
+            <h2>Vídeos brutos</h2>
+            <div id="soltar" class="soltar">
+              <strong>Solte os vídeos aqui</strong><span>ou clique para escolher (.mov, .mp4)</span>
+              <input type="file" id="arquivos" multiple accept="video/*" hidden>
+            </div>
+            <div id="envio" class="envio"></div>
+            <ul id="brutos" class="brutos"></ul>
+          </div>
+        </div>
+
+        <div class="cartao">
+          <div class="linha-titulo">
+            <h2>projeto.yaml</h2>
+            <span class="dica">*palavra* = dourado · " / " = quebra de linha · hook: auto sorteia do banco</span>
+            <button id="b-salvar" class="dourado">Salvar</button>
+          </div>
+          <textarea id="yaml" spellcheck="false"></textarea>
+          <div id="yaml-erro" class="erro"></div>
+        </div>
+
+        <form id="form-regra" class="cartao regra">
+          <h2>Ensinar uma regra nova</h2>
+          <p>Toda correção vira regra para os próximos vídeos (config/preferencias.yaml e CONHECIMENTO_DIVINE.md).</p>
+          <div class="linha"><input id="regra" placeholder="Ex.: CTA antecipado com no máximo duas linhas">
+          <button type="submit">Registrar</button></div>
+        </form>
+      </div>
+
+      <div class="aba" id="aba-versoes" hidden>
+        <div class="linha-titulo">
+          <label class="check"><input type="checkbox" id="so-previas" checked> mostrar prévias</label>
+          <button id="b-aprovar" class="dourado">Aprovar selecionadas e exportar a final</button>
+        </div>
+        <div id="videos" class="videos"></div>
+      </div>
+
+      <div class="aba" id="aba-relatorio" hidden>
+        <div class="grade">
+          <div class="cartao"><h2>Relatório</h2><div id="relatorio" class="md"></div></div>
+          <div class="cartao">
+            <div class="linha-titulo"><h2>Legenda do post</h2>
+              <button data-acao="legenda">Gerar</button><button id="b-copiar">Copiar</button></div>
+            <pre id="legenda" class="legenda"></pre>
+          </div>
+        </div>
+        <div class="cartao"><h2>Corte limpo</h2><div id="cortes" class="md"></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="tarefa" class="tarefa" hidden>
+  <div class="tarefa-topo">
+    <strong id="t-titulo"></strong><span id="t-tempo"></span>
+    <button id="t-fechar" class="link">fechar</button>
+  </div>
+  <div class="barra"><div id="t-barra"></div></div>
+  <pre id="t-log"></pre>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

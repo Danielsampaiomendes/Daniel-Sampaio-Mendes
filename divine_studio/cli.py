@@ -10,6 +10,7 @@
   python3 -m divine_studio hooks novo "Frase / com *destaque.*" --tipo curiosidade
   python3 -m divine_studio voz bruto/IMG_1234.MOV
   python3 -m divine_studio regra "texto da regra"
+  python3 -m divine_studio painel
   python3 -m divine_studio quadros saida/arquivo.mp4
 """
 from __future__ import annotations
@@ -199,9 +200,13 @@ def cmd_editar(a):
     p["_base_meta"] = meta
     if transcrever_fn:
         from .legendas import palavras_na_base
-        trans = {c["caminho"]: transcrever_fn(Path(c["caminho"])) for c in meta["clipes"]
-                 if c.get("caminho") and not _clipe_mudo(p, c)}
-        p["_fala"] = palavras_na_base(meta["clipes"], trans)
+        try:
+            trans = {c["caminho"]: transcrever_fn(Path(c["caminho"])) for c in meta["clipes"]
+                     if c.get("caminho") and not _clipe_mudo(p, c)}
+            p["_fala"] = palavras_na_base(meta["clipes"], trans)
+        except SystemExit as e:
+            # legenda da fala e mensagens na fala são opcionais: segue sem elas (o corte limpo já teria parado antes)
+            print(f"  aviso: sem a fala transcrita, a legenda da fala e o na_fala ficam de fora.\n  {e}")
 
     versoes = p.get("versoes") or []
     if a.versoes:
@@ -450,6 +455,11 @@ def cmd_efeitos(a):
     print("Tipos: " + ", ".join(sorted(efeitos.TIPOS) + sorted(efeitos.QUADRO)))
 
 
+def cmd_painel(a):
+    from .painel import rodar
+    rodar(a.porta, not a.sem_navegador)
+
+
 def cmd_regra(a):
     pref = dict(load("preferencias"))
     regras = list(pref.get("regras_aprendidas") or [])
@@ -566,6 +576,10 @@ def main(argv=None):
     s.add_argument("--prancha")
     s.add_argument("--fontes", default="B")
     s.set_defaults(f=cmd_efeitos)
+    s = sub.add_parser("painel", help="abre a interface no navegador (http://127.0.0.1:8765)")
+    s.add_argument("--porta", type=int, default=8765)
+    s.add_argument("--sem-navegador", action="store_true")
+    s.set_defaults(f=cmd_painel)
     s = sub.add_parser("regra", help="registra uma regra aprendida")
     s.add_argument("texto")
     s.set_defaults(f=cmd_regra)

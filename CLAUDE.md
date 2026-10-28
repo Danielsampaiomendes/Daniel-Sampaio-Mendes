@@ -13,6 +13,8 @@ A pasta completa (com vídeos, imagens, áudios e fontes) fica no Mac do Renato:
 
 ## Editar vídeo novo: use o Divine Studio
 
+Jeito mais fácil: `python3 -m divine_studio painel` (interface no navegador). Pela linha de comando:
+
 1. `python3 -m divine_studio novo "<tema>"` cria `projetos/AAAA-MM-DD_<tema>/`.
 2. Brutos em `bruto/`; preencha `projeto.yaml` com clipes, 3 hooks do banco (`hook_id`, ou `hook: auto` para sortear), mensagens, fechamento e legenda.
 3. Vídeo falado: `corte_limpo: true` e `legendas: true`; confira com `python3 -m divine_studio cortar <pasta>` (precisa de faster-whisper ou ASSEMBLYAI_API_KEY).
@@ -26,7 +28,7 @@ A pasta completa (com vídeos, imagens, áudios e fontes) fica no Mac do Renato:
 - **Versões substituídas**: `Videos/_Versoes anteriores/`. **Trilhas originais**: `Videos/Trilhas/`.
 - **Legendas e roteiros**: arquivos `Legenda*`/`*COPY.md` dentro de cada projeto (ver o mapa).
 - **Código**: só existe o template de antes e depois para TV (uso interno): `Bumbum Up - Uso Interno/Template_codigo/` (`common.py`, `static.py`, `video.py`, `audio.py`, LEIA-ME) e `Endolaser Bracos - Uso Interno/Template_codigo/static_endolaser.py`. Os scripts esperam as fontes em `assets/Biblioteca_Fontes/ttf/` e os logos em `assets/`.
-- **Fontes**: `Biblioteca_Fontes/` (`ttf/` com 32 fontes, `previews/`, `baixar_fontes.sh` baixa tudo, `LEIA-ME.md` com as combinações A a N).
+- **Fontes**: `Biblioteca_Fontes/` (`ttf/` com 33 fontes, `previews/`, `baixar_fontes.sh` baixa tudo, `LEIA-ME.md` com as combinações A a N).
 - **Efeitos sonoros**: `Biblioteca_SFX/` (`1_kit_original_divine/` com 28 WAV livres, `2_extraidos_referencia/` só referência, `gerar_kit_sfx.py` regenera o kit, `teste_combinacoes_sfx.mp3`, `LEIA-ME.md`).
 - **Marca**: `Logo_Divine.svg`, `Logo_com_nome_vertical2.png`, `divine-simbolo-1024.png`, `Logo-Preto.png` (raiz).
 - **Uso interno (nunca postar)**: `Bumbum Up - Uso Interno/`, `Endolaser Bracos - Uso Interno/`.

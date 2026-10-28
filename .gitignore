@@ -46,6 +46,7 @@ Videos/_Versoes anteriores/
 # Logo vetorial e páginas de anúncio (assets de marca, ficam no Mac)
 *.svg
 *.html
+!divine_studio/web/*.html
 
 # Ambiente
 __pycache__/
