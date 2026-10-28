@@ -57,3 +57,27 @@ def desfocado_escuro(frame: np.ndarray, escurecer: float = 0.45, raio: int = 6) 
     im = Image.fromarray(frame).resize((W // 4, H // 4), Image.BILINEAR).filter(ImageFilter.GaussianBlur(raio))
     im = im.resize((W, H), Image.BICUBIC)
     return (np.asarray(im, dtype=np.float32) * escurecer).astype(np.uint8)
+
+
+class CamadaAnimada(Camada):
+    """Camada cujo desenho muda com o tempo: gerador(t_local) -> imagem RGBA (mesmo tamanho), pré-calculada por quadro."""
+
+    def __init__(self, gerador, largura: int, altura: int, x: int, y: int, t0: float, t1: float, fps: int = 30,
+                 entrada: float = 0.5, saida: float = 0.5, nome: str = "", texto: str = ""):
+        self.quadros = []
+        n = max(1, int(round((t1 - t0) * fps)) + 1)
+        for k in range(n):
+            a = np.asarray(gerador(k / fps).convert("RGBA"), dtype=np.float32) / 255.0
+            alpha = a[..., 3:4]
+            self.quadros.append((alpha, a[..., :3] * alpha * 255.0))
+        self.fps = fps
+        vazio = Image.new("RGBA", (largura, altura), (0, 0, 0, 0))
+        super().__init__(vazio, x, y, t0, t1, entrada, saida, 0, nome, texto)
+
+    def pintar(self, frame: np.ndarray, t: float) -> None:
+        if t < self.t0 or t > self.t1:
+            return
+        k = min(len(self.quadros) - 1, int((t - self.t0) * self.fps))
+        self.alpha, self.rgb_p = self.quadros[k]
+        self.h, self.w = self.alpha.shape[:2]
+        super().pintar(frame, t)

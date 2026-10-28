@@ -68,6 +68,8 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
             ext.append(q if q is not None else (o.ultimo if o.ultimo is not None else np.zeros((o.h, o.w, 3), np.uint8)))
         for ef in plano.efeitos_quadro:
             quadro = ef(quadro, t)
+        if not quadro.flags.writeable:
+            quadro = quadro.copy()
         if plano.moldura is not None:
             quadro = plano.moldura(quadro, ext, t)
 

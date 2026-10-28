@@ -184,7 +184,7 @@ def nota_viral(projeto: dict, plano, achados: list, tem_voz: bool) -> dict:
     # glamour: entradas lentas, dissolve, nada piscando
     g = 10
     rapidos = [c for c in plano.camadas if c.entrada and c.entrada < cfg.get("entrada_min_s", 0.5)
-               and not c.nome.startswith(("legenda", "grad", "placa", "moldura"))]
+               and not c.nome.startswith(("legenda", "grad", "placa", "moldura", "ef_"))]
     if rapidos:
         g -= 2
         dicas.append("textos entrando rápido demais")

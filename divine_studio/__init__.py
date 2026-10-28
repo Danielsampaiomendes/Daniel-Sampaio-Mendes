@@ -2,4 +2,4 @@
 
 Uso: python3 -m divine_studio --help
 """
-__version__ = "0.3.0"
+__version__ = "0.4.0"

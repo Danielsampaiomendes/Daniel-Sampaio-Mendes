@@ -7,6 +7,7 @@ Cada clipe do projeto.yaml:
   velocidade: 0.72               (opcional; < 1 = câmera lenta com mescla de quadros)
   foco: [0.5, 0.35]              (âncora do recorte x, y de 0 a 1; padrão centro)
   zoom: 1.0                      (aproximação extra; 1 = só preencher o quadro)
+  corte_seco: true               (entra com corte seco, sem dissolve: frases seguidas do mesmo take)
 """
 from __future__ import annotations
 
@@ -131,7 +132,7 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         info_clipes.append({"arquivo": c["arquivo"], "caminho": str(arq), "inicio": ini, "velocidade": vel,
                             "duracao": round(dur_out, 3), "hdr": p["hdr"], "hq": hq,
                             "resolucao": f"{p['largura']}x{p['altura']}",
-                            "transicao": 0.0 if (i == 0 or c.get("_corte_seco")) else dissolve})
+                            "transicao": 0.0 if (i == 0 or c.get("_corte_seco") or c.get("corte_seco")) else dissolve})
 
     # dissolve entre clipes diferentes; corte seco entre trechos do mesmo take (corte limpo)
     pv, pa = "v0", "a0"

@@ -44,6 +44,18 @@ python3 -m divine_studio editar projetos/2026-10-28_co2-no-corpo
 # só algumas versões
 python3 -m divine_studio editar projetos/2026-10-28_co2-no-corpo --versoes V1,V3
 
+# vários brutos do mesmo procedimento: pacote por categorias (longo, médio, curto, ultracurto, viral, POV,
+# cortes, bastidores, TV e Stories), cada peça numa pasta com nome claro
+python3 -m divine_studio pacote projetos/2026-10-28_co2-no-corpo --renderizar --rapido
+python3 -m divine_studio pacote projetos/2026-10-28_co2-no-corpo --categorias reels-curto,tv
+
+# legenda do post (também sai sozinha no editar quando o projeto não tem legenda)
+python3 -m divine_studio legenda projetos/2026-10-28_co2-no-corpo
+
+# efeitos EC/EV: lista e prancha com todos
+python3 -m divine_studio efeitos
+python3 -m divine_studio efeitos --prancha prancha_efeitos.jpg
+
 # registrar um ajuste como regra permanente
 python3 -m divine_studio regra "Texto do CTA antecipado sempre em duas linhas no máximo"
 ```
@@ -85,6 +97,10 @@ Medidas e textos fixos de cada template ficam em `config/templates.yaml`; pessoa
 | SFX | Um som leve na abertura, um whoosh bem baixo na troca entre clipes diferentes (no máximo 3, longe um do outro) e um no fechamento; nunca o mesmo som duas vezes na versão, até 4 famílias e 1 impacto por vídeo, variações fora das usadas por último; sem ping a cada texto |
 | Trilha | Lounge original sintetizada (84 bpm), entrada gradual, ducking automático sob a fala |
 | Fechamento | 2,6 s: logo empilhado, frase, pill de CTA, endereço oficial, aviso de resultados e RT; escurece para o loop |
+| Efeitos EC/EV | 21 módulos na versão suave (camadas, letra a letra, riscado, digitando, checklist, contador, linha do tempo, círculo + spoiler, notificação, artigo, tweet, pergunta, chat, gráfico, zoom digital, PiP, cortina, filme, vidro, texto atrás da pessoa); `efeitos:` no projeto ou na versão, por `tipo` ou `codigo` (EC06, EV17...); no máximo um a cada 1,5 s, o anterior sai quando o próximo entra |
+| Pacote | Uma pasta por peça em `projetos/<projeto>-pacote/NN_categoria/`, com duração alvo por frases inteiras da fala (ou o miolo dos clipes), hooks sorteados sem repetir entre peças e legenda própria |
+| Legenda do post | Gancho na 1ª linha, CTA antecipado, corpo corrido, CTA final com WhatsApp e endereço, aviso, RT e 8 a 12 hashtags (config/legenda.yaml); passa pelo revisor |
+| Registro | Ao exportar a final: `docs/INDICE_VIDEOS_EDITADOS.md`, histórico de fontes e SFX no `docs/BANCO_HOOKS.md` (com a sugestão do próximo) e linha nova no `docs/MAPA_DO_REPOSITORIO.md` |
 | Revisão viral | Nota de 0 a 10 por versão (hook, retenção, leitura, áudio, glamour, compliance) com dicas no `relatorio.md` |
 | Compliance | Bloqueia antes e depois fora do uso interno, "Dr. George", marca Divine no template pessoal, música de fora sem licença, percentual, promessa, prazo garantido, comparação, medicamento, "implante hormonal", "nutrólogo" e "comenta PALAVRA"; avisa travessão, numeração, antes e depois e linguagem promocional; exige aviso e RT na legenda |
 | Exportação | x264 slow, tune film, aq-mode=3, crf 17; −16 LUFS; refaz em 2 passes se passar de 30 MB |
@@ -99,5 +115,5 @@ Medidas e textos fixos de cada template ficam em `config/templates.yaml`; pessoa
 
 1. **Fase 2 (feita em 28/10/2026)**: transcrição com tempo por palavra, corte limpo, limpeza de voz, legenda da fala palavra a palavra, mensagens sincronizadas com a fala, sorteio e cadastro de hooks, SFX de transição com limite de famílias.
 2. **Fase 3 (feita em 28/10/2026)**: templates Daniel, George (com OCR da legenda queimada), TV, React e Pessoal; revisor ampliado e nota de revisão viral.
-3. **Fase 4**: efeitos EC/EV com recorte da pessoa (texto atrás da cabeça, capa de revista, card 3D, círculo + freeze + spoiler), pacote por categorias, registro automático no índice de vídeos.
+3. **Fase 4 (feita em 28/10/2026)**: efeitos EC/EV (21 módulos; os sem módulo estão marcados em `config/efeitos.yaml`), recorte da pessoa opcional (mediapipe ou rembg), pacote por categorias, legenda do post e registro automático.
 4. **Fase 5**: interface web local para arrastar vídeos, comparar as 3 versões lado a lado e aprovar.

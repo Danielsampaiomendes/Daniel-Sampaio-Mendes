@@ -117,6 +117,13 @@ def transcrever(arquivo: Path, pasta_cache: Path, motor: str | None = None, refa
         return json.loads(editado.read_text(encoding="utf-8"))["palavras"]
     if cache.exists() and not refazer:
         return json.loads(cache.read_text(encoding="utf-8"))["palavras"]
+    if not refazer:
+        # o mesmo bruto já transcrito em outro projeto (ex.: peças do pacote): reaproveita, editado primeiro
+        from .config import ROOT
+        achados = sorted((ROOT / "projetos").glob(f"**/trabalho/transcricoes/{chave}*.json"),
+                         key=lambda x: ".editado." not in x.name)
+        if achados:
+            return json.loads(achados[0].read_text(encoding="utf-8"))["palavras"]
 
     m = motor_disponivel(motor or cfg.get("motor", "auto"))
     if not m:

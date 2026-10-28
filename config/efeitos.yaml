@@ -1,0 +1,47 @@
+# Efeitos cinéticos (docs/CONHECIMENTO_DIVINE.md, seção 11). Sempre na versão suave: easing cubic in-out, cores e
+# fontes Divine, nada piscando. tipo = módulo em divine_studio/efeitos.py; sem tipo = ainda não tem módulo.
+intervalo_minimo_s: 1.5          # no máximo um efeito a cada 1,5 a 2 s
+
+codigos:
+  EC01: {nome: gancho cinético em camadas, tipo: camadas}
+  EC02: {nome: queda livre de letras, tipo: queda_letras, obs: "versão suave: letras assentam sem quicar"}
+  EC03: {nome: legenda gigante que vira título, tipo: null, obs: "usar camadas + mensagem fixa por enquanto"}
+  EC04: {nome: barra de pedido digitada, tipo: digitando}
+  EC05: {nome: storyboard em leque, tipo: null, obs: "precisa de imagens de apoio por projeto"}
+  EC06: {nome: ícone riscado, tipo: riscado}
+  EC07: {nome: solta o arquivo, tipo: null, obs: "pouco aderente ao glamour; sem módulo"}
+  EC08: {nome: linha do tempo, tipo: linha_tempo}
+  EC09: {nome: treme e apaga, tipo: null, obs: "fora do estilo suave (tremor proibido)"}
+  EC10: {nome: cortina, tipo: cortina, obs: "nunca em paciente"}
+  EC11: {nome: conta-gotas de paleta, tipo: null, obs: "sem módulo"}
+  EC12: {nome: visual de filme, tipo: filme}
+  EC13: {nome: feed de posts em mural, tipo: null, obs: "precisa das imagens dos posts"}
+  EC14: {nome: cartão de vídeo, tipo: fundo_pip}
+  EC15: {nome: barra de mensagem digitando, tipo: digitando, obs: "nunca pedindo para comentar palavra"}
+  EC16: {nome: palavra que sobe letra a letra, tipo: letra_a_letra}
+  EV01: {nome: órbita de cards ao redor da pessoa, tipo: null, obs: "precisa do recorte da pessoa e dos cards"}
+  EV02: {nome: parede de imagens, tipo: null, obs: "precisa das imagens"}
+  EV03: {nome: interface de app de chat, tipo: chat}
+  EV04: {nome: quebra de moldura, tipo: null, obs: "precisa do recorte da pessoa"}
+  EV05: {nome: zoom digital, tipo: zoom_digital}
+  EV06: {nome: mockup de celular com checklist, tipo: checklist}
+  EV07: {nome: painel de checklist, tipo: checklist}
+  EV08: {nome: parede de manchetes, tipo: null, obs: "texto autoral; sem módulo"}
+  EV09: {nome: corte com zoom, tipo: zoom_digital}
+  EV10: {nome: gráfico em expansão (sem números), tipo: grafico}
+  EV11: {nome: revelação em janela de app, tipo: null, obs: "sem módulo"}
+  EV12: {nome: "fundo trocado por #12110F com PiP", tipo: fundo_pip}
+  EV13: {nome: recorte de papel, tipo: null, obs: "sem módulo"}
+  EV14: {nome: rabisco dourado, tipo: circulo}
+  EV15: {nome: vertigem (dolly zoom), tipo: null, obs: "precisa do recorte da pessoa"}
+  EV16: {nome: capa de revista (título atrás da cabeça), tipo: texto_atras, obs: "recorte com mediapipe ou rembg"}
+  EV17: {nome: texto em vidro dourado, tipo: vidro}
+
+# Recursos de meio de vídeo já aprovados (atalhos)
+recursos:
+  circulo_spoiler: {tipo: circulo, obs: "círculo dourado + 'Spoiler:' (A-H19, A-H21)"}
+  contador: {tipo: contador, obs: "DIA 1 → DIA 90, 0 → 12 TESLA (C-H78, C-H99, C-H115, C-H123)"}
+  artigo: {tipo: artigo, obs: "card de artigo com marca-texto dourado (C-H77)"}
+  pergunta: {tipo: pergunta, obs: "card 'Pergunta que mais recebemos' (C-H152)"}
+  notificacao: {tipo: notificacao, obs: "card de notificação (H188)"}
+  tweet: {tipo: tweet, obs: "card de tweet do Dr. Daniel (C-H176)"}

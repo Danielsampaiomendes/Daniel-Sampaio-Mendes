@@ -176,6 +176,9 @@ def cmd_editar(a):
         print("• Corte limpo (muletas, takes repetidos, pausas longas)…")
         p["clipes"], md_cortes = expandir_clipes(p, transcrever_fn)
         (trabalho / "cortes.md").write_text(f"# Corte limpo · {p.get('titulo')}\n\n{md_cortes}\n", encoding="utf-8")
+    from .legenda_post import garantir
+    if garantir(p):
+        print("• Legenda do post gerada (não havia no projeto.yaml); revise em saida/legenda.txt")
     ach = revisar(p)
     erros = [x for x in ach if x.nivel == "erro"]
     for x in ach:
@@ -242,7 +245,8 @@ def cmd_editar(a):
         hook_txt = " ".join(b.get("titulo", "") for b in (v.get("hook") or [])) if isinstance(v.get("hook"), list) \
             else (v.get("hook") or {}).get("titulo", "")
         hook_slug = slug(hook_txt.replace("*", ""), 28) if hook_txt.strip() else ""
-        arq = f"{p.get('data', hoje())}_{p.get('formato', 'reels')}_{slug(p.get('titulo', 'video'), 30)}_{nome}_" \
+        tema = f"{p['categoria']}_{slug(p.get('tema', ''), 24)}" if p.get("categoria") else slug(p.get("titulo", "video"), 30)
+        arq = f"{p.get('data', hoje())}_{p.get('formato', 'reels')}_{tema}_{nome}_" \
               f"{hook_slug}{'_autorizacao-pendente' if pendente else ''}" \
               f"{'_USO-INTERNO-NAO-POSTAR' if p.get('uso_interno') else ''}.mp4"
         arq = arq.replace("__", "_").replace("_.mp4", ".mp4")
@@ -269,7 +273,10 @@ def cmd_editar(a):
                          else ""))
     _relatorio(p, resultado, linha_checklist(p, ach), ach, time.time() - t_ini, extras)
     if not a.teste and not a.rapido:
+        from . import registro
         registrar(p.get("titulo", pasta.name), resultado)
+        registro.registrar(p, resultado, linha_checklist(p, ach), escolher_fontes(3))
+        print("• Registrado em docs/INDICE_VIDEOS_EDITADOS.md, no histórico do banco de hooks e no mapa")
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
 
 
@@ -393,6 +400,56 @@ def cmd_voz(a):
           f"limpeza sugerida: {escolher_modo(m)}")
 
 
+def cmd_pacote(a):
+    from .pacote import montar_pacote
+    p = ler_projeto(Path(a.projeto))
+    cats = [c.strip() for c in a.categorias.split(",")] if a.categorias else None
+    fn = _transcritor(p["_pasta"]) if a.com_fala else None
+    if fn is None:
+        try:
+            from .transcricao import motor_disponivel
+            if motor_disponivel() or any((p["_pasta"] / "trabalho" / "transcricoes").glob("*.json")):
+                fn = _transcritor(p["_pasta"])
+        except Exception:
+            fn = None
+    criadas = montar_pacote(p, cats, fn)
+    for pasta, nome in criadas:
+        print(f"  {nome:28} {pasta.relative_to(ROOT)}")
+    print(f"{len(criadas)} peças criadas. Revise os projeto.yaml e rode editar em cada uma (ou use --renderizar).")
+    if a.renderizar:
+        for pasta, nome in criadas:
+            print(f"\n=== {nome}")
+            cmd_editar(argparse.Namespace(projeto=str(pasta), versoes=None, refazer_base=False, forcar=False,
+                                          teste=a.teste, rapido=a.rapido))
+
+
+def cmd_legenda(a):
+    from .compliance import revisar
+    from .legenda_post import gerar
+    p = ler_projeto(Path(a.projeto))
+    p["legenda"] = gerar(p)
+    for x in revisar(p, []):
+        print("  " + x.linha())
+    out = p["_pasta"] / "saida" / "legenda.txt"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(p["legenda"], encoding="utf-8")
+    print(p["legenda"])
+    print(f"Salva em {out.relative_to(ROOT)}")
+
+
+def cmd_efeitos(a):
+    from . import efeitos
+    if a.prancha:
+        efeitos.prancha(a.prancha, a.fontes)
+        print(f"Prancha em {a.prancha}")
+        return
+    tab = load("efeitos")["codigos"]
+    for cod, e in tab.items():
+        print(f"{cod}  {'✓ ' + e['tipo'] if e.get('tipo') else '· sem módulo':18} {e['nome']}"
+              + (f"  ({e['obs']})" if e.get("obs") else ""))
+    print("Tipos: " + ", ".join(sorted(efeitos.TIPOS) + sorted(efeitos.QUADRO)))
+
+
 def cmd_regra(a):
     pref = dict(load("preferencias"))
     regras = list(pref.get("regras_aprendidas") or [])
@@ -494,6 +551,21 @@ def main(argv=None):
     s = sub.add_parser("voz", help="mede o ruído de um arquivo e sugere o modo de limpeza")
     s.add_argument("arquivo")
     s.set_defaults(f=cmd_voz)
+    s = sub.add_parser("pacote", help="cria as peças por categoria (longo, médio, curto, viral, POV, cortes, TV...)")
+    s.add_argument("projeto")
+    s.add_argument("--categorias", help="ex.: reels-curto,tv,stories (lista em config/pacote.yaml)")
+    s.add_argument("--com-fala", action="store_true", help="transcreve para cortar por frases")
+    s.add_argument("--renderizar", action="store_true")
+    s.add_argument("--rapido", action="store_true")
+    s.add_argument("--teste", action="store_true")
+    s.set_defaults(f=cmd_pacote)
+    s = sub.add_parser("legenda", help="gera a legenda do post em saida/legenda.txt")
+    s.add_argument("projeto")
+    s.set_defaults(f=cmd_legenda)
+    s = sub.add_parser("efeitos", help="lista os efeitos EC/EV; --prancha arquivo.jpg mostra todos")
+    s.add_argument("--prancha")
+    s.add_argument("--fontes", default="B")
+    s.set_defaults(f=cmd_efeitos)
     s = sub.add_parser("regra", help="registra uma regra aprendida")
     s.add_argument("texto")
     s.set_defaults(f=cmd_regra)

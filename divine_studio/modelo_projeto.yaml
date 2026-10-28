@@ -41,6 +41,11 @@ fechamento:
   frase: "Cada pele tem o *seu tempo.*"
   cta: "Agende sua avaliação"   # ou "Agende sua sessão" (tecnologias sem avaliação)
 
+# efeitos (opcional; também dentro de cada versão). Lista: python3 -m divine_studio efeitos
+# efeitos:
+#   - {tipo: circulo, inicio: 6, ponto: [0.5, 0.55], texto: "*Spoiler:* é a mira"}
+#   - {codigo: EV07, inicio: 9, titulo: "Quantos desses *você tem?*", itens: [Cansaço, Flacidez]}
+
 versoes:
   - nome: V1
     hook_id: ""             # código no docs/BANCO_HOOKS.md

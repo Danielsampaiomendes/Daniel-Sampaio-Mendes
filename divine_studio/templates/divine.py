@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
-from .. import brand, legendas
+from .. import brand, efeitos, legendas
 from ..compositor import Camada, gradiente_vertical
 from ..config import cor, load
 from ..fonts import combinacao, marca
@@ -213,6 +213,7 @@ def montar(projeto: dict, versao: dict, combo_codigo: str, duracao_base: float, 
         plano.camadas += cam
         plano.textos_tela += txts
 
+    efeitos.aplicar(plano, projeto, versao, combo, W, H, int(load("exportacao")["fps"]))
     transicoes(plano, projeto, sfx_abertura, sfx_fechamento, sfx_transicao, inicio_fech)
     if op.fechamento_marca:
         fechamento(plano, projeto, combo, W, H, larg, sfx_fechamento)

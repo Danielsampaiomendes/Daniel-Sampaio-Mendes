@@ -1,0 +1,29 @@
+# Legenda do post (docs/CONHECIMENTO_DIVINE.md, seção 7): parágrafos corridos, gancho na 1ª linha, CTA antecipado,
+# aviso de resultados, assinatura do RT, 8 a 12 hashtags (nicho + local). Sem travessões, sem pedir palavra.
+cta_antecipado:
+  - "Já aproveita para seguir, porque aqui a gente mostra o processo de verdade."
+  - "Curte essa postagem para ficar mais ligada nos próximos conteúdos."
+  - "Já me segue, porque talvez você não veja mais esse conteúdo por aqui."
+  - "Manda para aquela amiga que vive adiando esse cuidado."
+cta_final: "Agende sua avaliação pelo direct ou WhatsApp {whatsapp}."
+cta_final_tv: "Fale com o nosso atendimento pelo direct ou WhatsApp {whatsapp}."
+emojis: ["✨", "🤍", "👀", "🌿"]
+hashtags_base: ["#divinemedicalspa", "#esteticasp", "#avenidapaulista", "#medicinaestetica", "#saopaulo"]
+hashtags_tema:                    # palavra no título ou nas mensagens -> hashtags
+  co2: ["#laserco2", "#co2fracionado", "#rejuvenescimento", "#colageno"]
+  laser: ["#laser", "#tecnologiaestetica"]
+  endolaser: ["#endolaser", "#gorduralocalizada", "#flacidez"]
+  cmslim: ["#cmslim", "#definicaomuscular", "#esculturacorporal"]
+  bumbum: ["#bumbumup", "#gluteos", "#harmonizacaocorporal"]
+  glute: ["#gluteos", "#harmonizacaocorporal"]
+  microagulhamento: ["#microagulhamento", "#colageno", "#peleboa"]
+  cabelo: ["#quedadecabelo", "#saudecapilar"]
+  hormon: ["#reposicaohormonal", "#saudedamulher"]
+  pellet: ["#pellets", "#reposicaohormonal"]
+  spa: ["#spa", "#autocuidado", "#bemestar"]
+  hipro: ["#hipro", "#ultrassommicrofocado", "#flacidez"]
+  emagrec: ["#emagrecimento", "#saude"]
+  suplement: ["#suplementacao", "#nutrologia"]
+  pele: ["#skincare", "#peleboa"]
+max_hashtags: 12
+min_hashtags: 8

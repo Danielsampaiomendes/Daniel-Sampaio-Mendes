@@ -1,0 +1,14 @@
+# Pacote por categorias (docs/CONHECIMENTO_DIVINE.md, seção 7): vários vídeos do mesmo procedimento viram
+# Reels longo, médio, curto, ultracurto, viral, POV, cortes, bastidores, TV e Stories, com nome claro para validar.
+# alvo_s: duração alvo da base (antes do fechamento); hook: auto | pov | banco (mantém os hooks do projeto)
+categorias:
+  - {id: reels-longo,      nome: "Reels longo",      formato: reels,   alvo_s: null, versoes: 3, hook: banco}
+  - {id: reels-medio,      nome: "Reels médio",      formato: reels,   alvo_s: 35,   versoes: 3, hook: banco}
+  - {id: reels-curto,      nome: "Reels curto",      formato: reels,   alvo_s: 20,   versoes: 3, hook: auto}
+  - {id: reels-ultracurto, nome: "Reels ultracurto (loop)", formato: reels, alvo_s: 7, versoes: 2, hook: auto, sem_mensagens: true}
+  - {id: viral,            nome: "Viral",            formato: reels,   alvo_s: 28,   versoes: 3, hook: auto}
+  - {id: pov,              nome: "POV",              formato: reels,   alvo_s: 15,   versoes: 3, hook: pov, sem_mensagens: true}
+  - {id: cortes,           nome: "Corte",            formato: reels,   alvo_s: 25,   versoes: 3, hook: auto, por_trecho: true, max_cortes: 3}
+  - {id: bastidores,       nome: "Bastidores",       formato: reels,   alvo_s: 20,   versoes: 3, hook: auto, sem_voz: true}
+  - {id: tv,               nome: "TV",               formato: tv,      alvo_s: 17,   versoes: 1, template: tv, sem_voz: true}
+  - {id: stories,          nome: "Stories",          formato: stories, alvo_s: 10,   versoes: 3, hook: auto, sem_mensagens: true}
