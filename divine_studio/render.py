@@ -24,7 +24,7 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
     barra_cor = np.array(cor(pref["progresso"]["cor"]), dtype=np.uint8)
 
     dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", str(base), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-                           stdout=subprocess.PIPE)
+                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
                             "-r", str(fps), "-i", "-", "-i", str(mix_wav), "-map", "0:v", "-map", "1:a",
                             "-c:v", "libx264", "-preset", "veryfast", "-crf", "12", "-pix_fmt", "yuv420p",
@@ -75,6 +75,7 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
             print(f"    {t:5.1f}s / {total:.1f}s", flush=True)
     enc.stdin.close()
     enc.wait()
+    dec.kill()
     dec.stdout.close()
     dec.wait()
     if enc.returncode != 0:

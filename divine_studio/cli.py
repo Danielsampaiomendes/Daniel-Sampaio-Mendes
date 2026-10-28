@@ -147,7 +147,9 @@ def cmd_editar(a):
             else (v.get("hook") or {}).get("titulo", "")
         arq = f"{p.get('data', hoje())}_{p.get('formato', 'reels')}_{slug(p.get('titulo', 'video'), 30)}_{nome}_" \
               f"{slug(hook_txt.replace('*', ''), 28)}{'_autorizacao-pendente' if pendente else ''}.mp4"
-        ex = exportar(master, saida / arq, alta_qualidade=meta["alta_qualidade"])
+        if a.rapido:
+            arq = arq.replace(".mp4", "_PREVIA.mp4")
+        ex = exportar(master, saida / arq, alta_qualidade=meta["alta_qualidade"], rapido=a.rapido)
         folha = quadros(saida / arq, trabalho / f"{nome}_quadros.jpg")
         print(f"  ✓ {arq} · {ex['mb']} MB · render {seg:.0f}s")
         resultado.append({"nome": nome, "arquivo": arq, "mb": ex["mb"], "fontes": fontes[i], "hook_id": v.get("hook_id"),
@@ -157,7 +159,7 @@ def cmd_editar(a):
     if p.get("legenda"):
         (saida / "legenda.txt").write_text(p["legenda"].strip() + "\n", encoding="utf-8")
     _relatorio(p, resultado, linha_checklist(p, ach), ach, time.time() - t_ini)
-    if not a.teste:
+    if not a.teste and not a.rapido:
         registrar(p.get("titulo", pasta.name), resultado)
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
 
@@ -252,6 +254,7 @@ def main(argv=None):
     s.add_argument("--refazer-base", action="store_true")
     s.add_argument("--forcar", action="store_true", help="ignora bloqueios do revisor (só para teste interno)")
     s.add_argument("--teste", action="store_true", help="não registra no histórico de rodízio")
+    s.add_argument("--rapido", action="store_true", help="prévia rápida (exportação veryfast, nome com _PREVIA)")
     s.set_defaults(f=cmd_editar)
     s = sub.add_parser("regra", help="registra uma regra aprendida")
     s.add_argument("texto")

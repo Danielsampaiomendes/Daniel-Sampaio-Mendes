@@ -32,3 +32,4 @@ alta_qualidade:
   nitidez: "unsharp=5:5:0.6:5:5:0.0"
   crf_intermediario: 13
   final_hevc: true          # HEVC (hvc1) em 2 passes abaixo do limite
+  preset_hevc: medium

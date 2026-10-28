@@ -16,14 +16,19 @@ def _audio_args(exp: dict) -> list:
             "-ar", str(a["taxa"])]
 
 
-def exportar(master: Path, saida: Path, alta_qualidade: bool = False, limite_mb: float | None = None) -> dict:
+def exportar(master: Path, saida: Path, alta_qualidade: bool = False, limite_mb: float | None = None,
+             rapido: bool = False) -> dict:
+    """rapido=True: prévia (preset veryfast/fast), mesma aparência, arquivo um pouco maior."""
     exp = load("exportacao")
-    v = exp["video"]
+    v = dict(exp["video"])
+    if rapido:
+        v["preset"] = "veryfast"
     limite = float(limite_mb if limite_mb is not None else exp.get("limite_mb", 0) or 0)
     saida.parent.mkdir(parents=True, exist_ok=True)
 
     if alta_qualidade and exp["alta_qualidade"].get("final_hevc"):
-        codec = ["-c:v", "libx265", "-tag:v", "hvc1", "-preset", "slow", "-x265-params", "log-level=error"]
+        preset_hevc = "fast" if rapido else exp["alta_qualidade"].get("preset_hevc", "medium")
+        codec = ["-c:v", "libx265", "-tag:v", "hvc1", "-preset", preset_hevc, "-x265-params", "log-level=error"]
         q = ["-crf", "20"]
     else:
         codec = ["-c:v", v["codec"], "-preset", v["preset"], "-tune", v["tune"], "-x264-params", v["x264_params"]]
