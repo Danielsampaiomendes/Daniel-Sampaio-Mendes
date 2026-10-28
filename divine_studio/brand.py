@@ -70,12 +70,22 @@ def _rasterizar_svg(caminho, altura_px: int, cor: tuple) -> Image.Image:
 def simbolo(altura: int) -> Image.Image:
     cfg = load("marca")["logo"]
     png = ROOT / cfg["simbolo_png"]
+    dourado = hexrgb(load("marca")["cores"]["dourado_escuro"])
     if png.exists():
         im = Image.open(png).convert("RGBA")
         im = im.crop(im.getbbox())
-    else:
-        dourado = hexrgb(load("marca")["cores"]["dourado_escuro"])
+    elif (ROOT / cfg["simbolo_svg"]).exists():
         im = _rasterizar_svg(ROOT / cfg["simbolo_svg"], altura * SS * 2, dourado)
+        im = im.crop(im.getbbox())
+    else:
+        # sem o logo oficial (máquina fora do Mac, testes): trevo provisório, nunca para postar
+        print(f"  aviso: logo oficial não encontrado ({cfg['simbolo_png']}); usando um símbolo provisório")
+        d = altura * SS * 2
+        im = Image.new("RGBA", (d, d), (0, 0, 0, 0))
+        dr = ImageDraw.Draw(im)
+        r = d * 0.21
+        for cx, cy in ((0.5, 0.32), (0.32, 0.63), (0.68, 0.63)):
+            dr.ellipse((d * cx - r, d * cy - r, d * cx + r, d * cy + r), outline=dourado + (255,), width=max(2, d // 25))
         im = im.crop(im.getbbox())
     return im.resize((max(1, round(im.width * altura / im.height)), altura), Image.LANCZOS)
 
