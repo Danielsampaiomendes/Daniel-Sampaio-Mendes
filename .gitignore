@@ -47,6 +47,8 @@ Videos/_Versoes anteriores/
 *.svg
 *.html
 !divine_studio/web/*.html
+!divine_studio/web/*.png
+!divine_studio/web/*.jpg
 
 # Ambiente
 __pycache__/

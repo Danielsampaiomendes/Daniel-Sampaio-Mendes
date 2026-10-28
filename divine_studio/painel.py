@@ -268,7 +268,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/estilo.css"):
+            if u.path in ("/app.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
                 return self._json(listar())
