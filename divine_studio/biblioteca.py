@@ -150,7 +150,7 @@ def salvar(cat: str, nome: str, dados_ou_stream, n: int | None = None, item: str
         shutil.move(str(f), arq / f"{f.stem}_{time.strftime('%Y%m%d-%H%M%S')}{f.suffix}")
     os.replace(parcial, destino)
     from . import brand
-    for fn in (brand.simbolo, brand.horizontal, brand.empilhado):
+    for fn in (brand.simbolo, brand.horizontal, brand.empilhado, brand.letreiro):
         fn.cache_clear()
     return destino
 

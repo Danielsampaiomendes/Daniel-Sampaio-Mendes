@@ -117,14 +117,31 @@ def _letreiro(tamanho1: float, tamanho2: float, gap: float):
     return img
 
 
+def _oficial(item: str, altura: int) -> Image.Image | None:
+    """Arte oficial da Biblioteca (assets/marca), na altura pedida; None se não foi enviada."""
+    from .biblioteca import logo
+    f = logo(item)
+    if not f:
+        return None
+    im = Image.open(f).convert("RGBA")
+    im = im.crop(im.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox())
+    return im.resize((max(1, round(im.width * altura / im.height)), max(1, altura)), Image.LANCZOS)
+
+
 @lru_cache(maxsize=8)
 def letreiro(altura: int = 40) -> Image.Image:
     """Só o letreiro DIVINE / MEDICAL SPA (topo da TV)."""
+    of = _oficial("letreiro", altura)
+    if of is not None:
+        return of
     return _letreiro(altura * 0.62, altura * 0.25, altura * 0.16)
 
 
 @lru_cache(maxsize=8)
 def horizontal(altura: int = 56) -> Image.Image:
+    of = _oficial("logo-horizontal", altura)          # arte oficial (símbolo à esquerda, letreiro à direita)
+    if of is not None:
+        return of
     s = simbolo(altura)
     let = _letreiro(altura * 0.50, altura * 0.20, altura * 0.13)
     gap = int(altura * 0.32)
@@ -136,6 +153,11 @@ def horizontal(altura: int = 56) -> Image.Image:
 
 @lru_cache(maxsize=8)
 def empilhado(altura_simbolo: int = 190) -> Image.Image:
+    from .biblioteca import logo
+    fv, fs = logo("logo-vertical"), logo("divine-simbolo")
+    if fv and fs:                                       # arte oficial: símbolo com a altura pedida, letreiro embaixo
+        razao = Image.open(fv).height / Image.open(fs).height
+        return _oficial("logo-vertical", int(altura_simbolo * razao))
     s = simbolo(altura_simbolo)
     let = _letreiro(altura_simbolo * 0.36, altura_simbolo * 0.14, altura_simbolo * 0.09)
     gap = int(altura_simbolo * 0.16)
