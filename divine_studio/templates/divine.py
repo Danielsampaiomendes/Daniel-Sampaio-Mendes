@@ -180,10 +180,14 @@ def montar(projeto: dict, versao: dict, combo_codigo: str, duracao_base: float, 
     else:
         t_msg = plano.hook_fim + 0.2
 
-    # Mensagens do meio
+    # Mensagens do meio. O que tem momento fixo (mensagem com inicio, efeito na linha do tempo) tem prioridade;
+    # as mensagens em sequência desviam para depois, para nunca duas coisas no mesmo lugar ao mesmo tempo.
+    fixos = ocupacao(projeto, versao)
     for k, m in enumerate(projeto.get("mensagens") or []):
         tit, apo = m.get("titulo", ""), m.get("apoio")
         ini = float(m.get("inicio", t_msg))
+        if "inicio" not in m and not m.get("na_fala"):
+            ini = desviar(ini, tempo_leitura(tit + " " + (apo or "")), fixos)
         if m.get("na_fala"):
             t_fala = legendas.achar_fala(projeto.get("_fala") or [], m["na_fala"])
             if t_fala is None:
@@ -220,6 +224,35 @@ def montar(projeto: dict, versao: dict, combo_codigo: str, duracao_base: float, 
     else:
         fechamento_simples(plano, projeto, combo, W, H, larg, sfx_fechamento)
     return plano
+
+
+def ocupacao(projeto: dict, versao: dict) -> list:
+    """Intervalos (início, fim) já ocupados por mensagens com momento fixo e por efeitos de texto/card."""
+    from ..efeitos import DURACAO_PADRAO, QUADRO
+    out = []
+    for m in projeto.get("mensagens") or []:
+        if "inicio" in m:
+            a = float(m["inicio"])
+            out.append((a, float(m["fim"]) if "fim" in m else a + tempo_leitura(f"{m.get('titulo', '')} {m.get('apoio') or ''}")))
+    for ef in list(projeto.get("efeitos") or []) + list(versao.get("efeitos") or []):
+        tipo = ef.get("tipo")
+        if not tipo or (tipo in QUADRO and tipo not in ("vidro", "texto_atras")):
+            continue            # zoom, PiP, cortina e filme mexem no vídeo, não disputam lugar com texto
+        a = float(ef.get("inicio", 0))
+        out.append((a, a + float(ef.get("duracao", DURACAO_PADRAO.get(tipo, 3.0)))))
+    return sorted(out)
+
+
+def desviar(ini: float, dur: float, ocupados: list, folga: float = 0.2) -> float:
+    """Primeiro início >= ini em que [ini, ini+dur] não encosta em nada ocupado."""
+    mudou = True
+    while mudou:
+        mudou = False
+        for a, b in ocupados:
+            if ini < b + folga and ini + dur > a - folga:
+                ini = b + folga
+                mudou = True
+    return ini
 
 
 def transicoes(plano: Plano, projeto: dict, sfx_abertura, sfx_fechamento, sfx_transicao, inicio_fech: float):

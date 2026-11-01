@@ -33,10 +33,11 @@ Abre `http://127.0.0.1:8765` no navegador (só na sua máquina). Nele você:
 1. Cria o projeto com o tema do vídeo (ex.: "Laser de CO2 no corpo"; o tema escolhe os textos).
 2. Arrasta os vídeos brutos.
 3. Escolhe template e autorização de imagem.
-4. Clica em **✦ Criar edição automática**: o app monta clipes, cortes, hooks do banco, selo, mensagens, fechamento e legenda (frases do tema em `config/roteiros.yaml`, ou as frases mais fortes da própria fala quando há transcrição) e gera as 3 prévias. Ajustes finos no projeto.yaml e "Gerar prévias" de novo.
-5. Compara as versões lado a lado, marca as aprovadas e clica em "Aprovar selecionadas e exportar a final".
-6. Copia a legenda do post na aba "Relatório e legenda".
-7. Ensina uma regra nova quando corrigir alguma coisa: ela passa a valer para os próximos vídeos.
+4. Clica em **✦ Criar edição automática**: o app monta clipes, cortes, hooks do banco, selo, mensagens, fechamento e legenda (frases do tema em `config/roteiros.yaml`, ou as frases mais fortes da própria fala quando há transcrição) e gera as 3 prévias.
+5. Na aba **Edição**, se quiser ajustar: escolhe a fonte de cada versão vendo a amostra com o próprio hook, troca o hook (lista do banco ou o seu), edita selo, CTA, mensagens e fechamento, e na **linha do tempo** dá play, pausa no ponto e clica em "+ Efeito aqui" (círculo dourado, contador, checklist, card, zoom...) ou "+ Mensagem aqui"; arrasta as marcas para mudar o momento; para efeitos com ponto, clica no vídeo. "Salvar e gerar prévias".
+6. Compara as versões lado a lado, marca as aprovadas e clica em "Aprovar selecionadas e exportar a final".
+7. Copia a legenda do post na aba "Relatório e legenda".
+8. Ensina uma regra nova quando corrigir alguma coisa: ela passa a valer para os próximos vídeos.
 
 ## No iPhone
 

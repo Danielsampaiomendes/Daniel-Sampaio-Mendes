@@ -151,3 +151,25 @@ def test_registro_escreve_indice_historico_e_mapa(tmp_path, monkeypatch):
     assert "`projetos/2026-10-28_teste/`" in mapa.split("## 2.")[0]
     registro.mapa(p, res)                                 # não duplica
     assert (tmp_path / "MAPA.md").read_text().count("`projetos/2026-10-28_teste/`") == 1
+
+
+def test_mensagens_em_sequencia_desviam_do_que_tem_momento_fixo():
+    from divine_studio.templates import divine
+    p = {"titulo": "t", "versoes": [{"nome": "V1", "hook": [{"titulo": "Oi"}]}],
+         "mensagens": [{"titulo": "Primeira mensagem"}, {"titulo": "Segunda mensagem"},
+                       {"titulo": "Fixa no treze", "inicio": 13}],
+         "efeitos": [{"tipo": "contador", "inicio": 4, "de": 0, "ate": 12}]}
+    pl = divine.montar(p, p["versoes"][0], "B", 20.0, 540, 960, [], [], [])
+    msgs = {c.nome: c for c in pl.camadas if c.nome.startswith("msg") and c.nome.endswith("titulo")}
+    ocup = [(4.0, 7.2), (13.0, 13.0 + divine.tempo_leitura("Fixa no treze"))]
+    for nome in ("msg0_titulo", "msg1_titulo"):
+        c = msgs[nome]
+        assert not any(c.t0 < b and c.t1 > a for a, b in ocup), (nome, c.t0, c.t1)
+    assert msgs["msg2_titulo"].t0 == 13
+
+
+def test_desviar():
+    from divine_studio.templates.divine import desviar
+    assert desviar(1.0, 2.0, [(2.0, 4.0)]) == pytest.approx(4.2)
+    assert desviar(5.0, 1.0, [(2.0, 4.0)]) == 5.0
+    assert desviar(1.0, 2.0, [(2.0, 4.0), (4.3, 6.0)]) == pytest.approx(6.2)

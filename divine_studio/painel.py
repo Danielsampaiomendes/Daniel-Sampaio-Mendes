@@ -148,6 +148,89 @@ def detalhe(nome: str) -> dict:
             "templates": list(TEMPLATES), "job": _job_do_projeto(nome)}
 
 
+# ---------------------------------------------------------------- editor por campos (sem YAML)
+
+CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
+                    "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv"}
+
+
+def dados_projeto(nome: str) -> dict:
+    """Projeto como dicionário + o que o editor precisa: prévia de referência e duração da base."""
+    pasta = _pasta(nome)
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    previas = sorted((pasta / "saida").glob("*.mp4"), key=lambda f: f.stat().st_mtime, reverse=True) \
+        if (pasta / "saida").exists() else []
+    base = pasta / "trabalho" / "base.json"
+    dur = json.loads(base.read_text(encoding="utf-8")).get("duracao") if base.exists() else None
+    from .config import load
+    return {"projeto": d, "referencia": f"saida/{previas[0].name}" if previas else None, "duracao_base": dur,
+            "fechamento_s": float(load("preferencias")["fechamento"]["duracao_s"]),
+            "intervalo_efeitos": float(load("efeitos").get("intervalo_minimo_s", 1.5))}
+
+
+def salvar_dados(nome: str, novos: dict) -> None:
+    """Atualiza só os campos enviados; o resto do projeto.yaml fica como estava."""
+    pasta = _pasta(nome)
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    for k, v in novos.items():
+        if k not in CAMPOS_EDITAVEIS:
+            raise ValueError(f"campo não editável: {k}")
+        if v in (None, "", []) and k in ("efeitos", "legenda", "selo"):
+            d.pop(k, None)      # vazio = sem efeito/selo; a legenda vazia volta a ser gerada sozinha
+        else:
+            d[k] = v
+    if "efeitos" in novos:
+        from .efeitos import QUADRO, TIPOS
+        for ef in d.get("efeitos") or []:
+            if ef.get("tipo") not in TIPOS and ef.get("tipo") not in QUADRO:
+                raise ValueError(f"efeito desconhecido: {ef.get('tipo')}")
+            ef["inicio"] = round(float(ef.get("inicio", 0)), 2)
+    texto = yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000, default_flow_style=None)
+    salvar_yaml(nome, "# Editado pelo painel do Divine Studio.\n" + texto)
+
+
+_CACHE_IMG: dict = {}
+
+
+def png(img) -> bytes:
+    import io
+    b = io.BytesIO()
+    img.save(b, "PNG", optimize=True)
+    return b.getvalue()
+
+
+def amostra_fonte(codigo: str, texto: str) -> bytes:
+    """Miniatura de uma combinação de fontes (título com destaque dourado + apoio), no fundo da marca."""
+    chave = ("fonte", codigo, texto)
+    if chave not in _CACHE_IMG:
+        from PIL import Image
+        from .config import cor
+        from .fonts import combinacao
+        from .text import Estilo, render
+        combo = combinacao(codigo)
+        it = render(texto, Estilo.de_config(combo["titulo"], 54, cor("off_white")),
+                    Estilo.de_config(combo["destaque"], 54, cor("dourado")), largura_max=440)
+        ia = render(combo.get("nome", ""), Estilo.de_config(combo["apoio"], 34, cor("dourado")), largura_max=440)
+        bloco = Image.new("RGBA", (max(it.width, ia.width), it.height + ia.height - 10), (0, 0, 0, 0))
+        bloco.alpha_composite(it, ((bloco.width - it.width) // 2, 0))
+        bloco.alpha_composite(ia, ((bloco.width - ia.width) // 2, it.height - 10))
+        esc = min(1.0, 460 / bloco.width, 214 / bloco.height)     # frase longa: reduz para caber inteira
+        if esc < 1:
+            bloco = bloco.resize((max(1, int(bloco.width * esc)), max(1, int(bloco.height * esc))), Image.LANCZOS)
+        img = Image.new("RGB", (480, 230), cor("fundo"))
+        img.paste(bloco, ((480 - bloco.width) // 2, (230 - bloco.height) // 2), bloco)
+        _CACHE_IMG[chave] = png(img)
+    return _CACHE_IMG[chave]
+
+
+def amostra_efeito(tipo: str) -> bytes:
+    chave = ("efeito", tipo)
+    if chave not in _CACHE_IMG:
+        from .efeitos import amostra
+        _CACHE_IMG[chave] = png(amostra(tipo))
+    return _CACHE_IMG[chave]
+
+
 def salvar_yaml(nome: str, texto: str) -> None:
     pasta = _pasta(nome)
     yaml.safe_load(texto)                       # erro de sintaxe volta para a tela antes de gravar
@@ -298,6 +381,14 @@ class Painel(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length") or 0)
         return self.rfile.read(n) if n else b""
 
+    def _bytes(self, corpo: bytes, tipo: str):
+        self.send_response(200)
+        self.send_header("Content-Type", tipo)
+        self.send_header("Content-Length", str(len(corpo)))
+        self.send_header("Cache-Control", "max-age=3600")
+        self.end_headers()
+        self.wfile.write(corpo)
+
     def _arquivo(self, f: Path):
         """Serve arquivo com suporte a Range (o player de vídeo precisa para avançar e no Safari)."""
         tam = f.stat().st_size
@@ -338,7 +429,8 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png", "/manifest.json"):
+            if u.path in ("/app.js", "/editor.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+                          "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
                 return self._json(listar())
@@ -346,6 +438,19 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json(detalhe(q["p"]))
             if u.path == "/api/job":
                 return self._json(estado(q["id"]))
+            if u.path == "/api/dados":
+                return self._json(dados_projeto(q["p"]))
+            if u.path == "/api/fontes":
+                from .config import load
+                f = load("fontes")["combinacoes"]
+                return self._json([{"codigo": k, "nome": v.get("nome", k)} for k, v in f.items()])
+            if u.path == "/api/efeitos":
+                from .efeitos import catalogo
+                return self._json(catalogo())
+            if u.path == "/fonte.png":
+                return self._bytes(amostra_fonte(q["c"], q.get("t", "Sua frase / em *destaque.*")[:80]), "image/png")
+            if u.path == "/efeito.png":
+                return self._bytes(amostra_efeito(q["tipo"]), "image/png")
             if u.path == "/api/hooks":
                 from .hooks import sortear
                 return self._json([{"id": h["id"], "tipo": h["tipo"], "batidas": h["batidas"]}
@@ -406,6 +511,9 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json({"ok": True})
             if u.path == "/api/acao":
                 return self._json({"job": iniciar(dados["p"], dados["acao"], dados.get("versoes"))})
+            if u.path == "/api/dados":
+                salvar_dados(dados["p"], dados["dados"])
+                return self._json({"ok": True})
             if u.path == "/api/regra":
                 from .cli import main
                 main(["regra", dados["texto"]])

@@ -814,3 +814,81 @@ def prancha(arquivo, combo_codigo: str = "B", W: int = 540, H: int = 960) -> Non
     for k, t in enumerate(tiles):
         folha.paste(t, ((k % cols) * (W // 2 + 6), (k // cols) * (H // 2 + 6)))
     folha.save(arquivo, quality=85)
+
+
+# Formulário de cada efeito no painel: (campo, tipo, rótulo). Tipos: texto, linhas (uma por linha), numero,
+# ponto (clique no vídeo), escolha:a|b, chat (linhas "paciente: ..." / "clinica: ..."), barras ("rótulo = 0.6")
+NOMES = {
+    "camadas": "Gancho em camadas", "queda_letras": "Queda de letras", "letra_a_letra": "Letra a letra",
+    "riscado": "Frase riscada + virada", "digitando": "Barra de mensagem digitando", "checklist": "Checklist",
+    "contador": "Contador", "linha_tempo": "Linha do tempo", "circulo": "Círculo dourado + spoiler",
+    "notificacao": "Card de notificação", "artigo": "Card de artigo com marca-texto", "tweet": "Card de tweet",
+    "pergunta": "Card de pergunta", "chat": "Conversa de chat", "grafico": "Gráfico em expansão",
+    "zoom_digital": "Zoom digital", "fundo_pip": "Vídeo em janela (PiP)", "cortina": "Cortina",
+    "filme": "Visual de filme", "vidro": "Texto em vidro dourado", "texto_atras": "Título atrás da pessoa",
+}
+_POS = ("posicao", "escolha:topo|centro|base", "Posição")
+CAMPOS = {
+    "camadas": [("texto", "texto", "Frase"), _POS],
+    "queda_letras": [("texto", "texto", "Frase"), _POS],
+    "letra_a_letra": [("texto", "texto", "Frase"), _POS],
+    "riscado": [("texto", "texto", "Frase riscada"), ("virada", "texto", "Virada (entra depois)"), _POS],
+    "digitando": [("texto", "texto", "Mensagem digitada"), _POS],
+    "checklist": [("titulo", "texto", "Título"), ("itens", "linhas", "Itens (um por linha)"), _POS],
+    "contador": [("de", "numero", "De"), ("ate", "numero", "Até"), ("prefixo", "texto", "Antes do número"),
+                 ("sufixo", "texto", "Depois do número"), ("rotulo", "texto", "Rótulo embaixo"), _POS],
+    "linha_tempo": [("marcos", "linhas", "Marcos (um por linha)"), _POS],
+    "circulo": [("ponto", "ponto", "Onde (clique no vídeo)"), ("texto", "texto", "Texto (ex.: *Spoiler:* ...)")],
+    "notificacao": [("app", "texto", "App"), ("titulo", "texto", "Título"), ("texto", "texto", "Texto")],
+    "artigo": [("texto", "texto", "Frase do artigo"), ("fonte", "texto", "Fonte (ex.: Estudo, 2008)"), _POS],
+    "tweet": [("texto", "texto", "Frase"), ("pessoa", "escolha:daniel|george|isis", "Quem"), _POS],
+    "pergunta": [("texto", "texto", "Pergunta"), ("rotulo", "texto", "Rótulo"), _POS],
+    "chat": [("mensagens", "chat", "Conversa (paciente: ... / clinica: ...)"), _POS],
+    "grafico": [("barras", "barras", "Barras (rótulo = 0 a 1)"), _POS],
+    "zoom_digital": [("ponto", "ponto", "Onde (clique no vídeo)"), ("zoom", "numero", "Zoom (1.1 a 1.3)")],
+    "fundo_pip": [("escala", "numero", "Tamanho da janela (0.5 a 0.8)")],
+    "cortina": [],
+    "filme": [],
+    "vidro": [("texto", "texto", "Frase"), _POS],
+    "texto_atras": [("texto", "texto", "Título (fica atrás da pessoa)")],
+}
+DURACAO_PADRAO = {"camadas": 3.0, "queda_letras": 3.0, "letra_a_letra": 3.0, "riscado": 3.6, "digitando": 3.5,
+                  "checklist": 4.5, "contador": 3.2, "linha_tempo": 3.6, "circulo": 3.0, "notificacao": 3.4,
+                  "artigo": 3.6, "tweet": 4.0, "pergunta": 3.6, "chat": 4.0, "grafico": 3.6, "zoom_digital": 2.5,
+                  "fundo_pip": 3.0, "cortina": 1.4, "filme": 4.0, "vidro": 3.0, "texto_atras": 3.5}
+
+
+def catalogo() -> list:
+    """Tipos de efeito para o painel: nome, códigos EC/EV, campos, duração padrão e exemplo."""
+    cods = {}
+    for cod, e in (_cfg().get("codigos") or {}).items():
+        if e.get("tipo"):
+            cods.setdefault(e["tipo"], []).append(cod)
+    return [{"tipo": t, "nome": NOMES.get(t, t), "codigos": cods.get(t, []), "duracao": DURACAO_PADRAO.get(t, 3.0),
+             "campos": [{"campo": c, "tipo": k, "rotulo": r} for c, k, r in CAMPOS.get(t, [])],
+             "exemplo": EXEMPLOS.get(t, {})} for t in list(TIPOS) + list(QUADRO)]
+
+
+def amostra(tipo: str, combo_codigo: str = "B", W: int = 270, H: int = 480) -> Image.Image:
+    """Um quadro do efeito no meio da animação (miniatura para escolher no painel)."""
+    from .fonts import combinacao
+    combo = combinacao(combo_codigo)
+    q = np.zeros((H, W, 3), np.uint8)
+    yy = np.linspace(0, 1, H)[:, None, None]
+    q[:] = (np.array([70, 60, 52]) * (1 - yy) + np.array([30, 28, 26]) * yy).astype(np.uint8)
+    ex = dict(EXEMPLOS.get(tipo, {}))
+    if tipo in ("zoom_digital", "fundo_pip", "cortina", "filme", "texto_atras"):
+        ex.setdefault("texto", "CAPA")
+        # um "vídeo" de referência para o efeito de quadro aparecer
+        q[int(H * .25):int(H * .75), int(W * .25):int(W * .75)] = (150, 128, 96)
+    ef = {"tipo": tipo, "inicio": 0.0, **ex}
+    if tipo in TIPOS:
+        for c in TIPOS[tipo](ef, combo, W, H, 10):
+            c.pintar(q, min(c.t1 - 0.7, 2.6))
+    else:
+        r = QUADRO[tipo](ef, combo, W, H, 10)
+        f, cams = r if isinstance(r, tuple) else (r, [])
+        q = f(q, 0.9)
+        for c in cams:
+            c.pintar(q, 1.5)
+    return Image.fromarray(q)

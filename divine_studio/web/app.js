@@ -101,6 +101,7 @@ async function abrir(nome) {
   $("#legenda").textContent = dados.legenda || "A legenda sai sozinha na primeira prévia (ou clique em Gerar).";
   desenharVideos();
   carregarLista();
+  if (typeof carregarEditor === "function") carregarEditor().catch((e) => console.error(e));
   if (dados.job && !jobAtivo) acompanhar(dados.job, "tarefa em andamento");
 }
 
@@ -226,6 +227,8 @@ async function rodar(acao, versoes) {
                  "O projeto.yaml atual fica guardado em trabalho/projeto.yaml.anterior.")) return;
   }
   if ($("#yaml").value !== dados.yaml && !confirm("O projeto.yaml tem alterações não salvas. Rodar mesmo assim?")) return;
+  if (typeof ed !== "undefined" && ed.sujo && ["previa", "final", "auto"].includes(acao) &&
+      !confirm("A aba Edição tem alterações não salvas (elas ficam de fora). Rodar mesmo assim?")) return;
   try {
     const r = await api("/api/acao", { p: atual, acao, versoes });
     acompanhar(r.job, NOMES[acao] || acao);

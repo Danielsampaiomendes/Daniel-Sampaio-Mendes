@@ -127,6 +127,11 @@ def _resolver_hooks(p) -> None:
     versoes = p.get("versoes") or []
     arq = p["_pasta"] / "trabalho" / "hooks_sorteados.json"
     guardados = json.loads(arq.read_text(encoding="utf-8")) if arq.exists() else {}
+    from .hooks import por_id
+    for nome_v, hid in list(guardados.items()):
+        h = por_id(hid)
+        if not h or h["uso_interno"] or h["reprovado"] or not h["batidas"]:
+            del guardados[nome_v]          # deixou de valer: sorteia outro
     pedem = [v for v in versoes if v.get("hook") == "auto" and not v.get("hook_id")]
     faltam = [v for v in pedem if v.get("nome") not in guardados]
     if faltam:

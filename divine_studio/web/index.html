@@ -55,6 +55,7 @@
 
       <nav class="abas">
         <button data-aba="config" class="ativa">Projeto</button>
+        <button data-aba="edicao">Edição</button>
         <button data-aba="versoes">Versões <span id="n-versoes"></span></button>
         <button data-aba="relatorio">Relatório e legenda</button>
       </nav>
@@ -113,6 +114,52 @@
         </form>
       </div>
 
+      <div class="aba" id="aba-edicao" hidden>
+        <div class="barra-salvar">
+          <span id="ed-status" class="dica">Mudou alguma coisa? Salve e gere as prévias de novo.</span>
+          <button id="ed-salvar">Salvar</button>
+          <button id="ed-salvar-previa" class="dourado">Salvar e gerar prévias</button>
+        </div>
+
+        <div class="cartao">
+          <h2>Linha do tempo</h2>
+          <p class="dica" id="tl-dica">Dê play, pause no ponto que quiser e clique em <b>+ Efeito aqui</b> ou <b>+ Mensagem aqui</b>.
+            Arraste as marcas para mudar o momento.</p>
+          <div class="tl-grade">
+            <div class="tl-video"><video id="tl-video" controls playsinline preload="metadata"></video>
+              <div id="tl-mira" class="tl-mira" hidden></div></div>
+            <div class="tl-lado">
+              <div class="tl-botoes">
+                <button id="tl-add-efeito" class="dourado">+ Efeito aqui</button>
+                <button id="tl-add-msg">+ Mensagem aqui</button>
+              </div>
+              <div id="tl-form" class="tl-form"></div>
+            </div>
+          </div>
+          <div id="tl-barra" class="tl-barra"><div id="tl-cursor" class="tl-cursor"></div></div>
+          <div class="tl-legenda"><span class="m-ef">efeito</span><span class="m-msg">mensagem</span>
+            <span class="m-hook">hook</span><span class="m-fech">fechamento</span></div>
+        </div>
+
+        <div class="cartao">
+          <h2>Versões: hook e fontes</h2>
+          <div id="ed-versoes" class="ed-versoes"></div>
+          <button id="ed-mais-hooks" class="link">Ver outros hooks do banco</button>
+        </div>
+
+        <div class="cartao">
+          <h2>Textos</h2>
+          <label>Selo (rótulo fixo no topo)<input id="ed-selo"></label>
+          <label>CTA antecipado<input id="ed-cta"></label>
+          <div class="linha-titulo"><h2 style="margin:8px 0 0">Mensagens</h2><button id="ed-add-msg-fim" class="link">+ mensagem</button></div>
+          <div id="ed-msgs"></div>
+          <label>Frase do fechamento<input id="ed-fech-frase"></label>
+          <label>Botão do fechamento<select id="ed-fech-cta"><option>Agende sua avaliação</option>
+            <option>Agende sua sessão</option><option>Fale com o nosso atendimento</option></select></label>
+          <p class="dica">*palavra* fica dourada · " / " quebra a linha</p>
+        </div>
+      </div>
+
       <div class="aba" id="aba-versoes" hidden>
         <div class="linha-titulo">
           <label class="check"><input type="checkbox" id="so-previas" checked> mostrar prévias</label>
@@ -146,5 +193,6 @@
 </div>
 
 <script src="/app.js"></script>
+<script src="/editor.js"></script>
 </body>
 </html>
