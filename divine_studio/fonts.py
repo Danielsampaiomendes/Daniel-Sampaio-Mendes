@@ -47,6 +47,12 @@ def combinacao(codigo: str) -> dict:
 
 
 def todas_combinacoes() -> list:
+    """Combinações do rodízio automático (padrão vigente); sem a lista, todas."""
+    cfg = load("fontes")
+    return [c for c in (cfg.get("rodizio") or cfg["combinacoes"].keys()) if c in cfg["combinacoes"]]
+
+
+def todas_disponiveis() -> list:
     return list(load("fontes")["combinacoes"].keys())
 
 

@@ -59,7 +59,9 @@ def trechos_de_fala(projeto: dict, transcrever_fn) -> list:
             continue
         fora = marcar_remocoes(pal, projeto.get("remover_trechos"))
         ini = float(c.get("inicio", 0))
-        fim = float(c.get("fim", pal[-1]["fim"] + 0.5))
+        from .ingest import probe
+        dur_arq = probe(arq)["duracao"] or (pal[-1]["fim"] + 0.5)
+        fim = min(float(c.get("fim", dur_arq)), dur_arq)
         # frases: quebra na pontuação final
         frase, frases = [], []
         for i, w in enumerate(pal):
@@ -155,6 +157,8 @@ def montar_pacote(projeto: dict, categorias: list | None = None, transcrever_fn=
                 p["legendas"] = False
             if cat.get("sem_mensagens"):
                 p["mensagens"] = []
+            if cat.get("leia_na_legenda"):
+                p["fechamento"] = {**(p.get("fechamento") or {}), "leia_na_legenda": True}
             # caminhos dos brutos relativos à nova pasta
             for c in p.get("clipes") or []:
                 c["arquivo"] = _rel(origem, c["arquivo"])

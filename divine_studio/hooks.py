@@ -101,24 +101,53 @@ def sortear(n: int = 3, tema: str | None = None, semente: int | None = None, exc
     fora = usados_recentes() | (excluir or set())
     cand = [h for h in ler_banco() if h["batidas"] and not h["uso_interno"] and not h["reprovado"]
             and not h["modelo"] and h["id"] not in fora]
+    afins, genericos = cand, cand
     if tema:
-        palavras = [w for w in re.findall(r"\w{4,}", tema.lower())]
-        afins = [h for h in cand if any(w in h["descricao"].lower() for w in palavras)]
-    else:
-        afins = []
+        afins, genericos = _por_tema(cand, tema)
     escolhidos = []
     for k in range(n):
         tipo = TIPOS[k % 3]
-        for grupo in (afins, cand):
+        for grupo in (afins, genericos):
             pool = [h for h in grupo if h["tipo"] == tipo and h not in escolhidos]
             if pool:
                 escolhidos.append(rng.choice(pool))
                 break
         else:
-            pool = [h for h in cand if h not in escolhidos]
+            pool = [h for h in afins + genericos if h not in escolhidos] or [h for h in cand if h not in escolhidos]
             if pool:
                 escolhidos.append(rng.choice(pool))
     return escolhidos
+
+
+_PARADAS = {"de", "da", "do", "das", "dos", "no", "na", "nos", "nas", "em", "com", "para", "pra", "por", "um", "uma",
+            "teste", "sintetico", "video", "reels", "stories", "the"}
+
+
+def _norm(t: str) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFKD", t.lower()).encode("ascii", "ignore").decode()
+
+
+def _por_tema(cand: list, tema: str) -> tuple:
+    """(afins, genéricos): afins citam o tema; genéricos não citam nenhum procedimento de config/roteiros.yaml."""
+    t = _norm(tema)
+    termos = {w for w in re.findall(r"[a-z0-9]{3,}", t) if w not in _PARADAS}
+    try:
+        temas = load("roteiros")["temas"]
+    except Exception:
+        temas = {}
+    todos_nomes = set()
+    for chave, r in temas.items():
+        nomes = {_norm(n) for n in r.get("nomes", [chave])}
+        todos_nomes |= nomes
+        if any(re.search(rf"\b{re.escape(n)}", t) for n in nomes):
+            termos |= nomes
+    afins = [h for h in cand if any(re.search(rf"\b{re.escape(w)}", _norm(h["descricao"])) for w in termos)]
+    todos_nomes |= {_norm(str(x)) for x in (load("hooks").get("especificos") or [])}
+    genericos = [h for h in cand if h not in afins
+                 and not any(re.search(rf"\b{re.escape(n)}", _norm(" ".join(h["batidas"]) + " " + h["descricao"]))
+                             for n in todos_nomes if n not in termos)]
+    return afins, genericos
 
 
 def proximo_numero() -> int:

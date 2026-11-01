@@ -45,7 +45,7 @@ def test_efeitos_espacados_no_minimo_intervalo():
 
 def test_codigos_ec_ev_resolvem_para_modulos():
     tab = load("efeitos")["codigos"]
-    assert len(tab) == 33
+    assert len([c for c in tab if c[:2] in ("EC", "EV")]) == 33 and len([c for c in tab if c.startswith("D")]) == 17
     for cod, e in tab.items():
         if e.get("tipo"):
             assert e["tipo"] in efeitos.TIPOS or e["tipo"] in efeitos.QUADRO, cod
@@ -114,7 +114,8 @@ def test_pacote_cria_pecas_com_duracao_alvo(tmp_path):
     assert nomes == ["03_reels-curto", "09_tv"]        # cortes precisam de fala: pulado
     curto = yaml.safe_load((origem.parent / "2026-10-28_co2-pacote" / "03_reels-curto" / "projeto.yaml").read_text())
     dur = sum(c["fim"] - c["inicio"] for c in curto["clipes"])
-    assert dur == pytest.approx(20, abs=0.5)
+    alvo = next(c["alvo_s"] for c in load("pacote")["categorias"] if c["id"] == "reels-curto")
+    assert dur == pytest.approx(alvo, abs=1.6)          # mínimo de 1,5 s por clipe
     assert curto["clipes"][0]["arquivo"] == "../../2026-10-28_co2/bruto/c0.mp4"
     assert len(curto["versoes"]) == 3 and "legenda" not in curto
     tv = yaml.safe_load((origem.parent / "2026-10-28_co2-pacote" / "09_tv" / "projeto.yaml").read_text())

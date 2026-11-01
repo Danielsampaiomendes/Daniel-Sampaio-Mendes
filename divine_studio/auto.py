@@ -124,7 +124,7 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
     from .pacote import recortar_miolo
     cfg = load("roteiros")
     pasta = projeto["_pasta"]
-    brutos = sorted(f for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO)
+    brutos = sorted(f for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO and not f.name.startswith("."))
     if not brutos:
         raise SystemExit("Nenhum vídeo em bruto/. Solte os vídeos no painel (ou copie para a pasta bruto/).")
     titulo = projeto.get("titulo") or pasta.name
@@ -173,7 +173,8 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
     # textos do tema
     p["selo"] = rot.get("selo", "")
     lista_cta = cfg["cta_antecipado"]
-    p["cta_antecipado"] = lista_cta[semente % len(lista_cta)]
+    obj = (load("legenda").get("objetivos") or {}).get(p.get("objetivo") or "")
+    p["cta_antecipado"] = obj["cta_tela"] if obj else lista_cta[semente % len(lista_cta)]
     msgs = []
     if com_fala and pode_transcrever:
         palavras = []

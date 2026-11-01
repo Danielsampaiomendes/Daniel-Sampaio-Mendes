@@ -1,3 +1,10 @@
 # Tipo de cada hook (positivo | curiosidade | negativo) quando a classificação automática erra.
 # O comando `python3 -m divine_studio hooks novo "texto" --tipo curiosidade` acrescenta aqui sozinho.
 tipos: {}
+
+# Termos (início de palavra: "trein" pega treino, treina, treinar) que amarram um hook a um assunto específico: hook com algum deles só é sorteado quando o tema do vídeo
+# também tem esse assunto (evita "sutiã do bumbum" num vídeo de CO2). Acrescente quando aparecer um caso novo.
+especificos: [sleeve, bypass, banda, bariatric, glute, bumbum, sutia, agach, ovinho, academ, trein, shampoo, cabel,
+  exossomo, skinbooster, endolaser, cmslim, tesla, hipro, microagulh, colageno, pellet, hormon, co2, laser, mancha,
+  cicatriz, estria, acupuntura, agulha, spa, pedras, respira, frutas, batatinha, espelho, vitamina, deficienc,
+  sintoma, enzima, lipedema, flacidez, gordura, muscul, peso, meses, dia 90, 35, blefaro, cirurg, ozempic, cha]

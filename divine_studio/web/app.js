@@ -52,14 +52,21 @@ function md(texto) {
 
 // ---------------------------------------------------------------- lista de projetos
 
+let tagFiltro = "";
 async function carregarLista() {
   const lista = await api("/api/projetos");
   const filtro = $("#filtro").value.toLowerCase();
+  const todas = [...new Set(lista.flatMap((p) => p.tags))].sort();
+  $("#filtro-tags").innerHTML = todas.map((t) => `<button class="chip ${t === tagFiltro ? "ativo" : ""}" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
+  $$("#filtro-tags .chip").forEach((c) => c.onclick = () => { tagFiltro = tagFiltro === c.dataset.tag ? "" : c.dataset.tag; carregarLista(); });
+  $("#tags-existentes").innerHTML = todas.map((t) => `<option value="${esc(t)}">`).join("");
   $("#lista").innerHTML = lista
-    .filter((p) => !filtro || (p.titulo + p.nome).toLowerCase().includes(filtro))
+    .filter((p) => !filtro || (p.titulo + p.nome + p.tags.join(" ")).toLowerCase().includes(filtro))
+    .filter((p) => !tagFiltro || p.tags.includes(tagFiltro))
     .map((p) => `<li data-nome="${esc(p.nome)}" class="${p.nome === atual ? "ativo" : ""} ${p.pacote ? "peca" : ""}">
         <div class="t">${esc(p.titulo)}${p.aprovado ? '<span class="selo">aprovado</span>' : ""}</div>
-        <div class="m">${esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
+        <div class="m">${p.tipo === "carrossel" ? "carrossel" : esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
+        ${p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
       </li>`).join("") || '<li class="m">Nenhum projeto ainda.</li>';
   $$("#lista li[data-nome]").forEach((li) => li.onclick = () => abrir(li.dataset.nome));
 }
@@ -91,6 +98,10 @@ async function abrir(nome) {
   $("#c-template").innerHTML = dados.templates.map((t) => `<option ${t === dados.template ? "selected" : ""}>${t}</option>`).join("");
   $("#c-formato").value = dados.formato;
   $("#c-autorizacao").value = dados.autorizacao_imagem;
+  $("#c-tags").value = (dados.tags || []).join(", ");
+  $("#c-objetivo").value = dados.objetivo || "";
+  $$(".formatos input").forEach((c) => c.checked = (dados.formatos || []).includes(c.value) && c.value !== dados.formato);
+  $$(".formatos input").forEach((c) => c.disabled = c.value === dados.formato);
   $("#yaml").value = dados.yaml;
   $("#yaml-erro").textContent = dados.erro_yaml;
   $("#brutos").innerHTML = dados.brutos.map((b) => `<li><span>${esc(b.nome)}</span>${b.no_projeto
@@ -112,6 +123,17 @@ async function trocarCampo(campo, valor) {
 $("#c-template").onchange = (e) => trocarCampo("template", e.target.value);
 $("#c-formato").onchange = (e) => trocarCampo("formato", e.target.value);
 $("#c-autorizacao").onchange = (e) => trocarCampo("autorizacao_imagem", e.target.value);
+$("#c-objetivo").onchange = async (e) => {
+  try { await api("/api/dados", { p: atual, dados: { objetivo: e.target.value } }); abrir(atual); } catch (err) { alert(err.message); }
+};
+$("#c-tags").onchange = async (e) => {
+  const tags = [...new Set(e.target.value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))];
+  try { await api("/api/dados", { p: atual, dados: { tags } }); abrir(atual); } catch (err) { alert(err.message); }
+};
+$$(".formatos input").forEach((c) => c.onchange = async () => {
+  const formatos = $$(".formatos input").filter((x) => x.checked).map((x) => x.value);
+  try { await api("/api/dados", { p: atual, dados: { formatos } }); } catch (err) { alert(err.message); }
+});
 
 $("#b-salvar").onclick = async () => {
   try {
@@ -216,7 +238,7 @@ $("#b-copiar").onclick = async () => {
   setTimeout(() => $("#b-copiar").textContent = "Copiar", 1500);
 };
 
-const NOMES = { auto: "Edição automática (montagem + 3 prévias)", revisar: "Revisão de compliance", cortar: "Corte limpo", previa: "Gerando prévias", final: "Exportando a final",
+const NOMES = { formatos: "Outros formatos (prévias)", formatos_final: "Outros formatos (final)", auto: "Edição automática (montagem + 3 prévias)", revisar: "Revisão de compliance", cortar: "Corte limpo", previa: "Gerando prévias", final: "Exportando a final",
   legenda: "Legenda do post", pacote: "Pacote por categorias", transcrever: "Transcrição" };
 
 async function rodar(acao, versoes) {
@@ -240,9 +262,20 @@ function acompanhar(job, titulo) {
   $("#tarefa").hidden = false;
   $("#t-titulo").textContent = titulo;
   $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = true);
+  const liberar = (msg) => {
+    jobAtivo = null;
+    $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
+    $("#t-tempo").innerHTML = `<span class="estado-erro">${esc(msg)}</span>`;
+  };
   const tick = async () => {
     if (jobAtivo !== job) return;
-    const e = await api("/api/job?id=" + job);
+    let e;
+    try { e = await api("/api/job?id=" + job); }
+    catch (err) {
+      if (/não encontrada/.test(err.message)) return liberar("a tarefa não existe mais (o painel foi reiniciado?)");
+      setTimeout(tick, 4000);          // sem conexão por um momento: tenta de novo
+      return;
+    }
     $("#t-log").textContent = e.log;
     $("#t-log").scrollTop = 1e9;
     $("#t-tempo").innerHTML = e.estado === "rodando" ? `${e.segundos}s`
@@ -254,6 +287,7 @@ function acompanhar(job, titulo) {
       $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
       if (atual) abrir(atual);
       if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) $('[data-aba="versoes"]').click();
+      if (e.estado === "ok" && e.acao.startsWith("formatos")) carregarLista();
       if (e.estado === "ok" && (e.acao === "cortar" || e.acao === "legenda")) $('[data-aba="relatorio"]').click();
       if (e.estado === "ok" && ["revisar", "legenda", "cortar"].includes(e.acao)) setTimeout(() => { if (!jobAtivo) $("#tarefa").hidden = true; }, 6000);
     }

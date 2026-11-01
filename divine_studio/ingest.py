@@ -96,6 +96,11 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         p = probe(arq)
         ini = float(c.get("inicio", 0))
         fim = float(c.get("fim", p["duracao"]))
+        if p["duracao"]:
+            fim = min(fim, p["duracao"])          # fim além do arquivo congelava a imagem e desalinhava o áudio
+        if ini >= fim - 0.05:
+            raise SystemExit(f"Clipe {c['arquivo']}: início ({ini:.2f}s) depois do fim do vídeo ({fim:.2f}s). "
+                             "Ajuste inicio/fim no projeto.")
         vel = float(c.get("velocidade", 1.0))
         dur_out = (fim - ini) / vel
         fx, fy = (c.get("foco") or [0.5, 0.5])
@@ -164,6 +169,9 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
     else:
         pos.append("eq=contrast=1.02:saturation=1.02")
     pos.append("vignette=angle=PI/5")
+    grao = int((pref.get("acabamento") or {}).get("grao", 0))
+    if grao > 0:
+        pos.append(f"noise=alls={grao}:allf=t")
     pos.append("format=yuv420p")
     filtros.append(f"[vc]{','.join(pos)}[vout]")
 

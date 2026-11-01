@@ -892,3 +892,132 @@ def amostra(tipo: str, combo_codigo: str = "B", W: int = 270, H: int = 480) -> I
         for c in cams:
             c.pintar(q, 1.5)
     return Image.fromarray(q)
+
+
+# ---------------------------------------------------------------- efeitos da skill divine-efeitos-17
+
+def gancho_digitado(ef, combo, W, H, fps):
+    """1 Gancho dinâmico / texto digitado de impacto: título letra a letra com cursor dourado + kicker itálico."""
+    escala = W / 1080
+    tam = float(ef.get("tamanho", 96)) * escala
+    e, d = _estilos(combo, tam)
+    texto = ef["texto"]
+    limpo = texto.replace("*", "")
+    cps = float(ef.get("letras_por_s", 16))
+    kicker = ef.get("kicker")
+    ik = render(kicker, Estilo("Lora-Italic[wght].ttf", tam * 0.42, cor("dourado"), peso=500)) if kicker else None
+    final = render(texto, e, d, largura_max=W * 0.84)
+    larg, alt = final.width + int(40 * escala), final.height + (ik.height if ik else 0) + int(20 * escala)
+    dur = float(ef.get("duracao", len(limpo) / cps + 2.2))
+
+    def ger(t):
+        img = Image.new("RGBA", (larg, alt), (0, 0, 0, 0))
+        if ik:
+            _cola(img, ik, (larg - ik.width) / 2, 0, ease_out(clamp(t / 0.6)))
+        n = int(clamp(t - 0.3, 0, 99) * cps)
+        # corta o texto marcado em n letras visíveis, mantendo a marcação de destaque
+        parcial, vis = "", 0
+        for ch in texto:
+            if ch == "*":
+                parcial += ch
+                continue
+            if vis >= n:
+                break
+            parcial += ch
+            vis += 1
+        if parcial.count("*") % 2:
+            parcial += "*"
+        cursor = "|" if vis < len(limpo) or int(t * 2) % 2 == 0 else ""
+        it = render((parcial + cursor) if parcial.strip("*") else cursor or " ", e, d, largura_max=W * 0.84)
+        _cola(img, it, (larg - final.width) / 2, ik.height if ik else 0)
+        return img
+    y = int(_y(ef, H, 0.28) - alt / 2)
+    return [CamadaAnimada(ger, larg, alt, (W - larg) // 2, y, ef["inicio"], ef["inicio"] + dur, fps, 0.01, 0.6,
+                          nome="ef_gancho_digitado", texto=limpo)]
+
+
+def prompt(ef, combo, W, H, fps):
+    """4 Caixa de prompt: a dúvida da paciente é digitada e o botão de enviar vira um check dourado."""
+    cams = digitando({**ef, "rotulo": ef.get("rotulo", "Pergunta frequente")}, combo, W, H, fps)
+    c = cams[0]
+    n = len(ef["texto"]) / float(ef.get("letras_por_s", 18)) + 0.5
+    escala = W / 1080
+    alt = c.h
+    for k in range(len(c.quadros)):
+        if k / fps < n:
+            continue
+        a = c.quadros[k][0].copy()
+        rgb = c.quadros[k][1].copy()
+        r = alt * 0.32
+        cx, cy = c.w - alt * 0.55, alt / 2
+        yy, xx = np.mgrid[0:c.h, 0:c.w]
+        dentro = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r * r
+        rgb[dentro] = np.array(cor("dourado"), np.float32)
+        a[dentro] = 1.0
+        # visto
+        img = Image.new("L", (c.w, c.h), 0)
+        ImageDraw.Draw(img).line([(cx - r * 0.45, cy), (cx - r * 0.1, cy + r * 0.35), (cx + r * 0.5, cy - r * 0.35)],
+                                 fill=255, width=max(3, int(5 * escala)))
+        m = np.asarray(img, np.float32)[..., None] / 255
+        rgb = rgb * (1 - m) + np.array(cor("fundo"), np.float32) * m
+        c.quadros[k] = (a, rgb)
+    c.nome = "ef_prompt"
+    return cams
+
+
+def mensagem(ef, combo, W, H, fps):
+    """17 CTA mensagem: WhatsApp digitando "Quero agendar minha avaliação" + resposta da Divine (nunca "comenta")."""
+    return [setattr(c, "nome", "ef_mensagem") or c for c in chat({**ef, "mensagens": [
+        {"de": "paciente", "texto": ef.get("texto", "Quero agendar minha avaliação")},
+        {"de": "clinica", "texto": ef.get("resposta", "Oi! Que bom te ver por aqui. Qual o melhor horário?")}]},
+        combo, W, H, fps)]
+
+
+def frame_titulo(ef, combo, W, H, fps):
+    """13 Frame de título: tela #12110F com timecode discreto e título Italiana, entre blocos do vídeo."""
+    escala = W / 1080
+    tit = render(ef["texto"], Estilo("Italiana-Regular.ttf", 96 * escala, cor("off_white")),
+                 Estilo("Italiana-Regular.ttf", 96 * escala, cor("dourado")), largura_max=W * 0.8)
+    tc = render(ef.get("tc", "00:00:00:00"), Estilo("Jura[wght].ttf", 22 * escala, cor("rodape"), tracking=0.2),
+                sombra=False)
+    dur = float(ef.get("duracao", 2.4))
+    fundo = Image.new("RGBA", (W, H), cor("fundo") + (255,))
+    fundo.alpha_composite(tit, ((W - tit.width) // 2, (H - tit.height) // 2))
+    fundo.alpha_composite(tc, ((W - tc.width) // 2, (H + tit.height) // 2 + int(30 * escala)))
+    return [Camada(fundo, 0, 0, ef["inicio"], ef["inicio"] + dur, entrada=0.5, saida=0.5, deslize=0,
+                   nome="ef_frame_titulo", texto=ef["texto"])]
+
+
+def chip(ef, combo, W, H, fps):
+    """Chip: legenda de apoio curta no peito (y ~1300 a 1400), palavra *destacada* em Lora itálico dourado."""
+    escala = W / 1080
+    e = Estilo(marca("pill"), 34 * escala, cor("off_white"))
+    d = Estilo("Lora-Italic[wght].ttf", 38 * escala, cor("dourado"), peso=500)
+    it = render(ef["texto"], e, d, largura_max=760 * escala, sombra=False)
+    w, h = it.width + int(52 * escala), it.height + int(20 * escala)
+    card = _card(w, h, "fundo", 200, h // 2)
+    card.alpha_composite(it, ((w - it.width) // 2, (h - it.height) // 2))
+    y = int(float(ef.get("y", 1340)) * escala - h / 2)
+    return [Camada(card, (W - w) // 2, y, ef["inicio"], ef["inicio"] + float(ef.get("duracao", 2.6)), entrada=0.5,
+                   saida=0.4, deslize=12, nome="ef_chip", texto=ef["texto"])]
+
+
+TIPOS.update({"gancho_digitado": gancho_digitado, "prompt": prompt, "mensagem": mensagem,
+              "frame_titulo": frame_titulo, "chip": chip})
+EXEMPLOS.update({
+    "gancho_digitado": {"texto": "PÓS *CO2*", "kicker": "o que ninguém te conta"},
+    "prompt": {"texto": "Posso tomar sol depois do laser?"},
+    "mensagem": {"texto": "Quero agendar minha avaliação"},
+    "frame_titulo": {"texto": "Capítulo *dois*", "tc": "00:00:12:00"},
+    "chip": {"texto": "estímulo de *colágeno*"},
+})
+NOMES.update({"gancho_digitado": "Gancho digitado", "prompt": "Pergunta da paciente digitada",
+              "mensagem": "CTA WhatsApp", "frame_titulo": "Frame de título", "chip": "Chip no peito"})
+CAMPOS.update({
+    "gancho_digitado": [("texto", "texto", "Título (digitado)"), ("kicker", "texto", "Kicker em itálico"), _POS],
+    "prompt": [("texto", "texto", "Pergunta"), _POS],
+    "mensagem": [("texto", "texto", "Mensagem da paciente"), ("resposta", "texto", "Resposta da Divine"), _POS],
+    "frame_titulo": [("texto", "texto", "Título"), ("tc", "texto", "Timecode (opcional)")],
+    "chip": [("texto", "texto", "Texto curto")],
+})
+DURACAO_PADRAO.update({"gancho_digitado": 3.2, "prompt": 3.6, "mensagem": 4.0, "frame_titulo": 2.4, "chip": 2.6})

@@ -37,6 +37,26 @@ codigos:
   EV16: {nome: capa de revista (título atrás da cabeça), tipo: texto_atras, obs: "recorte com mediapipe ou rembg"}
   EV17: {nome: texto em vidro dourado, tipo: vidro}
 
+  # Os 17 efeitos da skill divine-efeitos-17 (ref. @amandamoita.ia, out/2026) no padrão Divine
+  D01: {nome: gancho dinâmico digitado, tipo: gancho_digitado}
+  D02: {nome: queda gravitacional, tipo: queda_letras}
+  D03: {nome: legendas gigantes, tipo: camadas}
+  D04: {nome: caixa de prompt (pergunta da paciente), tipo: prompt}
+  D05: {nome: painel de storyboard, tipo: null, obs: "precisa de miniaturas do próprio vídeo"}
+  D06: {nome: lista de ícones riscados, tipo: riscado}
+  D07: {nome: subir arquivo, tipo: null, obs: "sem módulo"}
+  D08: {nome: linha do tempo, tipo: linha_tempo}
+  D09: {nome: exclusão de app, tipo: null, obs: "tremor proibido; sem módulo"}
+  D10: {nome: controle de cor, tipo: cortina, obs: "nunca em paciente/resultado"}
+  D11: {nome: conta-gotas, tipo: null, obs: "sem módulo"}
+  D12: {nome: estilo cinematográfico, tipo: filme}
+  D13: {nome: frame de título, tipo: frame_titulo}
+  D14: {nome: grade de vídeos, tipo: null, obs: "sem módulo"}
+  D15: {nome: feed de reels, tipo: fundo_pip}
+  D16: {nome: cartão de vídeo, tipo: fundo_pip}
+  D17: {nome: CTA mensagem (WhatsApp), tipo: mensagem, obs: "substitui o 'comenta EU QUERO'"}
+  CHIP: {nome: chip de apoio no peito, tipo: chip}
+
 # Recursos de meio de vídeo já aprovados (atalhos)
 recursos:
   circulo_spoiler: {tipo: circulo, obs: "círculo dourado + 'Spoiler:' (A-H19, A-H21)"}

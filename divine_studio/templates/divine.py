@@ -288,6 +288,11 @@ def fechamento(plano: Plano, projeto: dict, combo: dict, W: int, H: int, larg: f
                                            deslize=16, nome="logo_empilhado"))
     y += emp.height + int(56 * escala)
     frase = fech_cfg.get("frase")
+    if fech_cfg.get("leia_na_legenda"):
+        # corte que termina seco: a explicação vai na legenda (skill divine-pacote-categorias)
+        assunto = fech_cfg.get("assunto") or projeto.get("selo") or projeto.get("tema") or "isso"
+        frase = f"Quer entender mais sobre / *{str(assunto).lower()}?*"
+        fech_cfg = {**fech_cfg, "cta": "Leia na legenda"}
     if frase:
         it, _ = bloco(frase, None, combo, 60 * escala, larg)
         plano.camadas_fechamento.append(Camada(it, (W - it.width) // 2, y, f0 + 0.3, total + 1, entrada=0.9,

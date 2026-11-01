@@ -27,3 +27,10 @@ hashtags_tema:                    # palavra no título ou nas mensagens -> hasht
   pele: ["#skincare", "#peleboa"]
 max_hashtags: 12
 min_hashtags: 8
+
+# Objetivo do post (skill divine-instagram-pro): um só por post; decide o CTA falado/escrito e o da legenda
+objetivos:
+  enviar:   {cta_tela: "Manda pra amiga que precisa ver isso.", cta_legenda: "Manda para aquela amiga que vive adiando esse cuidado."}
+  salvar:   {cta_tela: "Salva para lembrar antes da próxima sessão.", cta_legenda: "Salva este post para lembrar antes da sua próxima sessão."}
+  comentar: {cta_tela: "Me conta: você já passou por isso?", cta_legenda: "Me conta aqui embaixo: você já passou por isso?"}
+  seguir:   {cta_tela: "Segue para ver o protocolo completo.", cta_legenda: "Segue a Divine para ver o protocolo completo."}

@@ -56,7 +56,8 @@ def gerar(projeto: dict, semente: int = 0) -> str:
     partes = [f"{gancho} {emoji}".strip()]
 
     if not pessoal:
-        partes.append(cfg["cta_antecipado"][semente % len(cfg["cta_antecipado"])])
+        obj = (cfg.get("objetivos") or {}).get(projeto.get("objetivo") or "")
+        partes.append(obj["cta_legenda"] if obj else cfg["cta_antecipado"][semente % len(cfg["cta_antecipado"])])
 
     corpo = []
     for m in projeto.get("mensagens") or []:

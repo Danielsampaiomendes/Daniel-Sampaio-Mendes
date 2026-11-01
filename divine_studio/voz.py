@@ -57,17 +57,19 @@ def escolher_modo(medida: dict) -> str:
 
 def _filtros(modo: str) -> str:
     cfg = _cfg()
-    hp = f"highpass=f={cfg.get('highpass_hz', 80)}"
-    comp = "acompressor=threshold=-21dB:ratio=2.2:attack=12:release=220:makeup=1.5"
+    hp = f"highpass=f={cfg.get('highpass_hz', 80)},lowpass=f=14000"
+    # cadeia de voz da skill divine-video-pro: corpo, presença, sem chiado de "s", compressão e limitador
+    eq = "equalizer=f=200:t=q:w=1:g=-2,equalizer=f=3500:t=q:w=1.2:g=2.5"
+    fim = "deesser=i=0.4,acompressor=threshold=-20dB:ratio=3:attack=8:release=120:makeup=3,alimiter=limit=0.95"
     if modo == "minima":
-        return hp
+        return f"{hp},{eq},{fim}"
     if modo == "leve":
-        return f"{hp},afftdn=nr=10:nf=-42:tn=1,{comp}"
+        return f"{hp},afftdn=nr=12:nf=-30:tn=1,{eq},{fim}"
     if modo == "forte":
         modelo = ROOT / cfg.get("modelo_rnnoise", "config/rnnoise/sh.rnnn")
         if modelo.exists():
-            return f"{hp},arnndn=m='{modelo}':mix=0.85,{comp}"
-        return f"{hp},afftdn=nr=18:nf=-36:tn=1,{comp}"
+            return f"{hp},arnndn=m='{modelo}':mix=0.85,{eq},{fim}"
+        return f"{hp},afftdn=nr=18:nf=-36:tn=1,{eq},{fim}"
     raise ValueError(modo)
 
 

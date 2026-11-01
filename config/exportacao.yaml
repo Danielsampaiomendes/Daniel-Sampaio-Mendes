@@ -23,7 +23,8 @@ audio:
   codec: aac
   bitrate: 192k
   taxa: 48000
-  lufs_alvo: -16
+  lufs_alvo: -14              # Reels, Stories e Feed (padrão Instagram, skill divine-video-pro)
+  lufs_tv: -16               # TV da recepção
 
 # Modo alta qualidade (fonte em baixa resolução ou cena clara)
 alta_qualidade:

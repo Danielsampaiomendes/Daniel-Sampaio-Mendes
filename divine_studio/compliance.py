@@ -62,6 +62,16 @@ def revisar(projeto: dict, textos_tela: list | None = None) -> list:
                                 projeto)
 
     ex = cfg.get("exigir", {})
+    if legenda:
+        primeira = legenda.strip().splitlines()[0] if legenda.strip() else ""
+        dobra = int(ex.get("dobra_legenda", 125))
+        if len(primeira) > dobra:
+            achados.append(Achado("aviso", "dobra_125", "legenda", primeira[:60] + "…",
+                                  f"1ª linha com {len(primeira)} caracteres: o gancho precisa caber antes do \"mais\" (~{dobra})."))
+        emojis = len(re.findall(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]", legenda))
+        if emojis > int(ex.get("max_emojis_legenda", 3)):
+            achados.append(Achado("aviso", "emojis", "legenda", f"{emojis} emojis",
+                                  "0 a 3 emojis, com intenção (skill divine-instagram-pro)."))
     pessoal = projeto.get("marca") == "pessoal"
     if pessoal:
         # template pessoal do Renato: nenhuma marca Divine (nem texto, nem logo)

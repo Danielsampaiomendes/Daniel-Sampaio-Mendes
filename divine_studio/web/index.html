@@ -28,6 +28,7 @@
       <button type="submit" title="Criar projeto">+</button>
     </form>
     <input id="filtro" class="filtro" placeholder="Buscar projeto" autocomplete="off">
+    <div id="filtro-tags" class="chips"></div>
     <ul id="lista" class="lista"></ul>
   </aside>
 
@@ -77,6 +78,25 @@
                 <option value="sim">sim, assinada</option><option value="pendente">pendente</option>
                 <option value="nao_aparece">ninguém aparece</option><option value="proprio">conteúdo próprio</option>
               </select></label>
+            <label>Objetivo do post (decide o CTA)
+              <select id="c-objetivo"><option value="">(sem objetivo definido)</option>
+                <option value="enviar">Enviar: verdade que dá vontade de mandar para alguém</option>
+                <option value="salvar">Salvar: lista, passo a passo, checklist</option>
+                <option value="comentar">Comentar: identificação, pergunta real</option>
+                <option value="seguir">Seguir: processo, método, autoridade</option></select></label>
+            <label>Tags (separe por vírgula)
+              <input id="c-tags" placeholder="ex.: co2, daniel, outubro rosa" list="tags-existentes"></label>
+            <datalist id="tags-existentes"></datalist>
+            <div class="formatos">
+              <span class="dica">Gerar também em:</span>
+              <label class="check"><input type="checkbox" value="stories"> Stories</label>
+              <label class="check"><input type="checkbox" value="feed45"> Feed 4:5</label>
+              <label class="check"><input type="checkbox" value="feed11"> Feed 1:1</label>
+              <label class="check"><input type="checkbox" value="tv"> TV 16:9</label>
+              <label class="check"><input type="checkbox" value="reels"> Reels</label>
+            </div>
+            <div class="linha"><button data-acao="formatos">Gerar formatos (prévias)</button>
+              <button data-acao="formatos_final">Exportar formatos (final)</button></div>
             <div class="hooks">
               <button id="b-hooks" class="link">Sugerir 3 hooks do banco</button>
               <div id="hooks-sugeridos"></div>

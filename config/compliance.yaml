@@ -44,6 +44,12 @@ avisos:
   - id: promocional
     padrao: '\b(imperd[ií]vel|últimas vagas|corre que|só hoje)\b'
     motivo: "Tom: evitar linguagem de promoção."
+  - id: cara_de_ia
+    padrao: '\b(o resultado\?|e o melhor\?|sabe o que acontece\?|a verdade é que|vamos falar sobre|n[aã]o [eé] s[oó] [^.,!?]{1,40}, [eé]|n[aã]o [eé] sobre [^.,!?]{1,40}, [eé] sobre|vou ser sincer[oa]|papo reto|verdadeiro aliado|segredo para|no mundo de hoje|cada vez mais|jornada|transformador[a]?|potencializar|desvendar|mergulhar)'
+    motivo: "Cara de texto de IA (skill divine-instagram-pro): reescrever com a voz do Renato, sem fórmula pronta."
+  - id: staccato
+    padrao: '(?:^|[.!?]\s)(?:\w+\.\s){2,}\w+\.'
+    motivo: "Staccato dramático (\"Simples. Rápido. Eficaz.\"): no máximo 2 fragmentos; juntar em uma frase."
   - id: divine_texto
     padrao: '\bdivine medical spa\b'
     motivo: "Na arte, 'Divine Medical Spa' é sempre a logomarca, nunca texto comum (na legenda pode)."
@@ -55,6 +61,8 @@ exigir:
   aviso_resultados: true           # "Resultados variam de pessoa para pessoa." na legenda
   autorizacao_imagem: true         # campo autorizacao_imagem preenchido (sim | nao_aparece); "pendente" sai marcado
   musica_licenciada: true          # audio.musica (faixa de fora) só com musica_licenciada: true no projeto
+  dobra_legenda: 125               # a 1ª linha da legenda carrega o gancho sozinha (até ~125 caracteres)
+  max_emojis_legenda: 3
 
 # Nota de revisão viral (0 a 10 por critério; Código Viral + glamour Divine)
 nota_viral:

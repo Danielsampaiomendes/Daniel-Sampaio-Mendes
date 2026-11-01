@@ -4,7 +4,44 @@
 # destaque: como a palavra-chave (*assim*) é desenhada: arquivo + peso, sempre em dourado.
 pasta: Biblioteca_Fontes/ttf
 
+# Rodízio: desde 31/10/2026 o padrão é título grande em CAIXA ALTA (dourado em degradê) + cursiva fina colada
+# embaixo (skill divine-fontes). Só estas entram no rodízio automático; as outras continuam escolhíveis à mão.
+rodizio: [O1, O2, O3, O4, O5, O6, E, H, K, L, N]
+
+# Degradê dourado do título no padrão novo (de cima para baixo) e sombra escura suave
+degrade_dourado: ["#F5E9BE", "#D6BE7D", "#B09458"]
+
 combinacoes:
+  O1:
+    nome: Coroa
+    titulo: {arquivo: "Cinzel[wght].ttf", peso: 800, caixa_alta: true, tracking: 0.02, escala: 0.9, degrade: true}
+    apoio: {arquivo: GreatVibes-Regular.ttf, escala: 1.6}
+    destaque: {arquivo: "Cinzel[wght].ttf", peso: 800, caixa_alta: true, degrade: true, escala: 0.9}
+  O2:
+    nome: Revista
+    titulo: {arquivo: "PlayfairDisplay[wght].ttf", peso: 900, caixa_alta: true, escala: 0.9, degrade: true}
+    apoio: {arquivo: "PlayfairDisplay-Italic[wght].ttf", peso: 400, escala: 1.0}
+    destaque: {arquivo: "PlayfairDisplay[wght].ttf", peso: 900, caixa_alta: true, degrade: true, escala: 0.9}
+  O3:
+    nome: Editorial
+    titulo: {arquivo: AbrilFatface-Regular.ttf, caixa_alta: true, escala: 0.92, degrade: true}
+    apoio: {arquivo: "CormorantGaramond-Italic[wght].ttf", peso: 500, escala: 1.25}
+    destaque: {arquivo: AbrilFatface-Regular.ttf, caixa_alta: true, degrade: true, escala: 0.92}
+  O4:
+    nome: Impacto
+    titulo: {arquivo: BebasNeue-Regular.ttf, caixa_alta: true, tracking: 0.02, escala: 1.15, degrade: true}
+    apoio: {arquivo: "DancingScript[wght].ttf", peso: 500, escala: 1.3}
+    destaque: {arquivo: BebasNeue-Regular.ttf, caixa_alta: true, degrade: true, escala: 1.15}
+  O5:
+    nome: Vogue
+    titulo: {arquivo: "BodoniModa[opsz,wght].ttf", peso: 800, caixa_alta: true, escala: 0.9, degrade: true}
+    apoio: {arquivo: GreatVibes-Regular.ttf, escala: 1.6}
+    destaque: {arquivo: "BodoniModa[opsz,wght].ttf", peso: 800, caixa_alta: true, degrade: true, escala: 0.9}
+  O6:
+    nome: Doce chique
+    titulo: {arquivo: AbrilFatface-Regular.ttf, caixa_alta: true, escala: 0.92, degrade: true}
+    apoio: {arquivo: PinyonScript-Regular.ttf, escala: 1.55}
+    destaque: {arquivo: AbrilFatface-Regular.ttf, caixa_alta: true, degrade: true, escala: 0.92}
   A:
     nome: Bilhete
     titulo: {arquivo: InstrumentSerif-Regular.ttf, caixa_alta: true, tracking: 0.01, escala: 1.0}

@@ -1,6 +1,7 @@
 """Registro de cada vídeo aprovado: índice de vídeos editados, histórico do banco de hooks e mapa do repositório."""
 from __future__ import annotations
 
+import contextlib
 import datetime as _dt
 import re
 
@@ -82,6 +83,20 @@ def mapa(projeto: dict, resultado: list) -> None:
     bloco = t[:i].rstrip("\n")
     t = bloco + "\n" + linha + "\n" + t[i:]
     MAPA.write_text(t, encoding="utf-8")
+
+
+@contextlib.contextmanager
+def trava():
+    """Um registro por vez (histórico, índice, banco e mapa), mesmo com duas exportações ao mesmo tempo."""
+    import fcntl
+    arq = ROOT / "projetos" / ".registro.lock"
+    arq.parent.mkdir(exist_ok=True)
+    with open(arq, "w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 def registrar(projeto: dict, resultado: list, checklist: str, proximas_fontes: list) -> None:

@@ -10,14 +10,15 @@ from .config import load
 from .ingest import probe, rodar
 
 
-def _audio_args(exp: dict) -> list:
+def _audio_args(exp: dict, lufs: float | None = None) -> list:
     a = exp["audio"]
-    return ["-af", f"loudnorm=I={a['lufs_alvo']}:TP=-1.5:LRA=11", "-c:a", a["codec"], "-b:a", a["bitrate"],
+    alvo = lufs if lufs is not None else a["lufs_alvo"]
+    return ["-af", f"loudnorm=I={alvo}:TP=-1.5:LRA=9", "-c:a", a["codec"], "-b:a", a["bitrate"],
             "-ar", str(a["taxa"])]
 
 
 def exportar(master: Path, saida: Path, alta_qualidade: bool = False, limite_mb: float | None = None,
-             rapido: bool = False) -> dict:
+             rapido: bool = False, tv: bool = False) -> dict:
     """rapido=True: prévia (preset veryfast/fast), mesma aparência, arquivo um pouco maior."""
     exp = load("exportacao")
     v = dict(exp["video"])
@@ -25,6 +26,7 @@ def exportar(master: Path, saida: Path, alta_qualidade: bool = False, limite_mb:
         v["preset"] = "veryfast"
     limite = float(limite_mb if limite_mb is not None else exp.get("limite_mb", 0) or 0)
     saida.parent.mkdir(parents=True, exist_ok=True)
+    final, saida = saida, saida.with_name(f".tmp_{saida.name}")   # nunca deixa um mp4 cortado com nome de final
 
     if alta_qualidade and exp["alta_qualidade"].get("final_hevc"):
         preset_hevc = "fast" if rapido else exp["alta_qualidade"].get("preset_hevc", "medium")
@@ -35,7 +37,7 @@ def exportar(master: Path, saida: Path, alta_qualidade: bool = False, limite_mb:
         q = ["-crf", str(v["crf"])]
     comum = ["-pix_fmt", v["pix_fmt"], "-movflags", "+faststart"]
     rodar(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(master), *codec, *q, *comum,
-           *_audio_args(exp), str(saida)])
+           *_audio_args(exp, exp['audio'].get('lufs_tv', -16) if tv else None), str(saida)])
 
     mb = saida.stat().st_size / 1e6
     dois_passes = False
@@ -52,11 +54,14 @@ def exportar(master: Path, saida: Path, alta_qualidade: bool = False, limite_mb:
                 p2 = [*codec, "-pass", "2", "-passlogfile", log]
             rodar(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(master), *p1, "-b:v", f"{kbps}k",
                    *comum, "-an", "-f", "mp4", os.devnull])
+            dois = saida.with_name(f".tmp2_{final.name}")
             rodar(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(master), *p2, "-b:v", f"{kbps}k",
-                   *comum, *_audio_args(exp), str(saida)])
+                   *comum, *_audio_args(exp, exp['audio'].get('lufs_tv', -16) if tv else None), str(dois)])
+            os.replace(dois, saida)
         mb = saida.stat().st_size / 1e6
         dois_passes = True
-    return {"arquivo": str(saida), "mb": round(mb, 1), "dois_passes": dois_passes}
+    os.replace(saida, final)
+    return {"arquivo": str(final), "mb": round(mb, 1), "dois_passes": dois_passes}
 
 
 def quadros(video: Path, saida_jpg: Path, n: int = 6, largura: int = 240) -> Path:

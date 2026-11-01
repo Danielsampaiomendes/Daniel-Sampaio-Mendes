@@ -109,9 +109,13 @@ def expandir_clipes(projeto: dict, transcrever_fn) -> tuple:
             novos.append(c)
             continue
         arq = resolver(projeto, c["arquivo"])
+        info = probe(arq)
+        if not info["audio"]:
+            novos.append(c)            # b-roll sem trilha de áudio: nada para transcrever
+            continue
         pal = transcrever_fn(arq)
         ini = float(c.get("inicio", 0))
-        fim = float(c.get("fim", probe(arq)["duracao"]))
+        fim = min(float(c.get("fim", info["duracao"])), info["duracao"] or 1e9)
         fora = marcar_remocoes(pal, remover)
         segs = segmentos(pal, fora, ini, fim)
         if not segs:

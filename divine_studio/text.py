@@ -27,6 +27,7 @@ class Estilo:
     caixa_alta: bool = False
     tracking: float = 0.0      # fração do tamanho, entre letras
     condensar: float = 1.0     # largura relativa (Abril Fatface condensada)
+    degrade: tuple | None = None  # cores do degradê vertical (padrão novo: título dourado)
 
     @classmethod
     def de_config(cls, cfg: dict, tamanho_base: float, cor_rgb: tuple) -> "Estilo":
@@ -38,10 +39,33 @@ class Estilo:
             caixa_alta=bool(cfg.get("caixa_alta", False)),
             tracking=float(cfg.get("tracking", 0.0)),
             condensar=float(cfg.get("condensar", 1.0)),
+            degrade=_degrade() if cfg.get("degrade") else None,
         )
 
     def font(self, ss: int = SS):
         return fonte(self.arquivo, round(self.tamanho * ss), self.peso)
+
+
+def _degrade() -> tuple:
+    from .config import hexrgb, load
+    return tuple(hexrgb(c) for c in load("fontes").get("degrade_dourado", ["#F5E9BE", "#D6BE7D", "#B09458"]))
+
+
+def pintar_degrade(img: Image.Image, cores: tuple) -> Image.Image:
+    """Troca a cor do texto por um degradê vertical (mantém o alfa)."""
+    import numpy as np
+    a = np.asarray(img).astype(np.float32)
+    h = a.shape[0]
+    alfa = a[..., 3]
+    linhas = np.where(alfa.max(1) > 10)[0]
+    if not len(linhas):
+        return img
+    y0, y1 = linhas[0], linhas[-1] + 1
+    t = np.clip((np.arange(h) - y0) / max(1, y1 - y0), 0, 1)
+    pts = np.linspace(0, 1, len(cores))
+    cor_y = np.stack([np.interp(t, pts, [c[k] for c in cores]) for k in range(3)], 1)
+    a[..., :3] = cor_y[:, None, :]
+    return Image.fromarray(a.astype(np.uint8), "RGBA")
 
 
 def contar_palavras(texto: str) -> int:
@@ -53,18 +77,19 @@ def limpar(texto: str) -> str:
 
 
 def parse(texto: str) -> list:
-    """Linhas (por ' / ' ou \\n) -> lista de palavras (texto, destaque)."""
+    """Linhas (por ' / ' ou \\n) -> lista de palavras (texto, estilo): 0 normal, 1 *destaque*, 2 ~terceiro~."""
     linhas = []
-    destaque = False
+    destaque = 0
     for bruta in re.split(r"\s+/\s+|\n", texto.strip()):
         palavras = []
         atual = ""
         for ch in bruta:
-            if ch == "*":
+            if ch in "*~":
                 if atual:
                     palavras.append((atual, destaque))
                     atual = ""
-                destaque = not destaque
+                alvo = 1 if ch == "*" else 2
+                destaque = 0 if destaque == alvo else alvo
             elif ch == " ":
                 if atual:
                     palavras.append((atual, destaque))
@@ -91,13 +116,13 @@ def _largura(s: str, e: Estilo, ss: int = SS) -> float:
     return f.getlength(s)
 
 
-def _quebrar(linhas: list, normal: Estilo, dest: Estilo, largura_max: float) -> list:
+def _quebrar(linhas: list, estilos: list, largura_max: float) -> list:
     """Quebra automática por largura, preservando quebras manuais."""
     saida = []
     for palavras in linhas:
         atual, larg = [], 0.0
         for p, d in palavras:
-            e = dest if d else normal
+            e = estilos[int(d)]
             w = _largura(p, e)
             if p != " " and atual and larg + w > largura_max * SS:
                 while atual and atual[-1][0] == " ":
@@ -122,18 +147,21 @@ def render(
     alinhamento: str = "center",
     entrelinha: float = 1.12,
     sombra: bool = True,
+    terceiro: Estilo | None = None,
 ) -> Image.Image:
-    """Bloco de texto RGBA (escala 1x)."""
+    """Bloco de texto RGBA (escala 1x). *palavra* usa `destaque`; ~palavra~ usa `terceiro` (legenda da fala)."""
     destaque = destaque or replace(normal, cor=cor("dourado"))
+    estilos = [normal, destaque, terceiro or destaque]
     cond = normal.condensar
-    linhas = _quebrar(parse(texto), normal, destaque, largura_max / cond)
+    linhas = _quebrar(parse(texto), estilos, largura_max / cond)
 
-    fn, fd = normal.font(), destaque.font()
-    asc = max(fn.getmetrics()[0], fd.getmetrics()[0])
-    desc = max(fn.getmetrics()[1], fd.getmetrics()[1])
-    altura_linha = max(normal.tamanho, destaque.tamanho) * SS * entrelinha
-    larguras = [sum(_largura(p, destaque if d else normal) for p, d in ln) for ln in linhas]
-    pad = int(max(normal.tamanho, destaque.tamanho) * SS * 0.45)
+    fontes = [e.font() for e in estilos]
+    asc = max(f.getmetrics()[0] for f in fontes)
+    desc = max(f.getmetrics()[1] for f in fontes)
+    maior = max(e.tamanho for e in estilos)
+    altura_linha = maior * SS * entrelinha
+    larguras = [sum(_largura(p, estilos[int(d)]) for p, d in ln) for ln in linhas]
+    pad = int(maior * SS * 0.45)
     W = int(max(larguras + [1])) + 2 * pad
     H = int(asc + desc + altura_linha * (len(linhas) - 1)) + 2 * pad
 
@@ -148,24 +176,31 @@ def render(
         else:
             x = pad
         for p, d in ln:
-            e = destaque if d else normal
+            e = estilos[int(d)]
             s = _texto(p, e)
             f = e.font()
             if e.tracking:
                 for c in s:
-                    dr.text((x, y), c, font=f, fill=e.cor + (255,), anchor="ls")
+                    dr.text((x, y), c, font=f, fill=_rgba(e.cor), anchor="ls")
                     x += f.getlength(c) + e.tracking * e.tamanho * SS
             else:
-                dr.text((x, y), s, font=f, fill=e.cor + (255,), anchor="ls")
+                dr.text((x, y), s, font=f, fill=_rgba(e.cor), anchor="ls")
                 x += f.getlength(s)
         y += altura_linha
 
+    if normal.degrade:
+        img = pintar_degrade(img, normal.degrade)
     if cond != 1.0:
         img = img.resize((max(1, int(W * cond)), H), Image.LANCZOS)
     img = img.crop(img.getbbox() and _expandir(img.getbbox(), img.size, pad // 2))
     if sombra:
         img = com_sombra(img, raio=max(2, int(normal.tamanho * SS * 0.07)))
     return img.resize((max(1, img.width // SS), max(1, img.height // SS)), Image.LANCZOS)
+
+
+def _rgba(c: tuple) -> tuple:
+    """Cor (r, g, b) opaca ou (r, g, b, a) com transparência própria (palavras em 85% na legenda)."""
+    return tuple(c) if len(c) == 4 else tuple(c) + (255,)
 
 
 def _expandir(bbox, size, m):

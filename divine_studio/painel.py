@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import os
 import secrets
 import socket
 import re
@@ -98,20 +99,22 @@ def listar() -> list:
             d = yaml.safe_load(y.read_text(encoding="utf-8")) or {}
         except yaml.YAMLError:
             d = {}
-        saidas = list((pasta / "saida").glob("*.mp4")) if (pasta / "saida").exists() else []
+        saidas = [x for x in (pasta / "saida").glob("*.mp4") if not x.name.startswith(".")] if (pasta / "saida").exists() else []
         out.append({"nome": nome, "titulo": d.get("titulo", nome), "template": d.get("template", "divine"),
                     "brutos": len([f for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO])
                     if (pasta / "bruto").exists() else 0,
                     "previas": len([s for s in saidas if "_PREVIA" in s.name]),
                     "finais": len([s for s in saidas if "_PREVIA" not in s.name]),
                     "aprovado": (pasta / "trabalho" / "aprovacao.json").exists(),
-                    "pacote": "-pacote" in nome})
-    # mais recente primeiro; as peças de um pacote logo abaixo do projeto de origem
-    out.sort(key=lambda x: x["nome"].split("-pacote")[0], reverse=True)
-    out.sort(key=lambda x: (x["nome"].split("-pacote")[0], 0 if not x["pacote"] else 1, x["nome"]))
+                    "pacote": "-pacote/" in nome or "-formatos/" in nome,
+                    "tags": [str(t) for t in d.get("tags") or []],
+                    "tipo": "carrossel" if d.get("tipo") == "carrossel" else "video"})
+    # mais recente primeiro; as peças de um pacote e os outros formatos logo abaixo do projeto de origem
+    raiz = lambda nome: re.split(r"-(?:pacote|formatos)/", nome)[0]   # noqa: E731
+    out.sort(key=lambda x: (raiz(x["nome"]), 0 if not x["pacote"] else 1, x["nome"]))
     grupos = {}
     for x in out:
-        grupos.setdefault(x["nome"].split("-pacote")[0], []).append(x)
+        grupos.setdefault(raiz(x["nome"]), []).append(x)
     return [x for k in sorted(grupos, reverse=True) for x in grupos[k]]
 
 
@@ -127,10 +130,11 @@ def detalhe(nome: str) -> dict:
         erro_yaml = ""
     except yaml.YAMLError as e:
         d, erro_yaml = {}, str(e)
-    brutos = sorted(f.name for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO) \
+    brutos = sorted(f.name for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO and not f.name.startswith(".")) \
         if (pasta / "bruto").exists() else []
     saidas = []
-    for f in sorted((pasta / "saida").glob("*.mp4")) if (pasta / "saida").exists() else []:
+    for f in sorted(x for x in (pasta / "saida").glob("*.mp4") if not x.name.startswith(".")) \
+            if (pasta / "saida").exists() else []:
         m = re.search(r"_(V\d+|TV)_", f.name + "_")
         saidas.append({"arquivo": f"saida/{f.name}", "nome": f.name, "versao": m.group(1) if m else "",
                        "previa": "_PREVIA" in f.name, "mb": round(f.stat().st_size / 1e6, 1),
@@ -145,20 +149,23 @@ def detalhe(nome: str) -> dict:
             "relatorio": _ler_md(pasta / "relatorio.md"), "cortes": _ler_md(pasta / "trabalho" / "cortes.md"),
             "legenda": _ler_md(pasta / "saida" / "legenda.txt") or d.get("legenda", ""),
             "aprovacao": json.loads(_ler_md(pasta / "trabalho" / "aprovacao.json") or "{}"),
-            "templates": list(TEMPLATES), "job": _job_do_projeto(nome)}
+            "templates": list(TEMPLATES), "job": _job_do_projeto(nome),
+            "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
+            "objetivo": d.get("objetivo", "")}
 
 
 # ---------------------------------------------------------------- editor por campos (sem YAML)
 
 CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
-                    "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv"}
+                    "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
+                    "tags", "formatos", "objetivo"}
 
 
 def dados_projeto(nome: str) -> dict:
     """Projeto como dicionário + o que o editor precisa: prévia de referência e duração da base."""
     pasta = _pasta(nome)
     d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
-    previas = sorted((pasta / "saida").glob("*.mp4"), key=lambda f: f.stat().st_mtime, reverse=True) \
+    previas = sorted((x for x in (pasta / "saida").glob("*.mp4") if not x.name.startswith(".")), key=lambda f: f.stat().st_mtime, reverse=True) \
         if (pasta / "saida").exists() else []
     base = pasta / "trabalho" / "base.json"
     dur = json.loads(base.read_text(encoding="utf-8")).get("duracao") if base.exists() else None
@@ -277,6 +284,7 @@ def novo(nome: str) -> str:
 ACOES = {
     "revisar": ["revisar"], "transcrever": ["transcrever"], "cortar": ["cortar"], "legenda": ["legenda"],
     "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"], "auto": ["auto", "--previa"],
+    "formatos": ["formatos"], "formatos_final": ["formatos", "--final"],
 }
 
 
@@ -482,16 +490,26 @@ class Painel(BaseHTTPRequestHandler):
                 nome = Path(unquote(q["nome"])).name
                 if Path(nome).suffix.lower() not in VIDEO:
                     return self._erro("só arquivos de vídeo (.mov, .mp4…)")
+                if _job_do_projeto(q["p"]):
+                    return self._erro("espere a tarefa deste projeto terminar para enviar vídeos")
                 destino = pasta / "bruto" / nome
                 destino.parent.mkdir(exist_ok=True)
+                parcial = destino.with_name(f".{nome}.parcial")
                 n = int(self.headers.get("Content-Length") or 0)
-                with open(destino, "wb") as fh:
-                    while n > 0:
-                        bloco = self.rfile.read(min(1 << 20, n))
-                        if not bloco:
-                            break
-                        fh.write(bloco)
-                        n -= len(bloco)
+                try:
+                    with open(parcial, "wb") as fh:
+                        while n > 0:
+                            bloco = self.rfile.read(min(1 << 20, n))
+                            if not bloco:
+                                break
+                            fh.write(bloco)
+                            n -= len(bloco)
+                except (ConnectionError, OSError):
+                    n = -1
+                if n != 0:
+                    parcial.unlink(missing_ok=True)      # envio interrompido: não fica bruto cortado
+                    return self._erro("o envio foi interrompido; mande o vídeo de novo")
+                os.replace(parcial, destino)
                 return self._json({"ok": True, "arquivo": f"bruto/{nome}"})
             dados = json.loads(self._corpo() or b"{}")
             if u.path == "/api/novo":

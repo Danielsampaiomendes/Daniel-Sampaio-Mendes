@@ -125,6 +125,9 @@ def transcrever(arquivo: Path, pasta_cache: Path, motor: str | None = None, refa
         if achados:
             return json.loads(achados[0].read_text(encoding="utf-8"))["palavras"]
 
+    from .ingest import probe
+    if not probe(Path(arquivo))["audio"]:
+        return []                       # vídeo sem som: sem fala
     m = motor_disponivel(motor or cfg.get("motor", "auto"))
     if not m:
         raise SystemExit("Nenhum motor de transcrição disponível. Opções:\n"

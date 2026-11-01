@@ -66,9 +66,19 @@ def _formato(p):
 
 
 def _digital_base(p, tamanho=None) -> str:
-    """Tudo o que muda a base: se nada disso mudou, a base é reaproveitada."""
+    """Tudo o que muda a base: se nada disso mudou, a base é reaproveitada.
+    Inclui tamanho e data de cada bruto (vídeo reenviado com o mesmo nome refaz a base) e as configs usadas."""
+    from .ingest import resolver
+    arquivos = {}
+    for c in p.get("clipes") or []:
+        try:
+            st = resolver(p, c["arquivo"]).stat()
+            arquivos[c["arquivo"]] = [st.st_size, int(st.st_mtime)]
+        except (SystemExit, OSError, KeyError):
+            arquivos[c.get("arquivo", "?")] = None
+    cfg = {"exportacao": load("exportacao"), "animacao": load("preferencias").get("animacao")}
     return json.dumps({**{k: p.get(k) for k in ("clipes", "dissolve", "zoom_respiro", "formato", "template")},
-                       "tamanho": tamanho}, sort_keys=True, default=str)
+                       "tamanho": tamanho, "arquivos": arquivos, "cfg": cfg}, sort_keys=True, default=str)
 
 
 def _base(p, arq: Path, w: int, h: int, refazer: bool = False) -> dict:
@@ -223,11 +233,20 @@ def cmd_editar(a):
     if not idx:
         raise SystemExit("Nenhuma versão para renderizar (lista 'versoes' no projeto.yaml).")
 
-    fontes = escolher_fontes(len(versoes), [v.get("fontes") for v in versoes])
-    sfx_a = escolher_sfx("abertura", len(versoes), [v.get("sfx_abertura") for v in versoes])
-    sfx_f = escolher_sfx("fechamento", len(versoes), [v.get("sfx_fechamento") for v in versoes])
-    sfx_t = escolher_sfx("transicao", len(versoes), [v.get("sfx_transicao") for v in versoes],
+    # rodízio decidido uma vez por projeto e guardado: a final sai igual à prévia que foi aprovada
+    arq_rod = trabalho / "rodizio_escolhido.json"
+    guardado = json.loads(arq_rod.read_text(encoding="utf-8")) if arq_rod.exists() else {}
+    def _g(campo):
+        return [v.get(campo) or (guardado.get(v.get("nome", f"V{k + 1}")) or {}).get(campo)
+                for k, v in enumerate(versoes)]
+    fontes = escolher_fontes(len(versoes), _g("fontes"))
+    sfx_a = escolher_sfx("abertura", len(versoes), _g("sfx_abertura"))
+    sfx_f = escolher_sfx("fechamento", len(versoes), _g("sfx_fechamento"))
+    sfx_t = escolher_sfx("transicao", len(versoes), _g("sfx_transicao"),
                          ocupados=[a_ + f_ for a_, f_ in zip(sfx_a, sfx_f)])
+    arq_rod.write_text(json.dumps({v.get("nome", f"V{k + 1}"): {
+        "fontes": fontes[k], "sfx_abertura": sfx_a[k], "sfx_fechamento": sfx_f[k], "sfx_transicao": sfx_t[k]}
+        for k, v in enumerate(versoes)}, indent=1, ensure_ascii=False), encoding="utf-8")
 
     aud = p.get("audio") or {}
     voz = ler_audio(base, dur) if aud.get("original", True) else None
@@ -264,7 +283,7 @@ def cmd_editar(a):
         if a.rapido:
             arq = arq.replace(".mp4", "_PREVIA.mp4")
         ex = exportar(master, saida / arq, alta_qualidade=meta["alta_qualidade"], rapido=a.rapido,
-                      limite_mb=p.get("limite_mb"))
+                      limite_mb=p.get("limite_mb"), tv=p.get("formato") == "tv")
         nota = nota_viral(p, plano, ach_v, voz is not None)
         folha = quadros(saida / arq, trabalho / f"{nome}_quadros.jpg")
         print(f"  ✓ {arq} · {ex['mb']} MB · render {seg:.0f}s")
@@ -285,8 +304,10 @@ def cmd_editar(a):
     _relatorio(p, resultado, linha_checklist(p, ach), ach, time.time() - t_ini, extras)
     if not a.teste and not a.rapido:
         from . import registro
-        registrar(p.get("titulo", pasta.name), resultado)
-        registro.registrar(p, resultado, linha_checklist(p, ach), escolher_fontes(3))
+        with registro.trava():
+            load.cache_clear()
+            registrar(p.get("titulo", pasta.name), resultado)
+            registro.registrar(p, resultado, linha_checklist(p, ach), escolher_fontes(3))
         print("• Registrado em docs/INDICE_VIDEOS_EDITADOS.md, no histórico do banco de hooks e no mapa")
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
 
@@ -448,6 +469,21 @@ def cmd_legenda(a):
     print(f"Salva em {out.relative_to(ROOT)}")
 
 
+def cmd_formatos(a):
+    from . import formatos
+    p = ler_projeto(Path(a.projeto))
+    lista = [f.strip() for f in a.formatos.split(",")] if a.formatos else formatos.formatos_do_projeto(p)
+    (p["_pasta"] / "trabalho").mkdir(exist_ok=True)
+    _resolver_hooks(dict(p, versoes=[dict(v) for v in p.get("versoes") or []]))   # sorteia e guarda os hooks do principal
+    criadas = formatos.gerar(p, lista)
+    if not criadas:
+        raise SystemExit("Nenhum formato novo para gerar (o principal já está nesse formato?).")
+    for pasta, nome in criadas:
+        print(f"\n=== {nome}  ({pasta.relative_to(ROOT)})")
+        cmd_editar(argparse.Namespace(projeto=str(pasta), versoes=None, refazer_base=False, forcar=False,
+                                      teste=a.teste, rapido=not a.final))
+
+
 def cmd_auto(a):
     from . import auto
     from .transcricao import motor_disponivel
@@ -598,6 +634,12 @@ def main(argv=None):
     s = sub.add_parser("legenda", help="gera a legenda do post em saida/legenda.txt")
     s.add_argument("projeto")
     s.set_defaults(f=cmd_legenda)
+    s = sub.add_parser("formatos", help="a mesma edição em Stories, Feed e TV (padrão: formatos do projeto ou stories,tv)")
+    s.add_argument("projeto")
+    s.add_argument("--formatos", help="ex.: stories,feed45,tv")
+    s.add_argument("--final", action="store_true", help="exporta a final (sem isso, prévias)")
+    s.add_argument("--teste", action="store_true")
+    s.set_defaults(f=cmd_formatos)
     s = sub.add_parser("auto", help="edição automática: monta o projeto.yaml a partir dos brutos (e gera as prévias)")
     s.add_argument("projeto")
     s.add_argument("--template", choices=["divine", "daniel", "george", "tv", "react", "pessoal"])

@@ -104,10 +104,17 @@ def camadas(projeto: dict, palavras: list, W: int, H: int, ate: float) -> tuple:
     pal = aplicar_correcoes(palavras, projeto.get("correcoes"))
     grupos = blocos([w for w in pal if w["inicio"] < ate], int(cfg.get("max_palavras", 4)),
                     int(cfg.get("max_caracteres", 24)), float(cfg.get("pausa_quebra_s", 0.35)))
-    normal = Estilo(arquivo=cfg.get("fonte") or marca("legenda"), tamanho=float(cfg.get("tamanho", 58)) * escala,
-                    cor=cor(cfg.get("cor", "off_white")), caixa_alta=bool(cfg.get("caixa_alta", False)))
-    dest = Estilo(arquivo=normal.arquivo, tamanho=normal.tamanho, cor=cor(cfg.get("cor_destaque", "dourado")),
+    tam = float(cfg.get("tamanho", 58)) * escala
+    branco = cor(cfg.get("cor", "off_white"))
+    outras = branco + (int(255 * float(cfg.get("opacidade_outras", 0.85))),)
+    normal = Estilo(arquivo=cfg.get("fonte") or marca("legenda"), tamanho=tam, cor=outras,
+                    caixa_alta=bool(cfg.get("caixa_alta", False)))
+    # *palavra falada*: branco cheio e um pouco maior; ~palavra-chave~: Lora itálico dourado
+    dest = Estilo(arquivo=normal.arquivo, tamanho=tam * float(cfg.get("escala_falada", 1.06)), cor=branco,
                   caixa_alta=normal.caixa_alta)
+    chave = Estilo(arquivo=cfg.get("fonte_chave", "Lora-Italic[wght].ttf"), tamanho=tam * 1.04,
+                   cor=cor(cfg.get("cor_chave", "dourado")), peso=500)
+    termos = {normalizar(str(x)) for x in cfg.get("palavras_chave") or []}
     larg = min(W - seg["esquerda"] - seg["direita"] - 40, int(cfg.get("largura_max_px", 820) * escala))
     centro_y = H * float(cfg.get("posicao", 0.66))
     ent, sai, desl = float(cfg.get("entrada_s", 0.18)), float(cfg.get("saida_s", 0.15)), float(cfg.get("deslize_px", 10))
@@ -122,11 +129,19 @@ def camadas(projeto: dict, palavras: list, W: int, H: int, ate: float) -> tuple:
         if t1 - t0 < 0.15:
             continue
         palavras_txt = [_limpo(w["texto"]) for w in g]
+        # no máximo uma palavra-chave por bloco (a dor, a virada ou o CTA)
+        i_chave = next((j for j, p in enumerate(palavras_txt) if normalizar(p) in termos), None)
         textos.append(" ".join(palavras_txt))
         estados = range(len(g)) if palavra_a_palavra else [None]
         for k in estados:
-            txt = " ".join(f"*{p}*" if k == j and p else p for j, p in enumerate(palavras_txt))
-            img = render(txt, normal, dest, largura_max=larg)
+            def marcar(j, p):
+                if not p:
+                    return p
+                if j == i_chave:
+                    return f"~{p}~"
+                return f"*{p}*" if k == j else p
+            txt = " ".join(marcar(j, p) for j, p in enumerate(palavras_txt))
+            img = render(txt, normal, dest, largura_max=larg, terceiro=chave)
             a = t0 if k in (None, 0) else g[k]["inicio"]
             b = t1 if k is None or k == len(g) - 1 else g[k + 1]["inicio"] - 1e-3
             if b <= a:

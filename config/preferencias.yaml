@@ -49,22 +49,31 @@ voz:
   snr_ruido_pesado_db: 18         # abaixo disso: forte (ou ElevenLabs, se houver ELEVENLABS_API_KEY)
   modelo_rnnoise: config/rnnoise/sh.rnnn   # opcional (github.com/GregorR/rnnoise-models); sem ele usa redução FFT
 
-legendas:                         # legenda da fala na tela (liga com `legendas: true` no projeto)
+legendas:                         # legenda da fala na tela (skill divine-legendas-animadas; liga com `legendas: true`)
   tamanho: 58
   cor: off_white
-  cor_destaque: dourado           # palavra sendo falada
+  opacidade_outras: 0.85          # palavras que não estão sendo faladas
+  escala_falada: 1.06             # a palavra falada cresce de leve, em branco cheio
+  fonte_chave: "Lora-Italic[wght].ttf"   # palavra-chave do bloco em Lora itálico dourado (uma por bloco)
+  cor_chave: dourado
+  palavras_chave: [gordura, flacidez, queda, cabelo, celulite, mancha, manchas, cicatriz, estria, colageno, pele,
+    musculo, firmeza, diagnostico, causa, avaliacao, sessao, tratamento, hormonio, hormonios, energia, cuidado,
+    tempo, saude, autoestima, renovacao, textura, sono, cansaco, metabolismo, inflamacao, protocolo, acompanhamento]
   palavra_a_palavra: true
   caixa_alta: false
   max_palavras: 4
   max_caracteres: 24
   pausa_quebra_s: 0.35
-  posicao: 0.66                   # centro do bloco (fração da altura); acima do CTA e fora da UI
+  posicao: 0.66                   # centro do bloco (fração da altura): no peito, acima do CTA e fora da UI
   largura_max_px: 820
-  entrada_s: 0.18                 # fade curto com deslize leve: acompanha a fala sem piscar
-  saida_s: 0.15
-  deslize_px: 10
+  entrada_s: 0.12                 # fade de 120 ms com deslize de 8 px: acompanha a fala sem piscar
+  saida_s: 0.12
+  deslize_px: 8
   segurar_s: 0.35
   minimo_s: 0.7
+
+acabamento:                       # skill divine-video-pro: grão fino unifica celular e gráficos
+  grao: 4                         # 0 desliga
 
 progresso:
   altura_px: 6
