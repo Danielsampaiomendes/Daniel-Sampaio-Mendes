@@ -65,7 +65,7 @@ async function carregarLista() {
     .filter((p) => !tagFiltro || p.tags.includes(tagFiltro))
     .map((p) => `<li data-nome="${esc(p.nome)}" class="${p.nome === atual ? "ativo" : ""} ${p.pacote ? "peca" : ""}">
         <div class="t">${esc(p.titulo)}${p.aprovado ? '<span class="selo">aprovado</span>' : ""}</div>
-        <div class="m">${p.tipo === "carrossel" ? "carrossel" : esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
+        <div class="m">${({ carrossel: "carrossel", post: "post", antes_depois: "antes e depois · uso interno" })[p.tipo] || esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
         ${p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
       </li>`).join("") || '<li class="m">Nenhum projeto ainda.</li>';
   $$("#lista li[data-nome]").forEach((li) => li.onclick = () => abrir(li.dataset.nome));
@@ -94,12 +94,19 @@ async function abrir(nome) {
   $("#vazio").hidden = true;
   $$(".tela").forEach((s) => s.hidden = true);
   $$(".topo nav button").forEach((b) => b.classList.toggle("ativa", b.dataset.tela === "projetos"));
-  if (dados.tipo === "carrossel") {          // carrossel tem tela própria (carrossel.js)
+  $("#antesdepois").hidden = true;
+  if (dados.tipo === "carrossel" || dados.tipo === "post") {   // carrossel e post têm tela própria (carrossel.js)
     $("#projeto").hidden = true; $("#carrossel").hidden = false;
     carregarLista();
     return abrirCarrossel(dados);
   }
+  if (dados.tipo === "antes_depois") {                         // biblioteca.js
+    $("#projeto").hidden = true; $("#carrossel").hidden = true; $("#antesdepois").hidden = false;
+    carregarLista();
+    return abrirAntesDepois(dados);
+  }
   $("#carrossel").hidden = true;
+  if (window.pedidosHtml) $("#p-pedidos").innerHTML = pedidosHtml(dados.pedidos_imagem);
   $("#projeto").hidden = false;
   $("#p-titulo").textContent = dados.titulo;
   $("#p-pasta").textContent = "projetos/" + dados.nome;

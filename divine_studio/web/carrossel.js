@@ -15,8 +15,22 @@ async function abrirCarrossel(d) {
   cr.d = d; cr.sel = Math.min(cr.sel, Math.max(0, d.cards.length - 1));
   if (!cr.cfg) cr.cfg = await api("/api/carrossel/config");
   if (!cr.fontes) cr.fontes = await api("/api/fontes");
+  const ePost = d.tipo === "post";
   $("#cr-titulo").textContent = d.titulo;
-  $("#cr-pasta").textContent = "projetos/" + d.nome + " · " + d.cards.length + " cards";
+  $("#cr-pasta").textContent = "projetos/" + d.nome + (ePost ? " · post estático (imagem única)" : " · " + d.cards.length + " cards");
+  $("#cr-formula").closest("label").hidden = ePost; $("#cr-rascunho").hidden = ePost;
+  $("#cr-formatos").hidden = !ePost;
+  $("#cr-exportar").textContent = ePost ? "Exportar imagens (PNG)" : "Exportar cards (PNG)";
+  $("#cr-legenda").closest(".cartao").querySelector("h2").textContent = ePost ? "Legenda do post" : "Legenda do carrossel";
+  if (ePost) {
+    const fs = d.formatos && d.formatos.length ? d.formatos : ["feed45"];
+    $$("[data-crfmt]").forEach((c) => c.checked = fs.includes(c.dataset.crfmt));
+    const nomes = { feed45: "Feed 4:5", feed11: "Feed 1:1", stories: "Stories", tv: "TV" };
+    const atualFmt = cr.fmt && fs.includes(cr.fmt) ? cr.fmt : fs[0];
+    $("#cr-fmt-prev").innerHTML = fs.map((f) => `<option value="${f}" ${f === atualFmt ? "selected" : ""}>prévia: ${nomes[f] || f}</option>`).join("");
+    cr.fmt = atualFmt;
+  } else cr.fmt = "";
+  if (window.pedidosHtml) $("#cr-pedidos").innerHTML = pedidosHtml(d.pedidos_imagem);
   $("#cr-estilo").innerHTML = Object.entries(cr.cfg.estilos).map(([k, v]) => `<option value="${k}" ${k === d.estilo ? "selected" : ""}>${esc(v)}</option>`).join("");
   $("#cr-formula").innerHTML = Object.entries(cr.cfg.formulas).map(([k, v]) => `<option value="${k}" ${k === d.formula ? "selected" : ""}>${esc(v)}</option>`).join("");
   $("#cr-fontes").innerHTML = `<option value="">rodízio</option>` + cr.fontes.map((f) => `<option value="${f.codigo}" ${f.codigo === d.fontes ? "selected" : ""}>${f.codigo} · ${esc(f.nome)}</option>`).join("");
@@ -26,20 +40,20 @@ async function abrirCarrossel(d) {
   crDesenharCards(); crDesenharForm();
 }
 
-const crImg = (i, w = 360) => `/carrossel.jpg?p=${encodeURIComponent(atual)}&i=${i}&w=${w}&v=${cr.versao}`;
+const crImg = (i, w = 360) => `/carrossel.jpg?p=${encodeURIComponent(atual)}&i=${i}&w=${w}&v=${cr.versao}${cr.fmt ? "&fmt=" + cr.fmt : ""}`;
 
 function crDesenharCards() {
   $("#cr-cards").innerHTML = cr.d.cards.map((c, i) => `<div class="cr-card ${i === cr.sel ? "sel" : ""}" data-i="${i}">
       <img loading="lazy" src="${crImg(i, 240)}" alt="${esc(CR_LAYOUTS[c.layout] || c.layout)}">
       <div class="cr-mini">${i ? `<button data-mv="-1" title="subir">↑</button>` : ""}${i < cr.d.cards.length - 1 ? `<button data-mv="1" title="descer">↓</button>` : ""}
-      <button data-rm title="remover">✕</button></div></div>`).join("") + `<div class="cr-add" id="cr-add">+ card</div>`;
+      <button data-rm title="remover">✕</button></div></div>`).join("") + (cr.d.tipo === "post" ? "" : `<div class="cr-add" id="cr-add">+ card</div>`);
   $$(".cr-card").forEach((el) => el.onclick = (e) => {
     const i = +el.dataset.i;
     if (e.target.dataset.mv) { const j = i + +e.target.dataset.mv; [cr.d.cards[i], cr.d.cards[j]] = [cr.d.cards[j], cr.d.cards[i]]; cr.sel = j; return crSalvar(); }
     if (e.target.dataset.rm !== undefined) { if (!confirm("Remover este card?")) return; cr.d.cards.splice(i, 1); cr.sel = Math.max(0, i - 1); return crSalvar(); }
     cr.sel = i; crDesenharCards(); crDesenharForm();
   });
-  $("#cr-add").onclick = () => { cr.d.cards.splice(cr.d.cards.length - 1, 0, { layout: "texto", titulo: "Novo *ponto*", texto: "" }); cr.sel = cr.d.cards.length - 2; crSalvar(); };
+  if ($("#cr-add")) $("#cr-add").onclick = () => { cr.d.cards.splice(cr.d.cards.length - 1, 0, { layout: "texto", titulo: "Novo *ponto*", texto: "" }); cr.sel = cr.d.cards.length - 2; crSalvar(); };
 }
 
 function crDesenharForm() {
@@ -85,7 +99,8 @@ function crSalvarDepois(ms) { clearTimeout(cr.timer); $("#cr-status").textConten
 async function crSalvar() {
   try {
     await api("/api/dados", { p: atual, dados: { cards: cr.d.cards, estilo: $("#cr-estilo").value,
-      formula: $("#cr-formula").value, fontes: $("#cr-fontes").value || null } });
+      formula: $("#cr-formula").value, fontes: $("#cr-fontes").value || null,
+      ...(cr.d.tipo === "post" ? { formatos: $$("[data-crfmt]").filter((c) => c.checked).map((c) => c.dataset.crfmt) } : {}) } });
     cr.versao = Date.now();
     $("#cr-status").textContent = "Salvo.";
     crDesenharCards(); crDesenharForm();
@@ -101,8 +116,9 @@ $("#cr-rascunho").onclick = async () => {
 };
 $("#cr-exportar").onclick = async () => {
   try {
-    const r = await api("/api/acao", { p: atual, acao: "carrossel" });
-    acompanhar(r.job, "Exportando o carrossel");
+    const post = cr.d.tipo === "post";
+    const r = await api("/api/acao", { p: atual, acao: post ? "post" : "carrossel" });
+    acompanhar(r.job, post ? "Exportando o post" : "Exportando o carrossel");
   } catch (err) { alert(err.message); }
 };
 $("#cr-copiar").onclick = async () => { await navigator.clipboard.writeText($("#cr-legenda").textContent); $("#cr-copiar").textContent = "Copiado"; setTimeout(() => $("#cr-copiar").textContent = "Copiar", 1500); };
@@ -113,5 +129,20 @@ $("#form-carrossel").onsubmit = async (e) => {
   try {
     const r = await api("/api/carrossel/novo", { titulo, formula: "lista" });
     $("#novo-carrossel").value = ""; await carregarLista(); abrir(r.nome);
+  } catch (err) { alert(err.message); }
+};
+
+$$("[data-crfmt]").forEach((c) => c.onchange = async () => {
+  cr.d.formatos = $$("[data-crfmt]").filter((x) => x.checked).map((x) => x.dataset.crfmt);
+  await crSalvar(); abrirCarrossel(cr.d);
+});
+$("#cr-fmt-prev").onchange = (e) => { cr.fmt = e.target.value; crDesenharCards(); crDesenharForm(); };
+
+$("#form-post").onsubmit = async (e) => {
+  e.preventDefault();
+  const titulo = $("#novo-post").value.trim(); if (!titulo) return;
+  try {
+    const r = await api("/api/post/novo", { titulo });
+    $("#novo-post").value = ""; await carregarLista(); abrir(r.nome);
   } catch (err) { alert(err.message); }
 };

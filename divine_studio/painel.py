@@ -108,7 +108,7 @@ def listar() -> list:
                     "aprovado": (pasta / "trabalho" / "aprovacao.json").exists(),
                     "pacote": "-pacote/" in nome or "-formatos/" in nome,
                     "tags": [str(t) for t in d.get("tags") or []],
-                    "tipo": "carrossel" if d.get("tipo") == "carrossel" else "video"})
+                    "tipo": d.get("tipo") if d.get("tipo") in ("carrossel", "post", "antes_depois") else "video"})
     # mais recente primeiro; as peças de um pacote e os outros formatos logo abaixo do projeto de origem
     raiz = lambda nome: re.split(r"-(?:pacote|formatos)/", nome)[0]   # noqa: E731
     out.sort(key=lambda x: (raiz(x["nome"]), 0 if not x["pacote"] else 1, x["nome"]))
@@ -159,7 +159,23 @@ def detalhe(nome: str) -> dict:
             "templates": list(TEMPLATES), "job": _job_do_projeto(nome),
             "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
             "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video"),
+            "subtitulo": d.get("subtitulo", ""), "pares": d.get("pares") or [], "cta": d.get("cta", ""),
+            "video": d.get("video", True),
+            "imagens": sorted(f"saida/{x.name}" for x in (pasta / "saida").glob("*") if x.suffix.lower() in (".png", ".mp4")
+                              and not x.name.startswith(".")) if (pasta / "saida").exists() else [],
+            "pedidos_imagem": _pedidos(d),
             "publicacoes": d.get("publicacoes") or []}
+
+
+def _pedidos(d: dict) -> list:
+    """Imagens que o app pede para este projeto (Biblioteca): logo, fotos oficiais, foto da tecnologia do tema."""
+    if d.get("tipo") == "antes_depois" or d.get("template") == "pessoal" or d.get("estilo") == "pessoal":
+        return []
+    from .biblioteca import pedidos
+    try:
+        return pedidos(d.get("titulo", ""), d.get("tipo", "video"))
+    except Exception:
+        return []
 
 
 # ---------------------------------------------------------------- editor por campos (sem YAML)
@@ -167,7 +183,7 @@ def detalhe(nome: str) -> dict:
 CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
-                    "sfx_automaticos", "audio"}
+                    "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -294,6 +310,7 @@ ACOES = {
     "revisar": ["revisar"], "transcrever": ["transcrever"], "cortar": ["cortar"], "legenda": ["legenda"],
     "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"], "auto": ["auto", "--previa"],
     "formatos": ["formatos"], "formatos_final": ["formatos", "--final"], "carrossel": ["carrossel", "exportar"],
+    "post": ["post", "exportar"], "antesdepois": ["antesdepois", "exportar"],
 }
 
 
@@ -312,8 +329,8 @@ def iniciar(nome: str, acao: str, versoes: list | None = None) -> str:
         if _job_do_projeto(nome):
             raise ValueError("já tem uma tarefa rodando neste projeto")
         jid = uuid.uuid4().hex[:10]
-        if acao == "carrossel":
-            cmd = [sys.executable, "-u", "-m", "divine_studio", "carrossel", "exportar", str(pasta)]
+        if acao in ("carrossel", "post", "antesdepois"):
+            cmd = [sys.executable, "-u", "-m", "divine_studio", *ACOES[acao], str(pasta)]
         else:
             cmd = [sys.executable, "-u", "-m", "divine_studio", *ACOES[acao][:1], str(pasta), *ACOES[acao][1:]]
         if versoes and acao in ("previa", "final"):
@@ -449,7 +466,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
@@ -473,7 +490,21 @@ class Painel(BaseHTTPRequestHandler):
                 from .carrossel import png as png_card
                 pasta = _pasta(q["p"])
                 d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                if q.get("fmt"):
+                    d["formato"] = q["fmt"]
                 return self._bytes(png_card(d, int(q["i"]), pasta, int(q.get("w", 540))), "image/jpeg")
+            if u.path == "/antesdepois.jpg":
+                from .antes_depois import previa
+                pasta = _pasta(q["p"])
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                return self._bytes(previa(pasta, d, q.get("fmt", "tv"), int(q.get("w", 960))), "image/jpeg")
+            if u.path == "/api/biblioteca":
+                from .biblioteca import listar as listar_bib
+                return self._json(listar_bib())
+            if u.path == "/biblioteca.img":
+                from .biblioteca import miniatura
+                corpo = miniatura(q["cat"], unquote(q["f"]), int(q.get("w", 320)))
+                return self._bytes(corpo, "image/png" if corpo[:4] == b"\x89PNG" else "image/jpeg")
             if u.path == "/api/carrossel/config":
                 from .config import load
                 c = load("carrossel")
@@ -616,7 +647,18 @@ class Painel(BaseHTTPRequestHandler):
                     return self._erro("o envio foi interrompido; mande o vídeo de novo")
                 os.replace(parcial, destino)
                 return self._json({"ok": True, "arquivo": f"bruto/{nome}"})
+            if u.path == "/api/biblioteca/upload":
+                from .biblioteca import salvar as salvar_bib
+                n = int(self.headers.get("Content-Length") or 0)
+                f = salvar_bib(q["cat"], unquote(q["nome"]), self.rfile, n, q.get("item") or None)
+                return self._json({"ok": True, "arquivo": f.name})
             dados = json.loads(self._corpo() or b"{}")
+            if u.path == "/api/post/novo":
+                from .post import novo as novo_post
+                return self._json({"nome": str(novo_post(dados["titulo"]).relative_to(PROJETOS))})
+            if u.path == "/api/antesdepois/novo":
+                from .antes_depois import novo as novo_ad
+                return self._json({"nome": str(novo_ad(dados["titulo"], dados.get("subtitulo", "")).relative_to(PROJETOS))})
             if u.path == "/api/novo":
                 return self._json({"nome": novo(dados["nome"])})
             if u.path == "/api/salvar":
@@ -709,7 +751,11 @@ class Painel(BaseHTTPRequestHandler):
                                    "metricas", "obs")}
                 if campos.get("status") and campos["status"] not in aprendizado.STATUS:
                     raise ValueError("status inválido")
-                pub = aprendizado.marcar(_pasta(dados["p"]), dados["versao"], dados.get("arquivo"), **campos)
+                pasta_pub = _pasta(dados["p"])
+                if campos.get("status") in ("postado", "agendado") and \
+                        (aprendizado.ler(pasta_pub).get("tipo") == "antes_depois" or aprendizado.ler(pasta_pub).get("uso_interno")):
+                    raise ValueError("Antes e depois é uso interno (consulta): não pode ser postado nem agendado (CFM 2.336/2023).")
+                pub = aprendizado.marcar(pasta_pub, dados["versao"], dados.get("arquivo"), **campos)
                 return self._json(pub)
             if u.path == "/api/abrir_pasta":
                 if self.client_address[0] not in LOCAIS:

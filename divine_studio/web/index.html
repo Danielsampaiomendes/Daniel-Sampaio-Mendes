@@ -38,6 +38,14 @@
       <input id="novo-carrossel" placeholder="Novo carrossel: tema" autocomplete="off">
       <button type="submit" title="Criar carrossel">▦</button>
     </form>
+    <form id="form-post" class="novo">
+      <input id="novo-post" placeholder="Novo post (imagem): tema" autocomplete="off">
+      <button type="submit" title="Criar post estático">▣</button>
+    </form>
+    <form id="form-ad" class="novo">
+      <input id="novo-ad" placeholder="Antes e depois (uso interno): título" autocomplete="off">
+      <button type="submit" title="Criar antes e depois">◫</button>
+    </form>
     <input id="filtro" class="filtro" placeholder="Buscar projeto" autocomplete="off">
     <div id="filtro-tags" class="chips"></div>
     <ul id="lista" class="lista"></ul>
@@ -82,6 +90,46 @@
       <div id="ref-lista"></div>
     </section>
 
+    <section id="biblioteca" class="tela" hidden>
+      <div class="cabecalho"><div><h1>Biblioteca</h1>
+        <div class="pasta">Logomarcas, fotos das pessoas, das tecnologias, da clínica e dos produtos. O app usa sozinho:
+          logo em tudo, foto oficial nos cartões e a foto da tecnologia na capa do carrossel e do post.</div></div>
+        <div class="acoes"><span id="bib-resumo" class="dica"></span></div></div>
+      <div id="bib-pedidos"></div>
+      <div id="bib-cats"></div>
+    </section>
+
+    <section id="antesdepois" hidden>
+      <div class="cabecalho">
+        <div><h1 id="ad-titulo"></h1><div class="pasta" id="ad-pasta"></div></div>
+        <div class="acoes"><button id="ad-exportar" class="dourado">Gerar (TV, Stories e Feed)</button></div>
+      </div>
+      <div class="cartao aviso-interno">USO INTERNO · só para mostrar em consulta (TV ou celular). Nunca postar: antes e depois de paciente
+        é vedado pelo CFM 2.336/2023. Os arquivos saem com NAO-POSTAR no nome, em <code>entregas/AAAA-MM/Uso interno (nao postar)/</code>.</div>
+      <div class="cartao grade">
+        <label>Título<input id="ad-t" placeholder="ex.: Bumbum Up"></label>
+        <label>Subtítulo<input id="ad-sub" placeholder="ex.: bioestimulação glútea para mais firmeza e sustentação"></label>
+        <label>Chamada<input id="ad-cta"></label>
+        <label>Autorização de imagem da paciente<select id="ad-aut"><option value="pendente">pendente</option><option value="sim">sim, autorizada</option></select></label>
+        <div class="linha"><label class="check"><input type="checkbox" data-adfmt="tv"> TV 16:9</label>
+          <label class="check"><input type="checkbox" data-adfmt="stories"> Stories 9:16</label>
+          <label class="check"><input type="checkbox" data-adfmt="feed45"> Feed 4:5</label>
+          <label class="check"><input type="checkbox" id="ad-video"> vídeo para a TV</label></div>
+      </div>
+      <div class="cartao">
+        <div class="linha-titulo"><h2>Fotos</h2><span class="dica">Um par por ângulo. Pode mandar a antes e a depois separadas ou uma montagem já lado a lado.
+          Fotos inteiras, sem zoom nem corte.</span></div>
+        <div id="ad-pares"></div>
+        <div class="linha"><button id="ad-add">+ par (antes e depois)</button><button id="ad-add-m">+ montagem (foto única lado a lado)</button><span id="ad-status" class="dica"></span></div>
+      </div>
+      <div class="cartao">
+        <div class="linha-titulo"><h2>Prévia</h2>
+          <select id="ad-fmt-prev"><option value="tv">TV</option><option value="stories">Stories</option><option value="feed45">Feed</option></select></div>
+        <div class="ad-previa"><img id="ad-previa" alt=""></div>
+        <div id="ad-arquivos" class="arqs"></div>
+      </div>
+    </section>
+
     <section id="carrossel" hidden>
       <div class="cabecalho">
         <div><h1 id="cr-titulo"></h1><div class="pasta" id="cr-pasta"></div></div>
@@ -90,11 +138,18 @@
           <a id="cr-zip" class="botao" hidden download>Baixar .zip</a>
         </div>
       </div>
+      <div id="cr-pedidos"></div>
       <div class="cartao cr-barra">
         <label>Estilo<select id="cr-estilo"></select></label>
         <label>Fórmula<select id="cr-formula"></select></label>
         <button id="cr-rascunho">Refazer rascunho</button>
         <label>Fontes<select id="cr-fontes"></select></label>
+        <span id="cr-formatos" hidden>Tamanhos:
+          <label class="check"><input type="checkbox" data-crfmt="feed45"> Feed 4:5</label>
+          <label class="check"><input type="checkbox" data-crfmt="feed11"> Feed 1:1</label>
+          <label class="check"><input type="checkbox" data-crfmt="stories"> Stories</label>
+          <label class="check"><input type="checkbox" data-crfmt="tv"> TV</label>
+          <select id="cr-fmt-prev" title="ver a prévia neste tamanho"></select></span>
         <span id="cr-status" class="dica"></span>
       </div>
       <div class="cr-grade">
@@ -124,6 +179,7 @@
           <button data-acao="pacote" title="Cria as peças por categoria (longo, curto, viral, TV...)">Pacote</button>
         </div>
       </div>
+      <div id="p-pedidos"></div>
 
       <nav class="abas">
         <button data-aba="config" class="ativa">Projeto</button>
@@ -296,5 +352,6 @@
 <script src="/carrossel.js"></script>
 <script src="/telas.js"></script>
 <script src="/ia.js"></script>
+<script src="/biblioteca.js"></script>
 </body>
 </html>

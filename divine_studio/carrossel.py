@@ -104,6 +104,10 @@ def rascunho(titulo: str, formula: str = "lista", objetivo: str | None = None, s
                   for it, m in zip(itens, rot.get("mensagens") or [])]
         cards.append({"layout": "lista", "titulo": "Para *salvar:*", "itens": [i.replace("*", "") for i in itens]})
         cards.append({"layout": "cta", "titulo": rot.get("fechamento", "Cada pele tem o *seu tempo.*"), "pedido": pedido})
+    from .biblioteca import foto_do_tema
+    f = foto_do_tema(titulo)
+    if f and cards and cards[0].get("layout") == "capa":      # foto da tecnologia/sala na capa, da Biblioteca
+        cards[0]["foto"] = str(f.relative_to(ROOT))
     return cards[: _cfg().get("max_cards", 8)]
 
 
@@ -191,7 +195,7 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
     from . import brand
     cfg = _cfg()
     W, H = tamanho(p)
-    esc = W / 1080
+    esc = min(W / 1080, H / 1350)            # TV (1920x1080) cabe pela altura
     est = cfg["estilos"].get(p.get("estilo", "divine"), cfg["estilos"]["divine"])
     cards = p.get("cards") or []
     c = cards[i]
@@ -203,6 +207,8 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
     # fundo: foto escurecida (quando tem) ou brilho radial suave
     if c.get("foto") and pasta:
         arq = (pasta / c["foto"]) if not Path(c["foto"]).is_absolute() else Path(c["foto"])
+        if not arq.exists() and (ROOT / c["foto"]).is_file():      # foto da Biblioteca (assets/...)
+            arq = ROOT / c["foto"]
         if arq.exists():
             foto = ImageOps.fit(_abrir_imagem(arq), (W, H), Image.LANCZOS, centering=(0.5, 0.35))
             img = Image.blend(foto, Image.new("RGB", (W, H), fundo), 0.45 if lay != "capa" else 0.35)
@@ -215,7 +221,7 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
     rgba = img.convert("RGBA")
     dr = ImageDraw.Draw(rgba)
     margem = int(90 * esc)
-    larg = W - 2 * margem
+    larg = min(W - 2 * margem, int(H * 0.95))   # coluna de texto (na TV não espalha na largura toda)
 
     # marca no topo e progresso discreto (pontos, sem número)
     if est.get("marca", True):
@@ -224,7 +230,7 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
     n = len(cards)
     r = int(5 * esc)
     x0 = W // 2 - (n - 1) * int(9 * esc)
-    for k in range(n):
+    for k in range(n if n > 1 else 0):       # post de imagem única: sem progresso
         cor_p = hexrgb(est["destaque"]) + ((255,) if k == i else (80,))
         cx = x0 + k * int(18 * esc)
         dr.ellipse((cx - r, H - int(60 * esc) - r, cx + r, H - int(60 * esc) + r), fill=cor_p)
@@ -245,8 +251,9 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
         if c.get("apoio"):
             bloco.append(render(c["apoio"], a, a, largura_max=larg, sombra=escuro))
         centro(_empilhar(bloco, -int(18 * esc)))
-        dica = render("deslize  ›", Estilo("Poppins-Light.ttf", 26 * esc, hexrgb(est["apoio"])), sombra=False)
-        rgba.alpha_composite(dica, (W - margem - dica.width, H - int(90 * esc) - dica.height // 2))
+        if n > 1:
+            dica = render("deslize  ›", Estilo("Poppins-Light.ttf", 26 * esc, hexrgb(est["apoio"])), sombra=False)
+            rgba.alpha_composite(dica, (W - margem - dica.width, H - int(90 * esc) - dica.height // 2))
     elif lay == "texto":
         t, d, _, _ = _estilos(p, est, 84 * esc)
         tit = _caber(lambda s: render(c.get("titulo", ""), dataclasses.replace(t, tamanho=s),

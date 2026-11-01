@@ -24,7 +24,10 @@ def foto_redonda(chave: str, diametro: int) -> Image.Image:
     d = diametro * SS
     anel = max(2, int(d * 0.05))
     arq = ROOT / p.get("foto", "")
-    if p.get("foto") and arq.exists():
+    if not (p.get("foto") and arq.exists()):
+        from .biblioteca import foto_pessoa
+        arq = foto_pessoa(chave) or arq
+    if arq.is_file():
         foto = ImageOps.fit(Image.open(arq).convert("RGB"), (d - 2 * anel, d - 2 * anel), Image.LANCZOS)
     else:
         print(f"  aviso: foto oficial de {p['nome']} não encontrada ({p.get('foto')}); usando as iniciais")

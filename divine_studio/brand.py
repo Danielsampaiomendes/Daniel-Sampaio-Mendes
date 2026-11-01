@@ -69,7 +69,8 @@ def _rasterizar_svg(caminho, altura_px: int, cor: tuple) -> Image.Image:
 @lru_cache(maxsize=8)
 def simbolo(altura: int) -> Image.Image:
     cfg = load("marca")["logo"]
-    png = ROOT / cfg["simbolo_png"]
+    from .biblioteca import logo
+    png = logo("divine-simbolo") or ROOT / cfg["simbolo_png"]       # Biblioteca (assets/marca) primeiro
     dourado = hexrgb(load("marca")["cores"]["dourado_escuro"])
     if png.exists():
         im = Image.open(png).convert("RGBA")

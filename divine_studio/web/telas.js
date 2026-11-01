@@ -4,7 +4,7 @@ const TELAS = ["projetos", "programacao", "ia", "referencias", "biblioteca"];
 function mostrarTela(nome) {
   $$(".topo nav button").forEach((b) => b.classList.toggle("ativa", b.dataset.tela === nome));
   const secoes = { programacao: "#programacao", ia: "#ia", referencias: "#referencias", biblioteca: "#biblioteca" };
-  ["#vazio", "#projeto", "#carrossel", ...Object.values(secoes)].forEach((s) => { const el = $(s); if (el) el.hidden = true; });
+  ["#vazio", "#projeto", "#carrossel", "#antesdepois", ...Object.values(secoes)].forEach((s) => { const el = $(s); if (el) el.hidden = true; });
   if (nome === "projetos") {
     if (atual) abrir(atual); else $("#vazio").hidden = false;
     return;
@@ -19,10 +19,11 @@ $$(".topo nav button").forEach((b) => b.onclick = () => mostrarTela(b.dataset.te
 // ---------------------------------------------------------------- Programação
 
 const COLUNAS = [
-  ["aprovado", "Para postar", (p) => p.status === "aprovado" && p.rede !== "tv"],
+  ["aprovado", "Para postar", (p) => p.status === "aprovado" && !["tv", "consulta"].includes(p.rede)],
   ["agendado", "Agendados", (p) => p.status === "agendado"],
-  ["postado", "Postados", (p) => p.status === "postado" && p.rede !== "tv"],
+  ["postado", "Postados", (p) => p.status === "postado" && !["tv", "consulta"].includes(p.rede)],
   ["tv", "Na TV da clínica", (p) => p.rede === "tv" && ["aprovado", "postado"].includes(p.status)],
+  ["consulta", "Uso interno (consulta)", (p) => p.rede === "consulta"],
 ];
 
 async function carregarProgramacao() {
@@ -36,7 +37,7 @@ async function carregarProgramacao() {
       const m = p.metricas || {};
       return `<div class="peca" data-p="${esc(p.projeto)}" data-v="${esc(p.versao)}">
         <div class="t">${esc(p.titulo)} · <b>${esc(p.versao)}</b></div>
-        <div class="m">${esc(p.tipo === "carrossel" ? "carrossel" : p.formato)}${p.data_agendada && id === "agendado" ? " · " + fmt(p.data_agendada) : ""}${p.data_postagem && id !== "agendado" ? " · postado " + fmt(p.data_postagem) : ""}${p.gostei ? " · ♥" : ""}</div>
+        <div class="m">${esc(p.tipo === "carrossel" ? "carrossel" : p.tipo === "antes_depois" ? "antes e depois" : p.tipo === "post" ? "post " + p.versao : p.formato)}${p.data_agendada && id === "agendado" ? " · " + fmt(p.data_agendada) : ""}${p.data_postagem && id !== "agendado" ? " · postado " + fmt(p.data_postagem) : ""}${p.gostei ? " · ♥" : ""}</div>
         ${p.tags && p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
         ${id === "postado" ? `<div class="metricas" title="Métricas do Instagram (o app aprende com elas)">
           ${[["alcance", "alcance"], ["curtidas", "curtidas"], ["comentarios", "coment."], ["compartilhamentos", "envios"], ["salvamentos", "salvos"], ["views", "views"]]

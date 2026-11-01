@@ -1,0 +1,76 @@
+# Biblioteca de imagens do Divine Studio (tela "Biblioteca" do painel).
+# Cada categoria é uma pasta em assets/. O app mostra o que falta enviar e usa as imagens sozinho:
+#   marca        -> logo nos vídeos, carrosséis, posts e antes e depois (no lugar do símbolo provisório)
+#   pessoas      -> cartão de nome (foto redonda), citação no carrossel, template Daniel/George
+#   tecnologias  -> fundo da capa do carrossel e do post quando o tema bate com a tecnologia
+#   clinica      -> fundo de post institucional, TV da recepção, fechamento
+#   produtos     -> posts e carrosséis de suplementos e dermocosméticos (sem marca de remédio: RDC 96/2008)
+# Imagens ficam só no Mac (o .gitignore não manda PNG/JPG para o GitHub).
+categorias:
+  marca:
+    nome: Logomarcas
+    pasta: assets/marca
+    dica: PNG com fundo transparente, o maior possível.
+    itens:
+      - {arquivo: divine-simbolo, nome: "Símbolo (trevo dourado)", uso: "topo e fechamento de todo vídeo, carrossel e post", obrigatorio: true}
+      - {arquivo: logo-horizontal, nome: "Logo horizontal (símbolo + DIVINE MEDICAL SPA)", uso: "topo da TV e dos posts"}
+      - {arquivo: logo-vertical, nome: "Logo vertical (empilhado)", uso: "fechamento"}
+      - {arquivo: logo-preto, nome: "Logo preto", uso: "posts em fundo claro (estilo creme)"}
+  pessoas:
+    nome: Fotos das pessoas
+    pasta: assets/pessoas
+    dica: quadrada, rosto centralizado, fundo neutro, boa luz. Uma oficial por pessoa (a do perfil).
+    itens:
+      - {arquivo: daniel_perfil, nome: "Dr. Daniel (perfil oficial, terno azul)", uso: "cartão de nome, citação, template Daniel", obrigatorio: true}
+      - {arquivo: george_perfil, nome: "Enf. George", uso: "cartão de nome, template George", obrigatorio: true}
+      - {arquivo: isis_perfil, nome: "Dra. Isis", uso: "cartão de nome"}
+      - {arquivo: renato_perfil, nome: "Renato", uso: "template pessoal"}
+      - {arquivo: daniel_consultorio, nome: "Dr. Daniel no consultório (corpo inteiro ou meio corpo)", uso: "capa de carrossel e post de autoridade"}
+      - {arquivo: equipe, nome: "Equipe reunida", uso: "post institucional e TV"}
+  tecnologias:
+    nome: Fotos das tecnologias
+    pasta: assets/tecnologias
+    dica: aparelho inteiro, de frente, sala organizada e sem paciente identificável. Vertical de preferência.
+    # 'temas' liga a foto ao assunto do projeto (mesmas palavras de config/roteiros.yaml)
+    itens:
+      - {arquivo: laser-co2, nome: "Laser de CO2", temas: [co2, laser co2, laser de co2], obrigatorio: true}
+      - {arquivo: endolaser, nome: "Endolaser", temas: [endolaser], obrigatorio: true}
+      - {arquivo: microagulhamento, nome: "Microagulhamento (caneta e ponteiras)", temas: [microagulhamento]}
+      - {arquivo: cmslim, nome: "CMSlim", temas: [cmslim, cm slim]}
+      - {arquivo: bioestimulador, nome: "Bioestimulador (frasco sem marca à mostra)", temas: [bioestimulador, bumbum up, gluteo]}
+      - {arquivo: pellets, nome: "Pellets (reposição hormonal)", temas: [pellets, reposicao hormonal, hormonios]}
+      - {arquivo: soroterapia, nome: "Soroterapia (cadeira e bolsa)", temas: [soroterapia, soro, suplementos]}
+      - {arquivo: hipro, nome: "HIPRO", temas: [hipro]}
+  clinica:
+    nome: Clínica e ambientes
+    pasta: assets/clinica
+    dica: fotos limpas, luz quente, sem pessoas ou com autorização.
+    itens:
+      - {arquivo: fachada, nome: "Fachada ou entrada (Av. Paulista 1636)", uso: "post de localização, fechamento", obrigatorio: true}
+      - {arquivo: recepcao, nome: "Recepção", uso: "TV da recepção, Stories de chegada", obrigatorio: true}
+      - {arquivo: sala-procedimento, nome: "Sala de procedimento", uso: "fundo de post e carrossel"}
+      - {arquivo: spa-pedras-quentes, nome: "Sala do spa (pedras quentes)", temas: [spa, pedras quentes, massagem]}
+      - {arquivo: detalhes, nome: "Detalhes (flores, toalhas, decoração)", uso: "fundo suave de post e carrossel"}
+  produtos:
+    nome: Produtos
+    pasta: assets/produtos
+    dica: produto de frente em fundo neutro. Nada de remédio de prescrição ou marca de medicamento (RDC 96/2008).
+    itens:
+      - {arquivo: suplementos, nome: "Suplementos Divine", temas: [suplementos, suplemento, vitaminas]}
+      - {arquivo: dermocosmeticos, nome: "Dermocosméticos e loções", temas: [skincare, pele, cabelo, locao]}
+
+# Antes e depois (uso interno, TV de consulta): as fotos ficam dentro do projeto, nunca na biblioteca.
+antes_depois:
+  formatos: [tv, stories, feed45]
+  titulo_padrao: "Resultados reais"
+  aviso: "Resultados variam de pessoa para pessoa.  Imagens de paciente, com autorização.  Uso exclusivo em consulta."
+  marca_interna: "USO INTERNO · NÃO POSTAR"
+  cta: "Agende sua avaliação"
+  rotulos: [ANTES, DEPOIS]
+  video_segundos_por_par: 4
+  angulos: [FRENTE, PERFIL, TRÊS QUARTOS, POSTERIOR, LATERAL]
+
+# Post estático (imagem única): mesmos layouts do carrossel, num card só, em vários tamanhos
+post:
+  formatos: [feed45, stories, tv]
+  layout_padrao: capa

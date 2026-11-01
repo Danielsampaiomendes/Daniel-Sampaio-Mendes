@@ -572,6 +572,32 @@ def cmd_carrossel(a):
     print(f"{len(r['cards'])} cards exportados · {Path(r['zip']).relative_to(ROOT)}\n{r['checklist']}")
 
 
+def cmd_post(a):
+    from . import post
+    if a.acao == "novo":
+        pasta = post.novo(" ".join(a.alvo), estilo=a.estilo)
+        print(f"Post criado: {pasta.relative_to(ROOT)} (edite no painel ou no projeto.yaml)")
+        return
+    p = ler_projeto(Path(a.alvo[0]))
+    if p.get("tipo") != "post":
+        raise SystemExit("Este projeto não é um post estático.")
+    r = post.exportar(p["_pasta"], p)
+    print(f"{len(r['arquivos'])} imagem(ns) exportada(s)\n{r['checklist']}")
+
+
+def cmd_antes_depois(a):
+    from . import antes_depois
+    if a.acao == "novo":
+        pasta = antes_depois.novo(" ".join(a.alvo), a.subtitulo or "")
+        print(f"Antes e depois criado: {pasta.relative_to(ROOT)} (uso interno). Envie as fotos em bruto/ e liste os pares.")
+        return
+    p = ler_projeto(Path(a.alvo[0]))
+    if p.get("tipo") != "antes_depois":
+        raise SystemExit("Este projeto não é um antes e depois.")
+    r = antes_depois.exportar(p["_pasta"], p)
+    print(f"{len(r['arquivos'])} arquivo(s) de uso interno em entregas/ ({antes_depois.ENTREGA})")
+
+
 def cmd_formatos(a):
     from . import formatos
     p = ler_projeto(Path(a.projeto))
@@ -745,6 +771,16 @@ def main(argv=None):
     s.add_argument("--objetivo", choices=["salvar", "enviar", "comentar", "seguir"])
     s.add_argument("--estilo", default="divine", choices=["divine", "claro", "daniel", "george", "pessoal"])
     s.set_defaults(f=cmd_carrossel)
+    s = sub.add_parser("post", help='post estático (Feed, Stories e TV): novo "tema" | exportar <pasta>')
+    s.add_argument("acao", choices=["novo", "exportar"])
+    s.add_argument("alvo", nargs="+")
+    s.add_argument("--estilo", default="divine", choices=["divine", "claro", "daniel", "george", "pessoal"])
+    s.set_defaults(f=cmd_post)
+    s = sub.add_parser("antesdepois", help='antes e depois de USO INTERNO (TV, Stories, Feed): novo "título" | exportar <pasta>')
+    s.add_argument("acao", choices=["novo", "exportar"])
+    s.add_argument("alvo", nargs="+")
+    s.add_argument("--subtitulo")
+    s.set_defaults(f=cmd_antes_depois)
     s = sub.add_parser("formatos", help="a mesma edição em Stories, Feed e TV (padrão: formatos do projeto ou stories,tv)")
     s.add_argument("projeto")
     s.add_argument("--formatos", help="ex.: stories,feed45,tv")

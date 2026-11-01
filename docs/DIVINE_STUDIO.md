@@ -25,6 +25,12 @@ Aba **Edição** do painel: linha do tempo sobre a prévia (efeitos e mensagens 
 
 Tags e objetivo do post no painel; botão **Formatos** (Stories, Feed 4:5/1:1, TV) gera a mesma edição em outros tamanhos (`python3 -m divine_studio formatos <pasta> [--formatos stories,tv] [--final]`); **carrossel** com rascunho por fórmula, editor de cards e exportação em PNG (`carrossel novo|exportar`, regras em `config/carrossel.yaml`).
 
+**Biblioteca** (tela no topo do painel): pastas `assets/marca`, `assets/pessoas`, `assets/tecnologias`, `assets/clinica` e `assets/produtos`, com a lista do que cada uma precisa ter (`config/biblioteca.yaml`). O app mostra o que falta, pede dentro do projeto a foto da tecnologia do tema e usa sozinho: logo oficial em tudo, foto oficial nos cartões e na citação, foto da tecnologia na capa do carrossel e do post. Trocar uma imagem guarda a anterior em `_arquivo/biblioteca/`.
+
+**Post estático** (imagem única): `post novo "tema"` ou "Novo post" no painel; mesmos layouts do carrossel num card só, exportado de uma vez em Feed 4:5, Stories e TV (`post exportar <pasta>`, entrega em `entregas/AAAA-MM/Posts/`).
+
+**Antes e depois (uso interno, nunca postar)**: `antesdepois novo "título"` ou "Antes e depois" no painel. Mande os pares (antes e depois separados ou uma montagem lado a lado) e marque o ângulo: sai no padrão aprovado do Bumbum Up (fotos inteiras, mesmo tamanho, sem zoom nem corte, aviso "Uso exclusivo em consulta" e RT) em TV 16:9 (com vídeo: abertura, um ângulo por vez, grade, fechamento), Stories 9:16 e Feed 4:5. Só gera com `autorizacao_imagem: sim`; arquivos com `NAO-POSTAR` no nome, em `entregas/AAAA-MM/Uso interno (nao postar)/`, na coluna "Uso interno (consulta)" da Programação, e o painel não deixa marcar como postado ou agendado.
+
 Incorporado das skills Divine (01/11/2026): fontes no padrão CAIXA ALTA em degradê dourado + cursiva (O1 a O6, rodízio em `config/fontes.yaml`), legenda da fala com palavra falada maior e palavra-chave em Lora itálico, voz com a cadeia da video-pro e −14 LUFS no Instagram (−16 na TV), grão fino, revisão anti cara de IA e dobra de 125 caracteres, CORTE com "Leia na legenda", durações do pacote da skill de categorias, 5 efeitos da skill dos 17 (gancho digitado, prompt, CTA WhatsApp, frame de título, chip; códigos D01 a D17 em `config/efeitos.yaml`).
 
 ## Uso

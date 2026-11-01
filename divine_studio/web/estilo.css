@@ -152,7 +152,7 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
 .topo nav { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
 .topo nav button { padding: 6px 12px; font-size: 13px; background: none; }
 .topo nav button.ativa { border-color: var(--dourado); color: var(--dourado); }
-.prog { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 14px; }
+.prog { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
 .prog-col h2 { display: flex; justify-content: space-between; }
 .peca { background: var(--fundo); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; }
 .peca .t { color: var(--branco); cursor: pointer; }
@@ -232,3 +232,26 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
   .msg-ed { grid-template-columns: 1fr 1fr; }
   .fontes { max-height: 240px; }
 }
+
+/* ---------- biblioteca, pedidos de imagem, antes e depois ---------- */
+.pedidos { border-color: var(--dourado); }
+.pedidos h2 { color: var(--dourado); font-size: 16px; }
+.pedidos ul { margin: 6px 0 0; padding-left: 18px; }
+.pedidos li { margin: 4px 0; font-size: 14px; }
+.bib-itens { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
+.bib-item { border: 1px dashed var(--linha); border-radius: 12px; padding: 8px; text-align: center; font-size: 13px; cursor: pointer; position: relative; }
+.bib-item.tem { border-style: solid; }
+.bib-item.falta.obrig { border-color: var(--dourado); }
+.bib-item img { width: 100%; height: 120px; object-fit: contain; border-radius: 8px; background: #0006; display: block; margin-bottom: 6px; }
+.bib-item .vazio-img { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--apagado); background: #0003; border-radius: 8px; margin-bottom: 6px; }
+.bib-item .uso { color: var(--apagado); font-size: 12px; }
+.bib-item input[type=file] { display: none; }
+.aviso-interno { border-color: #b8a169; color: var(--dourado); font-size: 14px; }
+.ad-par { display: grid; grid-template-columns: 1fr 1fr 180px auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+.ad-par.montagem { grid-template-columns: 2fr 180px auto; }
+.ad-foto { border: 1px dashed var(--linha); border-radius: 10px; padding: 6px; text-align: center; cursor: pointer; font-size: 13px; }
+.ad-foto img { width: 100%; height: 140px; object-fit: contain; display: block; }
+.ad-foto input { display: none; }
+.ad-previa img { width: 100%; border-radius: 12px; box-shadow: 0 8px 30px #000a; }
+@media (max-width: 700px) { .ad-par, .ad-par.montagem { grid-template-columns: 1fr 1fr; } }
+.pedidos label.botao { display: inline-block; width: auto; padding: 2px 12px; margin: 0 0 0 8px; font-size: 13px; cursor: pointer; }
