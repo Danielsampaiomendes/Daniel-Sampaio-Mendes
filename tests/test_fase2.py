@@ -149,3 +149,8 @@ def test_base_com_corte_seco_e_dissolve(tmp_path):
     ini = [c["inicio_base"] for c in meta["clipes"]]
     assert ini == pytest.approx([0.0, 1.5, 2.1], abs=0.01)
     assert meta["duracao"] == pytest.approx(4.1, abs=0.05)
+
+
+def test_hook_de_linha_de_uso_interno_nao_e_sorteado():
+    assert hooks.por_id("B-H76")["uso_interno"]          # "B-H75 a B-H77 (... só uso interno). B-H76 ..."
+    assert not hooks.por_id("H178")["uso_interno"]

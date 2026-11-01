@@ -39,9 +39,10 @@
           <div class="pasta" id="p-pasta"></div>
         </div>
         <div class="acoes">
+          <button data-acao="auto" class="dourado" title="Monta o projeto sozinho a partir dos vídeos e gera as 3 prévias">✦ Criar edição automática</button>
           <button data-acao="revisar" title="Compliance CFM/Anvisa e regras do Renato">Revisar</button>
           <button data-acao="cortar" title="Mostra o que sai e o que fica no corte limpo">Ver corte</button>
-          <button data-acao="previa" class="dourado" title="Prévia rápida das versões">Gerar prévias</button>
+          <button data-acao="previa" title="Prévia rápida das versões com o projeto.yaml atual">Gerar prévias</button>
           <button data-acao="pacote" title="Cria as peças por categoria (longo, curto, viral, TV...)">Pacote</button>
         </div>
       </div>
@@ -82,6 +83,8 @@
               <input type="file" id="arquivos" multiple accept="video/*" hidden>
             </div>
             <div id="envio" class="envio"></div>
+            <p class="dica" id="dica-auto">Soltou os vídeos? Escolha o template e clique em <b>✦ Criar edição automática</b>:
+              o app monta cortes, hooks, textos e legenda e gera as 3 prévias.</p>
             <ul id="brutos" class="brutos"></ul>
           </div>
         </div>

@@ -154,7 +154,7 @@ def novo(nome: str) -> str:
 
 ACOES = {
     "revisar": ["revisar"], "transcrever": ["transcrever"], "cortar": ["cortar"], "legenda": ["legenda"],
-    "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"],
+    "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"], "auto": ["auto", "--previa"],
 }
 
 

@@ -215,11 +215,16 @@ $("#b-copiar").onclick = async () => {
   setTimeout(() => $("#b-copiar").textContent = "Copiar", 1500);
 };
 
-const NOMES = { revisar: "Revisão de compliance", cortar: "Corte limpo", previa: "Gerando prévias", final: "Exportando a final",
+const NOMES = { auto: "Edição automática (montagem + 3 prévias)", revisar: "Revisão de compliance", cortar: "Corte limpo", previa: "Gerando prévias", final: "Exportando a final",
   legenda: "Legenda do post", pacote: "Pacote por categorias", transcrever: "Transcrição" };
 
 async function rodar(acao, versoes) {
   if (!atual) return;
+  if (acao === "auto") {
+    if (!dados.brutos.length) return alert("Solte os vídeos brutos primeiro.");
+    if (!confirm("Montar a edição automaticamente a partir dos vídeos e gerar as 3 prévias?\n" +
+                 "O projeto.yaml atual fica guardado em trabalho/projeto.yaml.anterior.")) return;
+  }
   if ($("#yaml").value !== dados.yaml && !confirm("O projeto.yaml tem alterações não salvas. Rodar mesmo assim?")) return;
   try {
     const r = await api("/api/acao", { p: atual, acao, versoes });
@@ -245,7 +250,7 @@ function acompanhar(job, titulo) {
       jobAtivo = null;
       $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
       if (atual) abrir(atual);
-      if (e.estado === "ok" && (e.acao === "previa" || e.acao === "final")) $('[data-aba="versoes"]').click();
+      if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) $('[data-aba="versoes"]').click();
       if (e.estado === "ok" && (e.acao === "cortar" || e.acao === "legenda")) $('[data-aba="relatorio"]').click();
       if (e.estado === "ok" && ["revisar", "legenda", "cortar"].includes(e.acao)) setTimeout(() => { if (!jobAtivo) $("#tarefa").hidden = true; }, 6000);
     }

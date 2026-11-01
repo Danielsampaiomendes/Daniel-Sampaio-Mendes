@@ -30,10 +30,10 @@ python3 -m divine_studio painel
 
 Abre `http://127.0.0.1:8765` no navegador (só na sua máquina). Nele você:
 
-1. Cria o projeto com o tema do vídeo.
-2. Arrasta os vídeos brutos e clica em "usar como clipe".
-3. Escolhe template, formato e autorização de imagem; pede 3 hooks do banco.
-4. Clica em "Revisar" (compliance), "Ver corte" (o que sai e o que fica) e "Gerar prévias".
+1. Cria o projeto com o tema do vídeo (ex.: "Laser de CO2 no corpo"; o tema escolhe os textos).
+2. Arrasta os vídeos brutos.
+3. Escolhe template e autorização de imagem.
+4. Clica em **✦ Criar edição automática**: o app monta clipes, cortes, hooks do banco, selo, mensagens, fechamento e legenda (frases do tema em `config/roteiros.yaml`, ou as frases mais fortes da própria fala quando há transcrição) e gera as 3 prévias. Ajustes finos no projeto.yaml e "Gerar prévias" de novo.
 5. Compara as versões lado a lado, marca as aprovadas e clica em "Aprovar selecionadas e exportar a final".
 6. Copia a legenda do post na aba "Relatório e legenda".
 7. Ensina uma regra nova quando corrigir alguma coisa: ela passa a valer para os próximos vídeos.

@@ -41,6 +41,8 @@ def ler_banco() -> list:
             mm = re.match(r"(?:(?P<bloco>[ABC])-)?(?P<num>H\d+)\s+(?P<resto>.+)$", p)
             if mm:
                 itens.append((mm.group("bloco"), mm.group("num"), mm.group("resto")))
+        # "uso interno" / "antes e depois" em qualquer parte da linha vale para todos os hooks dela
+        linha_interna = bool(re.search(r"uso interno|antes e depois", m.group("resto"), re.I))
         for bl, num, resto in itens:
             bloco = bl or bloco_atual
             hid = num if bloco in ("D", "E") else f"{bloco}-{num}"
@@ -52,7 +54,7 @@ def ler_banco() -> list:
             hooks.append({
                 "id": hid, "bloco": bloco, "descricao": resto, "batidas": [] if faixa else batidas,
                 "tipo": tipos_cfg.get(hid) or classificar(resto),
-                "uso_interno": bool(re.search(r"uso interno|antes e depois", resto, re.I)),
+                "uso_interno": linha_interna or bool(re.search(r"uso interno|antes e depois", resto, re.I)),
                 "reprovado": "REPROVADO" in resto,
                 "modelo": any("[" in b for b in batidas),   # tem lacuna tipo [procedimento]
             })

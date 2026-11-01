@@ -22,6 +22,10 @@ Transcrição na nuvem em vez da local: `export ASSEMBLYAI_API_KEY=...`. Limpeza
 ## Uso
 
 ```bash
+# edição automática: com os vídeos em bruto/, monta o projeto.yaml inteiro (tema, cortes, hooks, textos)
+# e já gera as 3 prévias; textos por tema em config/roteiros.yaml
+python3 -m divine_studio auto projetos/2026-10-28_co2-no-corpo --previa
+
 # 1. criar o projeto (pasta com bruto/, trabalho/, saida/ e projeto.yaml modelo)
 python3 -m divine_studio novo "co2 no corpo"
 

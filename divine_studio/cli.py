@@ -5,6 +5,7 @@
   python3 -m divine_studio revisar projetos/2026-10-28_co2-no-corpo
   python3 -m divine_studio editar projetos/2026-10-28_co2-no-corpo [--versoes V1,V3] [--teste]
   python3 -m divine_studio transcrever projetos/2026-10-28_co2-no-corpo [--motor faster_whisper]
+  python3 -m divine_studio auto projetos/2026-10-28_co2-no-corpo --previa   (edição automática)
   python3 -m divine_studio cortar projetos/2026-10-28_co2-no-corpo
   python3 -m divine_studio hooks sortear --tema "laser co2"
   python3 -m divine_studio hooks novo "Frase / com *destaque.*" --tipo curiosidade
@@ -442,6 +443,26 @@ def cmd_legenda(a):
     print(f"Salva em {out.relative_to(ROOT)}")
 
 
+def cmd_auto(a):
+    from . import auto
+    from .transcricao import motor_disponivel
+    p = ler_projeto(Path(a.projeto))
+    tem_cache = any((p["_pasta"] / "trabalho" / "transcricoes").glob("*.json")) \
+        if (p["_pasta"] / "trabalho" / "transcricoes").exists() else False
+    fn = _transcritor(p["_pasta"]) if (motor_disponivel() or tem_cache) else None
+    semente = sum(map(ord, p["_pasta"].name))
+    novo = auto.montar(p, a.template, fn, semente)
+    chave, _ = auto.tema(novo.get("titulo", ""))
+    arq = auto.salvar(p, novo)
+    print(f"• Tema reconhecido: {chave} · template {novo['template']} · {len(novo['clipes'])} clipe(s) · "
+          f"{len(novo['mensagens'])} mensagem(ns) · {len(novo['versoes'])} versão(ões)")
+    print(f"Projeto montado em {arq.relative_to(ROOT)}")
+    if a.previa:
+        print()
+        cmd_editar(argparse.Namespace(projeto=a.projeto, versoes=None, refazer_base=False, forcar=False,
+                                      teste=False, rapido=True))
+
+
 def cmd_efeitos(a):
     from . import efeitos
     if a.prancha:
@@ -572,6 +593,11 @@ def main(argv=None):
     s = sub.add_parser("legenda", help="gera a legenda do post em saida/legenda.txt")
     s.add_argument("projeto")
     s.set_defaults(f=cmd_legenda)
+    s = sub.add_parser("auto", help="edição automática: monta o projeto.yaml a partir dos brutos (e gera as prévias)")
+    s.add_argument("projeto")
+    s.add_argument("--template", choices=["divine", "daniel", "george", "tv", "react", "pessoal"])
+    s.add_argument("--previa", action="store_true", help="já gera as 3 prévias depois de montar")
+    s.set_defaults(f=cmd_auto)
     s = sub.add_parser("efeitos", help="lista os efeitos EC/EV; --prancha arquivo.jpg mostra todos")
     s.add_argument("--prancha")
     s.add_argument("--fontes", default="B")

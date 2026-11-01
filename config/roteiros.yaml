@@ -1,0 +1,126 @@
+# Roteiros prontos por tema para a edição automática (python3 -m divine_studio auto / botão "Criar edição").
+# A chave é procurada no título do projeto (sem acento, minúsculas). Textos já no padrão CFM: "estimula",
+# "auxilia", "pode contribuir", sem promessa, prazo ou percentual. *palavra* = dourado; " / " = quebra de linha.
+# Edite à vontade: o que estiver aqui vira o texto dos próximos vídeos desse tema.
+
+temas:
+  co2:
+    nomes: [co2, laser de co2, fracionado, manchas senis]
+    selo: "LASER DE CO2"
+    mensagens:
+      - {titulo: "Microcolunas de energia / que *estimulam* a renovação.", apoio: "a pele responde no tempo dela"}
+      - {titulo: "Textura, manchas / e *poros.*", apoio: "a indicação acontece na avaliação"}
+      - {titulo: "Cuidado antes, / durante e *depois.*", apoio: "acompanhamento em cada etapa"}
+    fechamento: "Cada pele tem o *seu tempo.*"
+    cta: "Agende sua avaliação"
+  endolaser:
+    nomes: [endolaser, endo laser]
+    selo: "ENDOLASER"
+    mensagens:
+      - {titulo: "Gordura localizada / e flacidez *no mesmo lugar?*"}
+      - {titulo: "Energia que atua / *por dentro.*", apoio: "e auxilia na firmeza da pele"}
+      - {titulo: "Plano pensado / *para você.*", apoio: "tudo começa na avaliação"}
+    fechamento: "Contorno com *cuidado.*"
+    cta: "Agende sua avaliação"
+  cmslim:
+    nomes: [cmslim, cm slim, tesla, musculo]
+    selo: "CMSLIM · 12 TESLA"
+    mensagens:
+      - {titulo: "Você deita. / O músculo *treina.*"}
+      - {titulo: "Não compete / com o seu treino. / Ele *soma.*"}
+      - {titulo: "30 minutos / *por área.*", apoio: "conforto do início ao fim"}
+    fechamento: "Seu treino, / com um *reforço.*"
+    cta: "Agende sua sessão"
+  hipro:
+    nomes: [hipro, ultrassom, microfocado]
+    selo: "HIPRO"
+    mensagens:
+      - {titulo: "Ultrassom que *estimula* / o colágeno.", apoio: "sem cortes"}
+      - {titulo: "Firmeza que vem / *com o tempo.*"}
+      - {titulo: "Protocolo / *individual.*", apoio: "definido na avaliação"}
+    fechamento: "Sustentação *com ciência.*"
+    cta: "Agende sua avaliação"
+  microagulhamento:
+    nomes: [microagulhamento, micro agulhamento, colageno]
+    selo: "MICROAGULHAMENTO"
+    mensagens:
+      - {titulo: "Não é só uma agulhinha. / É um *chamado* / para o colágeno."}
+      - {titulo: "Textura e viço / que *pedem constância.*"}
+      - {titulo: "Cada sessão / *no seu tempo.*"}
+    fechamento: "Pele cuidada / *de verdade.*"
+    cta: "Agende sua avaliação"
+  bumbum:
+    nomes: [bumbum, gluteo, gluteos, bumbum up]
+    selo: "BUMBUM UP"
+    mensagens:
+      - {titulo: "Nem tudo se resolve / no agachamento.", apoio: "às vezes falta sustentação"}
+      - {titulo: "Bioestímulo / que *auxilia* na firmeza."}
+      - {titulo: "Plano feito / *para o seu corpo.*"}
+    fechamento: "Cada corpo responde / *no seu tempo.*"
+    cta: "Agende sua avaliação"
+  spa:
+    nomes: [spa, pedras quentes, massagem, relaxamento]
+    selo: "SPA DIVINE"
+    mensagens:
+      - {titulo: "Lá fora, / a Paulista *corre.*"}
+      - {titulo: "Aqui dentro, / o tempo *desacelera.*"}
+      - {titulo: "Pausa / *obrigatória.*"}
+    fechamento: "Seu momento / *de pausa.*"
+    cta: "Agende sua sessão"
+  pellets:
+    nomes: [pellets, pellet, reposicao hormonal, hormonio, hormonios]
+    selo: "REPOSIÇÃO HORMONAL"
+    mensagens:
+      - {titulo: "Do tamanho de / um *grão de arroz.*"}
+      - {titulo: "Não é cirurgia.", apoio: "é um procedimento no consultório"}
+      - {titulo: "Indicação / *individualizada.*", apoio: "com exames e acompanhamento médico"}
+    fechamento: "Equilíbrio com *acompanhamento.*"
+    cta: "Agende sua avaliação"
+  emagrecimento:
+    nomes: [emagrecimento, emagrecer, peso, obesidade, bariatrica, nutrologia, suplemento]
+    selo: "ACOMPANHAMENTO MÉDICO"
+    mensagens:
+      - {titulo: "O peso que volta / vem *diferente.*"}
+      - {titulo: "Músculo também / *é saúde.*"}
+      - {titulo: "Plano / *individualizado.*", apoio: "com acompanhamento médico"}
+    fechamento: "Pequenas vitórias, / *todo dia.*"
+    cta: "Agende sua avaliação"
+  cabelo:
+    nomes: [cabelo, queda, capilar, calvicie]
+    selo: "SAÚDE CAPILAR"
+    mensagens:
+      - {titulo: "Queda de cabelo / *nem sempre é só cabelo.*"}
+      - {titulo: "Talvez o problema / *não seja o shampoo.*"}
+      - {titulo: "A investigação / *vem primeiro.*", apoio: "exames e avaliação"}
+    fechamento: "Cuidar da *causa.*"
+    cta: "Agende sua avaliação"
+  skinbooster:
+    nomes: [skinbooster, exossomo, enzima, bioestimulador, harmonizacao]
+    selo: "PELE"
+    mensagens:
+      - {titulo: "Viço que vem / *de dentro.*"}
+      - {titulo: "É sobre fazer / *na medida.*"}
+      - {titulo: "A beleza mais elegante / é a que *ninguém aponta.*"}
+    fechamento: "Natural, *sempre.*"
+    cta: "Agende sua avaliação"
+
+# Sem tema reconhecido
+padrao:
+  selo: ""
+  mensagens:
+    - {titulo: "Cuidado / *sob medida.*", apoio: "tudo começa na avaliação"}
+    - {titulo: "Tecnologia / *a favor de você.*"}
+  fechamento: "Cada pele tem o *seu tempo.*"
+  cta: "Agende sua avaliação"
+
+# CTA antecipado (rodízio; nunca pedir para comentar palavra)
+cta_antecipado:
+  - "Manda pra amiga que precisa ver isso."
+  - "Salva para lembrar depois."
+  - "Já segue para ver o processo de verdade."
+  - "Manda pra quem vive adiando esse cuidado."
+
+# Montagem
+alvo_sem_fala_s: 30          # vídeo sem fala: pega o miolo dos clipes até ~30 s
+max_mensagens_da_fala: 3     # vídeo falado: frases fortes da própria fala viram mensagens na tela
+velocidade_broll: 0.85       # clipes sem fala entram em câmera lenta suave
