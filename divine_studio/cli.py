@@ -598,6 +598,16 @@ def cmd_antes_depois(a):
     print(f"{len(r['arquivos'])} arquivo(s) de uso interno em entregas/ ({antes_depois.ENTREGA})")
 
 
+def cmd_importar(a):
+    from .importar import importar
+    r = importar(a.origem, a.copiar, a.simular)
+    print(f"Origem: {r['origem']} ({r['modo']})")
+    for x in r["projetos"]:
+        print(f"  {x['titulo']}: {x['editados']} editado(s), {x['brutos']} bruto(s), {x['prontos']} pronto(s) para postar"
+              + (" · uso interno" if x["uso_interno"] else "") + f"  ->  projetos/{x['projeto']}")
+    print(f"{len(r['projetos'])} projeto(s)." + (" Nada foi gravado (simulação)." if a.simular else ""))
+
+
 def cmd_formatos(a):
     from . import formatos
     p = ler_projeto(Path(a.projeto))
@@ -771,6 +781,11 @@ def main(argv=None):
     s.add_argument("--objetivo", choices=["salvar", "enviar", "comentar", "seguir"])
     s.add_argument("--estilo", default="divine", choices=["divine", "claro", "daniel", "george", "pessoal"])
     s.set_defaults(f=cmd_carrossel)
+    s = sub.add_parser("importar", help="traz os vídeos brutos e editados da pasta Divine Medical Spa Marketing")
+    s.add_argument("origem", nargs="?")
+    s.add_argument("--copiar", action="store_true", help="copia os arquivos (padrão: atalhos, sem ocupar espaço)")
+    s.add_argument("--simular", action="store_true", help="só mostra o que seria importado")
+    s.set_defaults(f=cmd_importar)
     s = sub.add_parser("post", help='post estático (Feed, Stories e TV): novo "tema" | exportar <pasta>')
     s.add_argument("acao", choices=["novo", "exportar"])
     s.add_argument("alvo", nargs="+")

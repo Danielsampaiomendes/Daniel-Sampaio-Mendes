@@ -255,3 +255,47 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
 .ad-previa img { width: 100%; border-radius: 12px; box-shadow: 0 8px 30px #000a; }
 @media (max-width: 700px) { .ad-par, .ad-par.montagem { grid-template-columns: 1fr 1fr; } }
 .pedidos label.botao { display: inline-block; width: auto; padding: 2px 12px; margin: 0 0 0 8px; font-size: 13px; cursor: pointer; }
+.cinema .ritmo { display: flex; flex-direction: column; gap: 4px; min-width: 280px; }
+
+/* ---------- nova edição, galeria ---------- */
+.nova-edicao { width: 100%; margin-bottom: 10px; padding: 12px; font-size: 15px; }
+.chips.tipos .chip span { opacity: .6; font-size: 11px; }
+.epico { color: var(--dourado); }
+.tipos-edicao { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.tipo-edicao { background: var(--painel); border: 1px solid var(--linha); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.tipo-edicao .ic { font-size: 28px; color: var(--dourado); }
+.tipo-edicao h2 { margin: 0; font-size: 17px; }
+.tipo-edicao p { margin: 0; color: var(--apagado); font-size: 13px; flex: 1; }
+.tipo-edicao .linha { display: flex; gap: 8px; }
+.tipo-edicao.epico { border-color: var(--dourado); background: linear-gradient(160deg, #2a2418, var(--painel) 60%); }
+.galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.gal-item { margin: 0; cursor: pointer; }
+.gal-item.deitado { grid-column: span 2; }
+.gal-capa { position: relative; aspect-ratio: 9 / 16; border-radius: 14px; overflow: hidden; background: #000; border: 1px solid var(--linha); transition: transform .25s, box-shadow .25s; }
+.gal-item.deitado .gal-capa { aspect-ratio: 16 / 9; }
+.gal-item:hover .gal-capa { transform: translateY(-3px); box-shadow: 0 12px 30px #000b; border-color: var(--dourado2); }
+.gal-capa img, .gal-capa video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gal-capa .play { position: absolute; left: 10px; bottom: 8px; color: #fff; font-size: 14px; text-shadow: 0 1px 4px #000; }
+.gal-status { position: absolute; right: 8px; top: 8px; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #000a; color: var(--dourado); border: 1px solid var(--dourado2); }
+.gal-item figcaption { display: flex; flex-direction: column; margin-top: 6px; font-size: 13px; }
+.gal-item figcaption span { color: var(--apagado); font-size: 12px; }
+.modal { position: fixed; inset: 0; background: #000d; display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.modal-caixa { display: flex; gap: 18px; align-items: flex-start; max-height: 92vh; max-width: 96vw; }
+.modal-caixa video, .modal-caixa img { max-height: 86vh; max-width: min(56vh, 80vw); border-radius: 14px; background: #000; }
+.modal-caixa.deitado { flex-direction: column; }
+.modal-caixa.deitado video, .modal-caixa.deitado img { max-width: 90vw; max-height: 70vh; }
+.modal-info { max-width: 280px; }
+@media (max-width: 700px) { .modal-caixa { flex-direction: column; } .galeria { grid-template-columns: 1fr 1fr; } .gal-item.deitado { grid-column: span 2; } }
+.copy-voz { min-height: 180px; font-size: 16px; line-height: 1.5; }
+.teleprompter { position: fixed; left: 50%; top: 16px; transform: translateX(-50%); width: min(720px, 94vw); height: 40vh; z-index: 60;
+  background: #000e; border: 1px solid var(--dourado2); border-radius: 18px; padding: 28px 22px 58px; box-shadow: 0 20px 60px #000; }
+.teleprompter .tp-texto { height: 100%; overflow: hidden; font-size: clamp(22px, 3.4vw, 34px); line-height: 1.45; color: #fff; }
+.teleprompter .tp-conta { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 90px; color: var(--dourado); background: #000c; border-radius: 18px; }
+.teleprompter .tp-parar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); }
+.importar { margin-top: 18px; } .importar .linha { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; } .importar input#imp-origem { flex: 1; min-width: 240px; }
+#gal-filtro { display: flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 700px) {
+  .topo { flex-wrap: wrap; }
+  .topo nav { display: flex; flex-wrap: nowrap; overflow-x: auto; width: 100%; gap: 6px; padding-bottom: 4px; }
+  .topo nav button { flex: 0 0 auto; }
+}

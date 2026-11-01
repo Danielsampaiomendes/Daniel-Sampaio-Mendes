@@ -133,11 +133,3 @@ $("#ad-exportar").onclick = async () => {
   } catch (err) { alert(err.message); }
 };
 
-$("#form-ad").onsubmit = async (e) => {
-  e.preventDefault();
-  const titulo = $("#novo-ad").value.trim(); if (!titulo) return;
-  try {
-    const r = await api("/api/antesdepois/novo", { titulo });
-    $("#novo-ad").value = ""; await carregarLista(); abrir(r.nome);
-  } catch (err) { alert(err.message); }
-};

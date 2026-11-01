@@ -52,20 +52,25 @@ function md(texto) {
 
 // ---------------------------------------------------------------- lista de projetos
 
-let tagFiltro = "";
+let tagFiltro = "", tipoFiltro = "";
+const CATEGORIAS = { video: "Vídeos", stories: "Stories", carrossel: "Carrosséis", post: "Posts", tv: "TV", antes_depois: "Antes e depois" };
 async function carregarLista() {
   const lista = await api("/api/projetos");
   const filtro = $("#filtro").value.toLowerCase();
   const todas = [...new Set(lista.flatMap((p) => p.tags))].sort();
   $("#filtro-tags").innerHTML = todas.map((t) => `<button class="chip ${t === tagFiltro ? "ativo" : ""}" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
   $$("#filtro-tags .chip").forEach((c) => c.onclick = () => { tagFiltro = tagFiltro === c.dataset.tag ? "" : c.dataset.tag; carregarLista(); });
+  const cats = Object.keys(CATEGORIAS).filter((c) => lista.some((p) => p.categoria === c));
+  $("#filtro-tipo").innerHTML = cats.length > 1 ? cats.map((c) => `<button class="chip ${c === tipoFiltro ? "ativo" : ""}" data-cat="${c}">${CATEGORIAS[c]} <span>${lista.filter((p) => p.categoria === c).length}</span></button>`).join("") : "";
+  $$("#filtro-tipo .chip").forEach((c) => c.onclick = () => { tipoFiltro = tipoFiltro === c.dataset.cat ? "" : c.dataset.cat; carregarLista(); });
   $("#tags-existentes").innerHTML = todas.map((t) => `<option value="${esc(t)}">`).join("");
   $("#lista").innerHTML = lista
     .filter((p) => !filtro || (p.titulo + p.nome + p.tags.join(" ")).toLowerCase().includes(filtro))
     .filter((p) => !tagFiltro || p.tags.includes(tagFiltro))
+    .filter((p) => !tipoFiltro || p.categoria === tipoFiltro)
     .map((p) => `<li data-nome="${esc(p.nome)}" class="${p.nome === atual ? "ativo" : ""} ${p.pacote ? "peca" : ""}">
-        <div class="t">${esc(p.titulo)}${p.aprovado ? '<span class="selo">aprovado</span>' : ""}</div>
-        <div class="m">${({ carrossel: "carrossel", post: "post", antes_depois: "antes e depois · uso interno" })[p.tipo] || esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
+        <div class="t">${p.epico ? '<span class="epico">✦</span> ' : ""}${esc(p.titulo)}${p.aprovado ? '<span class="selo">aprovado</span>' : ""}</div>
+        <div class="m">${({ carrossel: "carrossel", post: "post", antes_depois: "antes e depois · uso interno", stories: "stories · " + esc(p.template), tv: "TV" })[p.categoria] || esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
         ${p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
       </li>`).join("") || '<li class="m">Nenhum projeto ainda.</li>';
   $$("#lista li[data-nome]").forEach((li) => li.onclick = () => abrir(li.dataset.nome));
@@ -73,17 +78,6 @@ async function carregarLista() {
 
 $("#filtro").oninput = carregarLista;
 
-$("#form-novo").onsubmit = async (e) => {
-  e.preventDefault();
-  const nome = $("#novo-nome").value.trim();
-  if (!nome) return;
-  try {
-    const r = await api("/api/novo", { nome });
-    $("#novo-nome").value = "";
-    await carregarLista();
-    abrir(r.nome);
-  } catch (err) { alert(err.message); }
-};
 
 // ---------------------------------------------------------------- projeto
 
@@ -115,12 +109,10 @@ async function abrir(nome) {
   $("#c-autorizacao").value = dados.autorizacao_imagem;
   $("#c-tags").value = (dados.tags || []).join(", ");
   $("#c-objetivo").value = dados.objetivo || "";
-  $("#c-camera").checked = !!dados.camera_elegante;
+  $("#c-ritmo").value = dados.epico ? "epico" : (dados.ritmo || "viral");
   $("#c-qualidade").checked = !!dados.qualidade;
   $("#c-qualidade-info").textContent = dados.qualidade_info || "";
-  $("#c-camera").onchange = (e) => api("/api/dados", { p: atual, dados: { camera_elegante: e.target.checked || null } }).catch((err) => alert(err.message));
-$("#c-qualidade").onchange = (e) => api("/api/dados", { p: atual, dados: { qualidade: e.target.checked ? "maxima" : null } }).catch((err) => alert(err.message));
-$$(".formatos input").forEach((c) => c.checked = (dados.formatos || []).includes(c.value) && c.value !== dados.formato);
+  $$(".formatos input").forEach((c) => c.checked = (dados.formatos || []).includes(c.value) && c.value !== dados.formato);
   $$(".formatos input").forEach((c) => c.disabled = c.value === dados.formato);
   $("#yaml").value = dados.yaml;
   $("#yaml-erro").textContent = dados.erro_yaml;
@@ -150,6 +142,8 @@ $("#c-tags").onchange = async (e) => {
   const tags = [...new Set(e.target.value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))];
   try { await api("/api/dados", { p: atual, dados: { tags } }); abrir(atual); } catch (err) { alert(err.message); }
 };
+$("#c-ritmo").onchange = (e) => api("/api/dados", { p: atual, dados: { ritmo: e.target.value, epico: null } }).catch((err) => alert(err.message));
+$("#c-qualidade").onchange = (e) => api("/api/dados", { p: atual, dados: { qualidade: e.target.checked ? "maxima" : null } }).catch((err) => alert(err.message));
 $$(".formatos input").forEach((c) => c.onchange = async () => {
   const formatos = $$(".formatos input").filter((x) => x.checked).map((x) => x.value);
   try { await api("/api/dados", { p: atual, dados: { formatos } }); } catch (err) { alert(err.message); }
@@ -232,6 +226,7 @@ function desenharVideos() {
       <div class="nome">${esc(s.nome)} · ${s.mb} MB</div>
       ${ns[s.versao] ? `<div class="nota">${esc(ns[s.versao])}</div>` : ""}
       <div class="pub">
+        <button class="pb ${pub.validado ? "on" : ""}" data-pub="validar" title="Validar: entra na Galeria (dá para editar depois)">★ ${pub.validado ? "Na galeria" : "Validar"}</button>
         <button class="pb ${pub.gostei ? "on" : ""}" data-pub="gostei" title="Gostei: o app aprende com isso">♥ Gostei</button>
         <button class="pb ${pub.status === "postado" ? "on" : ""}" data-pub="postei" title="Marcar como postado">✓ Postei</button>
         <button class="pb ${pub.status === "agendado" ? "on" : ""}" data-pub="agendar" title="Agendar postagem">📅 ${pub.data_agendada ? esc(pub.data_agendada.slice(5).split("-").reverse().join("/")) : "Agendar"}</button>
@@ -255,6 +250,7 @@ async function acaoPublicacao(card, acao) {
   const pub = (dados.publicacoes || []).find((p) => p.versao === versao) || {};
   try {
     if (acao === "gostei") await marcarPub(versao, { gostei: !pub.gostei }, arq);
+    else if (acao === "validar") await marcarPub(versao, pub.validado ? { validado: null } : { validado: true, gostei: true }, arq);
     else if (acao === "postei") {
       const link = prompt("Link do post (opcional, ajuda a puxar as métricas depois):", pub.link || "");
       if (link === null) return;

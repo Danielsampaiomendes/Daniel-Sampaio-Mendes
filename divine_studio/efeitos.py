@@ -740,16 +740,31 @@ def _cortes(projeto: dict) -> list:
 
 
 def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps: int = 30) -> None:
+    from . import ritmo
     lista = list(projeto.get("efeitos") or []) + list(versao.get("efeitos") or [])
+    cortes = [c for c in _cortes(projeto) if c > 0.5]
     cam = versao.get("camera_elegante", projeto.get("camera_elegante"))
-    if cam:     # câmera elegante no vídeo inteiro (antes dos outros efeitos de quadro)
-        intensidade = float(cam) if isinstance(cam, (int, float)) and not isinstance(cam, bool) else 0.8
-        plano.efeitos_quadro.insert(0, _e3d.camera_continua(plano.inicio_fechamento, _cortes(projeto), intensidade))
+    if cam is None or cam is True:
+        # câmera elegante no vídeo inteiro: ligada pelo projeto ou pelo ritmo (viral 0.8, épico 1.6)
+        intensidade = ritmo.intensidade_camera(projeto, versao) or (0.8 if cam else 0.0)
+    else:
+        intensidade = float(cam) if isinstance(cam, (int, float)) and not isinstance(cam, bool) else 0.0
+    if intensidade > 0:
+        plano.efeitos_quadro.insert(0, _e3d.camera_continua(plano.inicio_fechamento, cortes, intensidade))
+    automaticos = ritmo.planejar(projeto, versao, plano.inicio_fechamento, cortes)
+    if automaticos:
+        print(f"  ritmo {ritmo.modo(projeto, versao)}: {len(automaticos)} efeito(s) automático(s) "
+              f"({', '.join(e['tipo'] for e in automaticos)})")
+    lista += automaticos
+    m = ritmo.modo(projeto, versao)
+    grade = float(load("viral")["modos"].get(m, {}).get("grade", 0)) if m != "calmo" else 0.0
     if not lista:
+        if grade > 0:
+            plano.efeitos_quadro.append(ritmo.grade_epica(grade))
         return
     for ef in lista:
         ef["tipo"] = resolver_tipo(ef)
-    ordem = espacar(lista, float(_cfg().get("intervalo_minimo_s", 1.5)))
+    ordem = espacar(lista, ritmo.espacamento(projeto, versao, float(_cfg().get("intervalo_minimo_s", 1.5))))
     for k, ef in enumerate(ordem):
         if ef["inicio"] >= plano.inicio_fechamento:
             print(f"  aviso: efeito {ef['tipo']} começa depois do fim do vídeo; ignorado")
@@ -776,6 +791,8 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
             raise SystemExit(f"Tipo de efeito desconhecido: {tipo}. Opções: {', '.join(sorted(TIPOS) + sorted(QUADRO))}")
         if ef.get("som"):
             plano.eventos_sfx.append((ef["inicio"], ef["som"], float(load("sfx").get("ganho_db", -24))))
+    if grade > 0:
+        plano.efeitos_quadro.append(ritmo.grade_epica(grade))
 
 
 # Exemplos usados na prancha (python3 -m divine_studio efeitos --prancha) e nos testes

@@ -82,7 +82,8 @@ def _pasta(nome: str) -> Path:
 
 
 def _arquivo_do_projeto(pasta: Path, rel: str) -> Path:
-    f = (pasta / unquote(rel)).resolve()
+    # sem resolver atalhos: peças importadas são atalhos para a pasta antiga (Divine Medical Spa Marketing)
+    f = Path(os.path.normpath(pasta / unquote(rel)))
     if pasta not in f.parents or not f.is_file():
         raise ValueError("arquivo não encontrado")
     return f
@@ -108,7 +109,9 @@ def listar() -> list:
                     "aprovado": (pasta / "trabalho" / "aprovacao.json").exists(),
                     "pacote": "-pacote/" in nome or "-formatos/" in nome,
                     "tags": [str(t) for t in d.get("tags") or []],
-                    "tipo": d.get("tipo") if d.get("tipo") in ("carrossel", "post", "antes_depois") else "video"})
+                    "tipo": d.get("tipo") if d.get("tipo") in ("carrossel", "post", "antes_depois") else "video",
+                    "categoria": categoria(d), "epico": d.get("ritmo") == "epico" or bool(d.get("epico")),
+                    "importado": bool(d.get("importado"))})
     # mais recente primeiro; as peças de um pacote e os outros formatos logo abaixo do projeto de origem
     raiz = lambda nome: re.split(r"-(?:pacote|formatos)/", nome)[0]   # noqa: E731
     out.sort(key=lambda x: (raiz(x["nome"]), 0 if not x["pacote"] else 1, x["nome"]))
@@ -116,6 +119,112 @@ def listar() -> list:
     for x in out:
         grupos.setdefault(raiz(x["nome"]), []).append(x)
     return [x for k in sorted(grupos, reverse=True) for x in grupos[k]]
+
+
+def categoria(d: dict) -> str:
+    """Tipo de edição para o menu e o filtro: video | stories | carrossel | post | tv | antes_depois."""
+    if d.get("tipo") in ("carrossel", "post", "antes_depois"):
+        return d["tipo"]
+    if d.get("template") == "tv" or d.get("formato") == "tv":
+        return "tv"
+    return "stories" if d.get("formato") == "stories" else "video"
+
+
+# Menu "Nova edição": cada tipo cria o projeto já no jeito certo
+TIPOS_EDICAO = {
+    "video": {"dados": {"formato": "reels"}},
+    "epico": {"dados": {"formato": "reels", "ritmo": "epico", "tags": ["vídeo épico"]}},
+    "stories": {"dados": {"formato": "stories", "tags": ["stories"]}},
+    "tv": {"dados": {"template": "tv", "formato": "tv", "tags": ["tv"]}},
+}
+
+
+def nova_edicao(tipo: str, titulo: str) -> str:
+    titulo = (titulo or "").strip()
+    if not titulo:
+        raise ValueError("escreva o tema")
+    if tipo == "carrossel":
+        from .carrossel import novo as novo_carrossel
+        return str(novo_carrossel(titulo).relative_to(PROJETOS))
+    if tipo == "post":
+        from .post import novo as novo_post
+        return str(novo_post(titulo).relative_to(PROJETOS))
+    if tipo == "antes_depois":
+        from .antes_depois import novo as novo_ad
+        return str(novo_ad(titulo).relative_to(PROJETOS))
+    if tipo not in TIPOS_EDICAO:
+        raise ValueError("tipo de edição desconhecido")
+    nome = novo(titulo)
+    extra = dict(TIPOS_EDICAO[tipo]["dados"])
+    if tipo == "stories":
+        extra["titulo"] = titulo
+    salvar_dados(nome, extra)
+    return nome
+
+
+def galeria() -> list:
+    """Peças validadas (★), aprovadas na final ou postadas, com arquivo existente. Uso interno não entra."""
+    from . import aprendizado
+    out = []
+    for pub in aprendizado.todas_publicacoes():
+        if pub.get("rede") == "consulta" or not pub.get("arquivo"):
+            continue
+        if not (pub.get("validado") or pub.get("status") in ("aprovado", "agendado", "postado")):
+            continue
+        pasta = PROJETOS / pub["projeto"]
+        if not (pasta / pub["arquivo"]).is_file():
+            continue
+        try:
+            d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            d = {}
+        out.append({**{k: pub.get(k) for k in ("projeto", "titulo", "versao", "arquivo", "status", "gostei", "validado",
+                                                  "tipo", "tags", "data_postagem", "data_agendada", "link")},
+                    "categoria": categoria(d), "quando": (pasta / pub["arquivo"]).stat().st_mtime,
+                    "video": pub["arquivo"].lower().endswith((".mp4", ".mov")),
+                    "views": (pub.get("metricas") or {}).get("views") or (pub.get("metricas") or {}).get("alcance")})
+    return sorted(out, key=lambda x: -x["quando"])
+
+
+def capa_peca(pasta: Path, rel: str, largura: int = 420) -> bytes:
+    """Capa da peça (quadro do vídeo em 1 s, 1º card do carrossel ou a própria imagem), com cache."""
+    import hashlib
+    import io
+    f = _arquivo_do_projeto(pasta, rel)
+    cache = pasta / "trabalho" / "miniaturas" / (hashlib.sha1(f"{rel}{f.stat().st_mtime}".encode()).hexdigest()[:16] + ".jpg")
+    if cache.exists():
+        return cache.read_bytes()
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    from PIL import Image
+    if f.suffix.lower() in (".mp4", ".mov", ".m4v"):
+        r = subprocess.run(["ffmpeg", "-v", "error", "-ss", "1", "-i", str(f), "-frames:v", "1", "-vf",
+                            f"scale={largura}:-2", "-f", "image2", "-c:v", "mjpeg", "-q:v", "4", "-"],
+                           capture_output=True)
+        if not r.stdout:
+            r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(f), "-frames:v", "1", "-vf", f"scale={largura}:-2",
+                                "-f", "image2", "-c:v", "mjpeg", "-q:v", "4", "-"], capture_output=True)
+        dados = r.stdout
+    elif f.suffix.lower() == ".zip":
+        import zipfile
+        with zipfile.ZipFile(f) as z:
+            nomes = sorted(n for n in z.namelist() if n.lower().endswith(".png"))
+            if not nomes:
+                raise ValueError("zip sem imagens")
+            im = Image.open(io.BytesIO(z.read(nomes[0])))
+            im.thumbnail((largura, largura * 2))
+            b = io.BytesIO()
+            im.convert("RGB").save(b, "JPEG", quality=85)
+            dados = b.getvalue()
+    else:
+        im = Image.open(f)
+        im.thumbnail((largura, largura * 2))
+        b = io.BytesIO()
+        im.convert("RGB").save(b, "JPEG", quality=85)
+        dados = b.getvalue()
+    if not dados:
+        raise ValueError("sem miniatura")
+    cache.write_bytes(dados)
+    return dados
 
 
 def _ler_md(p: Path) -> str:
@@ -133,10 +242,11 @@ def detalhe(nome: str) -> dict:
     brutos = sorted(f.name for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO and not f.name.startswith(".")) \
         if (pasta / "bruto").exists() else []
     saidas = []
-    for f in sorted(x for x in (pasta / "saida").glob("*.mp4") if not x.name.startswith(".")) \
-            if (pasta / "saida").exists() else []:
+    mapa = json.loads(_ler_md(pasta / "trabalho" / "importados.json") or "{}")     # peças importadas: rótulo próprio
+    for f in sorted(x for x in (pasta / "saida").glob("*") if x.suffix.lower() in (".mp4", ".mov", ".m4v")
+                    and not x.name.startswith(".")) if (pasta / "saida").exists() else []:
         m = re.search(r"_(V\d+|TV|IA)_", f.name + "_")
-        saidas.append({"arquivo": f"saida/{f.name}", "nome": f.name, "versao": m.group(1) if m else "",
+        saidas.append({"arquivo": f"saida/{f.name}", "nome": f.name, "versao": mapa.get(f.name) or (m.group(1) if m else ""),
                        "previa": "_PREVIA" in f.name, "mb": round(f.stat().st_size / 1e6, 1),
                        "quando": f.stat().st_mtime})
     from .templates import TEMPLATES
@@ -161,6 +271,7 @@ def detalhe(nome: str) -> dict:
             "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video"),
             "subtitulo": d.get("subtitulo", ""), "pares": d.get("pares") or [], "cta": d.get("cta", ""),
             "video": d.get("video", True), "camera_elegante": d.get("camera_elegante"), "qualidade": d.get("qualidade"),
+            "ritmo": d.get("ritmo"), "epico": d.get("epico"),
             "qualidade_info": _qualidade_info() if d.get("qualidade") else "",
             "imagens": sorted(f"saida/{x.name}" for x in (pasta / "saida").glob("*") if x.suffix.lower() in (".png", ".mp4")
                               and not x.name.startswith(".")) if (pasta / "saida").exists() else [],
@@ -192,7 +303,7 @@ CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
-                    "qualidade"}
+                    "qualidade", "ritmo", "epico", "validado", "copy_dublagem"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -216,7 +327,7 @@ def salvar_dados(nome: str, novos: dict) -> None:
     for k, v in novos.items():
         if k not in CAMPOS_EDITAVEIS:
             raise ValueError(f"campo não editável: {k}")
-        if v in (None, "", []) and k in ("efeitos", "legenda", "selo", "camera_elegante", "qualidade"):
+        if v in (None, "", []) and k in ("efeitos", "legenda", "selo", "camera_elegante", "qualidade", "epico", "copy_dublagem"):
             d.pop(k, None)      # vazio = sem efeito/selo; a legenda vazia volta a ser gerada sozinha
         else:
             d[k] = v
@@ -556,6 +667,13 @@ class Painel(BaseHTTPRequestHandler):
                 if not f.is_file():
                     raise ValueError("som não encontrado (gere o kit: Biblioteca_SFX/gerar_kit_sfx.py)")
                 return self._arquivo(f)
+            if u.path == "/api/copy":
+                from .copy_voz import ler
+                return self._json(ler(_pasta(q["p"])))
+            if u.path == "/api/galeria":
+                return self._json(galeria())
+            if u.path == "/miniatura.jpg":
+                return self._bytes(capa_peca(_pasta(q["p"]), q["f"]), "image/jpeg")
             if u.path == "/api/programacao":
                 from . import aprendizado
                 return self._json({"pecas": aprendizado.todas_publicacoes(), "aprendi": aprendizado.resumo()})
@@ -662,6 +780,20 @@ class Painel(BaseHTTPRequestHandler):
                 f = salvar_bib(q["cat"], unquote(q["nome"]), self.rfile, n, q.get("item") or None)
                 return self._json({"ok": True, "arquivo": f.name})
             dados = json.loads(self._corpo() or b"{}")
+            if u.path == "/api/copy":
+                pasta = _pasta(dados["p"])
+                salvar_dados(dados["p"], {"copy_dublagem": (dados.get("copy") or "").strip() or None})
+                from .copy_voz import ler
+                return self._json(ler(pasta))
+            if u.path == "/api/copy/ia":
+                from .copy_voz import melhorar_com_ia
+                return self._json({"copy": melhorar_com_ia(_pasta(dados["p"]), dados.get("copy", ""))})
+            if u.path == "/api/importar":
+                from .importar import importar
+                return self._json(importar(dados.get("origem") or None, bool(dados.get("copiar")),
+                                           bool(dados.get("simular"))))
+            if u.path == "/api/nova_edicao":
+                return self._json({"nome": nova_edicao(dados.get("tipo", "video"), dados.get("titulo", ""))})
             if u.path == "/api/post/novo":
                 from .post import novo as novo_post
                 return self._json({"nome": str(novo_post(dados["titulo"]).relative_to(PROJETOS))})
@@ -757,7 +889,7 @@ class Painel(BaseHTTPRequestHandler):
                 from . import aprendizado
                 campos = {k: v for k, v in (dados.get("campos") or {}).items()
                           if k in ("status", "gostei", "nao_gostei", "data_agendada", "data_postagem", "rede", "link",
-                                   "metricas", "obs")}
+                                   "metricas", "obs", "validado")}
                 if campos.get("status") and campos["status"] not in aprendizado.STATUS:
                     raise ValueError("status inválido")
                 pasta_pub = _pasta(dados["p"])

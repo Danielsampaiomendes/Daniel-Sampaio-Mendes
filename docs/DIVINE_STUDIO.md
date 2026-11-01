@@ -31,6 +31,18 @@ Tags e objetivo do post no painel; botão **Formatos** (Stories, Feed 4:5/1:1, T
 
 **Antes e depois (uso interno, nunca postar)**: `antesdepois novo "título"` ou "Antes e depois" no painel. Mande os pares (antes e depois separados ou uma montagem lado a lado) e marque o ângulo: sai no padrão aprovado do Bumbum Up (fotos inteiras, mesmo tamanho, sem zoom nem corte, aviso "Uso exclusivo em consulta" e RT) em TV 16:9 (com vídeo: abertura, um ângulo por vez, grade, fechamento), Stories 9:16 e Feed 4:5. Só gera com `autorizacao_imagem: sim`; arquivos com `NAO-POSTAR` no nome, em `entregas/AAAA-MM/Uso interno (nao postar)/`, na coluna "Uso interno (consulta)" da Programação, e o painel não deixa marcar como postado ou agendado.
 
+**Padrão viral luxo** (todo Reels e Stories; `config/viral.yaml`): câmera elegante no vídeo inteiro e uma interrupção de padrão a cada 2,6 a 3,4 s (desfoque de lente, zoom, luz dourada, congelar), luz dourada na abertura e pausa antes do CTA, só onde você não colocou efeito e diferente em cada versão. A lista de retenção e as regras de cara de luxo ficam no mesmo arquivo. `ritmo: calmo` desliga; a TV fica sempre calma.
+
+**Vídeo Épico** (`ritmo: epico`, ou "Vídeo Épico" no menu Nova edição e no seletor Ritmo): abertura com cartão 3D girando e luz dourada, chicote em cada corte, vertigem, cartão 3D, parallax e congelar a cada 1,3 a 1,9 s, câmera elegante mais forte, cor de cinema e som em cada movimento.
+
+**Nova edição** (botão no topo da lista): Vídeo, Vídeo Épico, Stories, Carrossel, Post, TV e Antes e depois; cada um cria o projeto já no formato certo. A lista de projetos filtra por tipo.
+
+**Galeria**: só as peças validadas (★ Validar nas versões, final exportada ou postada), com capa, vídeo tocando ao passar o mouse e "Editar" para voltar ao projeto.
+
+**Copy para a dublagem**: "🎙 Gravar voz aqui" abre a copy sugerida (sua copy salva, o *COPY.md do projeto ou montada do gancho, mensagens e fechamento), editável, com "✦ Melhorar com IA"; ao gravar, a copy rola num teleprompter com contagem de 3 s.
+
+**Importar o que já existe**: `python3 -m divine_studio importar ["<pasta Divine Medical Spa Marketing>"] [--simular] [--copiar]` (ou "Trazer o que já existe" em Nova edição). Cada tema vira um projeto com atalhos para os brutos e editados, "Pronto para postar" entra aprovado, legendas e copies vêm junto. Nada é movido nem apagado; rodar de novo só acrescenta.
+
 **Efeitos 3D e espaciais** (na linha do tempo, com miniatura): câmera elegante (perspectiva + zoom que deriva devagar), cartão 3D (o vídeo vira um cartão de borda dourada que inclina ou gira), parallax 2.5D e efeito vertigem (o fundo anda/aproxima e a pessoa fica; precisam do recorte com mediapipe), transição chicote (whip pan com borrão de movimento), congelar e aproximar, desfoque de lente (modo retrato) e luz dourada (light leak). `camera_elegante: true` no projeto (ou "Câmera elegante" no painel) aplica a câmera no vídeo inteiro, mudando a direção a cada take. Código em `divine_studio/efeitos3d.py`.
 
 **Qualidade máxima** (`qualidade: maxima` ou "Qualidade máxima" no painel): estabilização vid.stab em 2 passes, redução de ruído (hqdn3d ou nlmeans forte), upscale até a resolução da peça (Real-ESRGAN com IA se `realesrgan-ncnn-vulkan` estiver instalado; senão Lanczos + nitidez) e câmera lenta suave (minterpolate) nos clipes com `velocidade` menor que 1. Cache em `trabalho/qualidade/`; ajustes em `config/exportacao.yaml > qualidade`.

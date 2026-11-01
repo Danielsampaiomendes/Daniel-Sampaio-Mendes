@@ -21,6 +21,7 @@
   <div class="sub">edição de vídeo · Divine Medical Spa</div>
   <nav>
     <button data-tela="projetos" class="ativa">Projetos</button>
+    <button data-tela="galeria">Galeria</button>
     <button data-tela="programacao">Programação</button>
     <button data-tela="ia">IA e ideias</button>
     <button data-tela="referencias">Referências</button>
@@ -30,23 +31,9 @@
 
 <div class="app">
   <aside class="lateral">
-    <form id="form-novo" class="novo">
-      <input id="novo-nome" placeholder="Novo projeto: tema do vídeo" autocomplete="off">
-      <button type="submit" title="Criar projeto">+</button>
-    </form>
-    <form id="form-carrossel" class="novo">
-      <input id="novo-carrossel" placeholder="Novo carrossel: tema" autocomplete="off">
-      <button type="submit" title="Criar carrossel">▦</button>
-    </form>
-    <form id="form-post" class="novo">
-      <input id="novo-post" placeholder="Novo post (imagem): tema" autocomplete="off">
-      <button type="submit" title="Criar post estático">▣</button>
-    </form>
-    <form id="form-ad" class="novo">
-      <input id="novo-ad" placeholder="Antes e depois (uso interno): título" autocomplete="off">
-      <button type="submit" title="Criar antes e depois">◫</button>
-    </form>
+    <button id="b-nova" class="dourado nova-edicao">+ Nova edição</button>
     <input id="filtro" class="filtro" placeholder="Buscar projeto" autocomplete="off">
+    <div id="filtro-tipo" class="chips tipos"></div>
     <div id="filtro-tags" class="chips"></div>
     <ul id="lista" class="lista"></ul>
   </aside>
@@ -57,6 +44,29 @@
       <h1>Escolha um projeto à esquerda</h1>
       <p>ou crie um novo com o tema do vídeo. Depois é só arrastar os vídeos brutos para cá.</p>
     </div>
+
+    <section id="nova" class="tela" hidden>
+      <div class="cabecalho"><div><h1>Nova edição</h1>
+        <div class="pasta">Escolha o tipo, escreva o tema e pronto: o projeto já nasce no formato certo, com o padrão viral luxo.</div></div></div>
+      <div class="tipos-edicao" id="tipos-edicao"></div>
+      <div class="cartao importar">
+        <h2>Trazer o que já existe</h2>
+        <p class="dica">Importa os vídeos brutos e editados da pasta <b>Divine Medical Spa Marketing</b>: cada tema vira um projeto,
+          "Pronto para postar" vai para a Galeria e a Programação, e as legendas e copies vêm junto. Nada é apagado nem movido;
+          por padrão o app cria atalhos (não ocupa espaço). Rode no Mac.</p>
+        <div class="linha"><input id="imp-origem" placeholder="em branco: procura sozinho (~/Documents/Claude/Projects/Divine Medical Spa Marketing)">
+          <label class="check"><input type="checkbox" id="imp-copiar"> copiar os arquivos</label></div>
+        <div class="linha"><button id="imp-simular">Ver o que vai entrar</button><button class="dourado" id="imp-ok">Importar</button></div>
+        <div id="imp-resultado"></div>
+      </div>
+    </section>
+
+    <section id="galeria" class="tela" hidden>
+      <div class="cabecalho"><div><h1>Galeria</h1>
+        <div class="pasta">Só as peças validadas: as que você marcou ★ Validar, aprovou na final ou postou. Clique para assistir; "Editar" abre o projeto.</div></div>
+        <div class="acoes"><div id="gal-filtro" class="chips tipos"></div></div></div>
+      <div class="galeria" id="gal-grade"></div>
+    </section>
 
     <section id="programacao" class="tela" hidden>
       <div class="cabecalho"><div><h1>Programação</h1>
@@ -217,7 +227,12 @@
             <datalist id="tags-existentes"></datalist>
             <div class="cinema">
               <span class="dica">Acabamento de cinema:</span>
-              <label class="check" title="Perspectiva e zoom mudando devagar no vídeo inteiro, como câmera num slider"><input type="checkbox" id="c-camera"> Câmera elegante</label>
+              <label class="ritmo">Ritmo da edição
+                <select id="c-ritmo">
+                  <option value="viral">Viral luxo (padrão): algo muda a cada 3 s, câmera elegante</option>
+                  <option value="epico">✦ Vídeo Épico: intenso, 3D, vertigem, chicote, cor de cinema</option>
+                  <option value="calmo">Calmo: só os efeitos que você colocar</option>
+                </select></label>
               <label class="check" title="Estabiliza, tira ruído, aumenta a resolução (upscale) e deixa a câmera lenta suave"><input type="checkbox" id="c-qualidade"> Qualidade máxima</label>
               <span class="dica" id="c-qualidade-info"></span>
             </div>

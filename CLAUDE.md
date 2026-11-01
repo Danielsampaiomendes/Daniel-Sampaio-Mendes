@@ -37,6 +37,8 @@ Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 
 - **Templates do Divine Studio**: `divine` (suave), `daniel`, `george`, `tv`, `react`, `pessoal` (ver `docs/DIVINE_STUDIO.md`); fotos oficiais de perfil em `assets/pessoas/` (só no Mac).
 - **Carrosséis**: projetos com `tipo: carrossel` (painel: "Novo carrossel"); regras e textos em `config/carrossel.yaml`.
 - **Post estático e antes e depois**: `tipo: post` (Feed, Stories e TV de uma vez) e `tipo: antes_depois` (uso interno, TV de consulta, NAO-POSTAR); regras em `config/biblioteca.yaml`.
+- **Ritmo viral luxo / Vídeo Épico**: `config/viral.yaml` (`ritmo: viral | epico | calmo` no projeto). **Galeria** de peças validadas e **Nova edição** por tipo no painel.
+- **Importar a pasta antiga**: `python3 -m divine_studio importar` cria projetos com atalhos para `Videos/...` e pacotes soltos (não move nada).
 - **Biblioteca de imagens**: `assets/marca`, `assets/pessoas`, `assets/tecnologias`, `assets/clinica`, `assets/produtos` (tela "Biblioteca" do painel mostra o que falta; imagens só no Mac).
 - **Índice de vídeos editados pelo Divine Studio**: `docs/INDICE_VIDEOS_EDITADOS.md` (atualizado sozinho a cada exportação final). Os índices antigos `claude/indice-videos-editados*.md` estão só no projeto do app.
 

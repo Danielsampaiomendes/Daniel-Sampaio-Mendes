@@ -1,0 +1,59 @@
+# Padrão de edição para VIRALIZAR com cara de HIGH TICKET (mercado de luxo e glamour).
+# Vale para toda edição de Reels e Stories (templates divine, daniel, george, react, pessoal). A TV fica calma.
+# No projeto.yaml: ritmo: viral (padrão) | epico (Vídeo Épico) | calmo (sem efeitos automáticos)
+# Os efeitos automáticos só entram onde você não colocou efeito na linha do tempo, e mudam a cada versão.
+
+padrao: viral
+
+# O que segura a atenção (o app cuida de cada item; o revisor viral dá a nota no relatório)
+retencao:
+  - "Gancho visual no 1º quadro: assunto na tela, nada de apresentação"
+  - "Texto do gancho completo antes de 3 s, em 3 a 7 palavras"
+  - "Interrupção de padrão a cada 2 a 3 s: algo muda no espaço (câmera, foco, luz, corte)"
+  - "Loop aberto: a promessa do gancho só fecha no fim"
+  - "Barra de progresso dourada e legenda da fala com a palavra-chave em destaque"
+  - "Som que acompanha cada mudança (whoosh, brilho, impacto grave), sempre baixo"
+  - "Final que volta para o começo (loop) e um único pedido (CTA)"
+
+# O que faz parecer caro (nunca negociar)
+luxo:
+  - "Paleta preto, dourado e off-white; nada de cor saturada nem neon"
+  - "Serifas elegantes e cursiva fina; nada de fonte gritante, contorno grosso ou emoji em excesso"
+  - "Espaço negativo: pouco texto por tela, muito respiro"
+  - "Movimento lento e com easing; nada treme, nada pisca, sem zoom brusco"
+  - "Luz quente, grão fino de filme, vinheta suave"
+  - "Logo oficial discreto; RT e aviso em toda peça médica"
+
+modos:
+  viral:
+    nome: "Viral luxo (padrão)"
+    camera: 0.8                       # câmera elegante no vídeo inteiro (intensidade)
+    intervalo_s: [2.6, 3.4]           # uma interrupção de padrão a cada tantos segundos
+    espacamento_minimo_s: 1.5
+    abertura: [{tipo: luz_dourada, inicio: 0.25, duracao: 1.4, forca: 0.7, som: brilho_dourado}]
+    nos_cortes: []                    # cortes secos já são interrupção
+    meio: [foco_lente, zoom_digital, luz_dourada, congelar]
+    antes_do_cta: {tipo: congelar, duracao: 1.4, zoom: 1.08, som: tick_suave}
+    grade: 0.0
+  epico:
+    nome: "Vídeo Épico"
+    camera: 1.6
+    intervalo_s: [1.3, 1.9]
+    espacamento_minimo_s: 1.1
+    abertura: [{tipo: cartao_3d, inicio: 0.0, duracao: 1.3, modo: girar, som: whoosh_suave},
+               {tipo: luz_dourada, inicio: 1.7, duracao: 1.2, forca: 1.2, som: brilho_dourado}]
+    nos_cortes: [{tipo: chicote, duracao: 0.4, som: whoosh_suave}]
+    meio: [dolly_zoom, cartao_3d, congelar, luz_dourada, zoom_digital, parallax, foco_lente, chicote]
+    antes_do_cta: {tipo: congelar, duracao: 1.6, zoom: 1.18, som: impacto_grave_suave}
+    grade: 1.0                        # contraste de cinema com brilho dourado nas luzes
+
+# Som de cada efeito automático (família do kit; a variante muda sozinha)
+sons:
+  dolly_zoom: riser_suave
+  cartao_3d: whoosh_suave
+  congelar: camera_shutter
+  luz_dourada: brilho_dourado
+  zoom_digital: swell_reverso
+  parallax: swell_reverso
+  foco_lente: cristal
+  chicote: whoosh_suave

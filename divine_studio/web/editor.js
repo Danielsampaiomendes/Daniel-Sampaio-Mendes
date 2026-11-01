@@ -162,24 +162,76 @@ $("#tl-sfx-auto").onchange = () => sujar();
 // ---------------------------------------------------------------- gravar voz (dublagem / narração)
 
 let gravador = null;
-$("#tl-gravar").onclick = async () => {
-  const v = $("#tl-video");
+$("#tl-gravar").onclick = () => {
   if (gravador) return gravador.stop();
-  if (!navigator.mediaDevices || !window.MediaRecorder) {
-    // iPhone pela rede (http) não libera o microfone para páginas: grave no app Gravador e envie o arquivo
-    return mostrarEnvioDeAudio();
-  }
-  const substituir = confirm("A sua voz deve SUBSTITUIR o som do vídeo?\nOK = substituir (dublagem) · Cancelar = somar ao som do vídeo (narração)");
+  mostrarCopy();
+};
+
+// copy sugerida (editável) antes de gravar: lê no teleprompter enquanto o vídeo toca sem som
+async function mostrarCopy() {
+  const box = $("#tl-form");
+  box.innerHTML = '<p class="dica">Carregando a copy…</p>';
+  let c;
+  try { c = await api("/api/copy?p=" + encodeURIComponent(atual)); } catch (err) { box.innerHTML = `<p class="dica">${esc(err.message)}</p>`; return; }
+  const iaOk = (await estadoIA().catch(() => ({}))).ok;
+  const semMic = !navigator.mediaDevices || !window.MediaRecorder;
+  box.innerHTML = `<h2>🎙 Copy para gravar</h2>
+    <p class="dica">Veio de: ${esc(c.fonte)} · cerca de <b id="cp-seg">${c.segundos}</b> s falando. Edite à vontade: é o que vai aparecer no teleprompter.</p>
+    <textarea id="cp-texto" class="copy-voz">${esc(c.copy)}</textarea>
+    ${c.alertas.length ? `<p class="aviso-ia">${c.alertas.map(esc).join("<br>")}</p>` : ""}
+    <div class="linha">
+      ${iaOk ? '<button id="cp-ia">✦ Melhorar com IA</button>' : ""}
+      <button id="cp-sug" class="link">voltar à sugerida</button>
+      <button id="cp-salvar" class="link">salvar copy</button></div>
+    <label>Entra em (s)<input id="cp-inicio" type="number" step="0.1" value="${agora()}"></label>
+    <label class="check"><input type="checkbox" id="cp-subst" checked> substituir o som do vídeo (dublagem). Sem marcar: soma (narração)</label>
+    ${semMic ? `<p class="dica">No iPhone pela rede o navegador não libera o microfone: leia a copy, grave no app <b>Gravador</b> e envie aqui.</p>
+      <input type="file" id="dub-arq" accept="audio/*">` : '<button class="dourado" id="cp-gravar">● Gravar lendo o teleprompter</button>'}`;
+  const campo = $("#cp-texto");
+  campo.oninput = () => { $("#cp-seg").textContent = (campo.value.split(/\s+/).filter(Boolean).length / 2.6).toFixed(1); };
+  const salvar = () => api("/api/copy", { p: atual, copy: campo.value });
+  $("#cp-salvar").onclick = async () => { await salvar(); $("#ed-status").textContent = "Copy salva no projeto."; };
+  $("#cp-sug").onclick = () => { campo.value = c.sugerida; campo.oninput(); };
+  if ($("#cp-ia")) $("#cp-ia").onclick = async () => {
+    const b = $("#cp-ia"); b.disabled = true; b.textContent = "Reescrevendo…";
+    try { campo.value = (await api("/api/copy/ia", { p: atual, copy: campo.value })).copy; campo.oninput(); }
+    catch (err) { alert(err.message); }
+    b.disabled = false; b.textContent = "✦ Melhorar com IA";
+  };
+  if ($("#dub-arq")) $("#dub-arq").onchange = async () => {
+    const f = $("#dub-arq").files[0]; if (!f) return;
+    await salvar();
+    const ext = (f.name.split(".").pop() || "m4a").toLowerCase();
+    const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${$("#cp-inicio").value || 0}&ext=${ext}&substituir=${$("#cp-subst").checked ? 1 : 0}`, { method: "POST", body: f });
+    if (!r.ok) return alert((await r.json()).erro);
+    carregarEditor();
+  };
+  if ($("#cp-gravar")) $("#cp-gravar").onclick = async () => {
+    await salvar();
+    gravar(Number($("#cp-inicio").value) || 0, $("#cp-subst").checked, campo.value);
+  };
+}
+
+async function gravar(inicio, substituir, texto) {
+  const v = $("#tl-video");
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false } }); }
   catch (e) { alert("O navegador não liberou o microfone: " + e.message); return; }
   const tipo = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
-  const pedacos = [], inicio = agora();
+  const pedacos = [];
+  // teleprompter: texto grande rolando no ritmo da fala (~2,6 palavras por segundo), 3 s de contagem antes
+  const tp = document.createElement("div");
+  tp.className = "teleprompter";
+  tp.innerHTML = `<div class="tp-texto">${esc(texto).replace(/\n/g, "<br>")}</div><div class="tp-conta">3</div><button class="tp-parar">■ Parar</button>`;
+  document.body.appendChild(tp);
+  tp.querySelector(".tp-parar").onclick = () => gravador ? gravador.stop() : tp.remove();
+  for (const n of [3, 2, 1]) { tp.querySelector(".tp-conta").textContent = n; await new Promise((r) => setTimeout(r, 800)); }
+  tp.querySelector(".tp-conta").remove();
   gravador = new MediaRecorder(stream, tipo ? { mimeType: tipo } : {});
   gravador.ondataavailable = (e) => e.data.size && pedacos.push(e.data);
   gravador.onstop = async () => {
     stream.getTracks().forEach((t) => t.stop());
-    v.pause(); v.muted = false;
+    v.pause(); v.muted = false; tp.remove();
     $("#tl-gravar").textContent = "🎙 Gravar voz aqui"; $("#tl-gravar").classList.remove("gravando");
     gravador = null;
     const blob = new Blob(pedacos, { type: tipo || "audio/webm" });
@@ -196,7 +248,15 @@ $("#tl-gravar").onclick = async () => {
   v.play();
   $("#tl-gravar").textContent = "■ Parar gravação"; $("#tl-gravar").classList.add("gravando");
   v.onended = () => gravador && gravador.stop();
-};
+  const caixa = tp.querySelector(".tp-texto");
+  const dur = Math.max(4, texto.split(/\s+/).filter(Boolean).length / 2.6) * 1000, t0 = performance.now();
+  const rolar = (agoraMs) => {
+    if (!gravador) return;
+    caixa.scrollTop = (caixa.scrollHeight - caixa.clientHeight) * Math.min(1, (agoraMs - t0) / dur);
+    requestAnimationFrame(rolar);
+  };
+  requestAnimationFrame(rolar);
+}
 
 function mostrarEnvioDeAudio() {
   const box = $("#tl-form");

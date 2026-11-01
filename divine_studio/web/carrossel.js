@@ -123,14 +123,6 @@ $("#cr-exportar").onclick = async () => {
 };
 $("#cr-copiar").onclick = async () => { await navigator.clipboard.writeText($("#cr-legenda").textContent); $("#cr-copiar").textContent = "Copiado"; setTimeout(() => $("#cr-copiar").textContent = "Copiar", 1500); };
 
-$("#form-carrossel").onsubmit = async (e) => {
-  e.preventDefault();
-  const titulo = $("#novo-carrossel").value.trim(); if (!titulo) return;
-  try {
-    const r = await api("/api/carrossel/novo", { titulo, formula: "lista" });
-    $("#novo-carrossel").value = ""; await carregarLista(); abrir(r.nome);
-  } catch (err) { alert(err.message); }
-};
 
 $$("[data-crfmt]").forEach((c) => c.onchange = async () => {
   cr.d.formatos = $$("[data-crfmt]").filter((x) => x.checked).map((x) => x.dataset.crfmt);
@@ -138,11 +130,3 @@ $$("[data-crfmt]").forEach((c) => c.onchange = async () => {
 });
 $("#cr-fmt-prev").onchange = (e) => { cr.fmt = e.target.value; crDesenharCards(); crDesenharForm(); };
 
-$("#form-post").onsubmit = async (e) => {
-  e.preventDefault();
-  const titulo = $("#novo-post").value.trim(); if (!titulo) return;
-  try {
-    const r = await api("/api/post/novo", { titulo });
-    $("#novo-post").value = ""; await carregarLista(); abrir(r.nome);
-  } catch (err) { alert(err.message); }
-};
