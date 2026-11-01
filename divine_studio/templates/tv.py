@@ -191,8 +191,12 @@ def montar(projeto, versao, combo_codigo, duracao_base, W, H, sfx_abertura, sfx_
                                            deslize=12, nome="pill_final"))
     plano.textos_tela += [frase, cfg["pill_final"]]
 
-    # áudio: swell discreto na entrada e chime suave no fim
+    # áudio: swell discreto na entrada e chime suave no fim (+ os sons colocados à mão)
+    from .divine import sons_manuais
+    sons_manuais(plano, projeto)
     g = float(load("sfx").get("ganho_db", -24)) - 6
+    if projeto.get("sfx_automaticos") is False:
+        return plano
     plano.eventos_sfx.append((0.2, "swell_reverso_b", g))
     for nome in sfx_fechamento:
         plano.eventos_sfx.append((f0 + 0.3, nome, g + 2))

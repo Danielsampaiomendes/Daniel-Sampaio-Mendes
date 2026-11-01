@@ -166,7 +166,8 @@ def detalhe(nome: str) -> dict:
 
 CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
-                    "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula"}
+                    "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
+                    "sfx_automaticos", "audio"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -498,6 +499,23 @@ class Painel(BaseHTTPRequestHandler):
                 if not f.is_file():
                     raise ValueError("arquivo não encontrado")
                 return self._arquivo(f)
+            if u.path == "/api/sons":
+                from .config import load
+                cfg = load("sfx")
+                pasta_sfx = ROOT / cfg["pasta"]
+                nomes = sorted(f.stem for f in pasta_sfx.glob("*.wav")) if pasta_sfx.exists() else []
+                fam = cfg.get("familias") or {}
+                return self._json([{"nome": n, "familia": re.sub(r"_(?:[a-c])(?:_duplo)?$", "", n),
+                                    "uso": fam.get(re.sub(r"_(?:[a-c])(?:_duplo)?$", "", n), "")} for n in nomes])
+            if u.path == "/sfx.wav":
+                from .config import load
+                nome = q.get("nome", "")
+                if not re.fullmatch(r"[a-z0-9_]+", nome):
+                    raise ValueError("som inválido")
+                f = ROOT / load("sfx")["pasta"] / f"{nome}.wav"
+                if not f.is_file():
+                    raise ValueError("som não encontrado (gere o kit: Biblioteca_SFX/gerar_kit_sfx.py)")
+                return self._arquivo(f)
             if u.path == "/api/programacao":
                 from . import aprendizado
                 return self._json({"pecas": aprendizado.todas_publicacoes(), "aprendi": aprendizado.resumo()})
@@ -527,6 +545,32 @@ class Painel(BaseHTTPRequestHandler):
         if self._barrar(u.path):
             return
         try:
+            if u.path == "/api/dublagem":
+                pasta = _pasta(q["p"])
+                if _job_do_projeto(q["p"]):
+                    return self._erro("espere a tarefa deste projeto terminar")
+                ext = re.sub(r"[^a-z0-9]", "", q.get("ext", "webm").lower())[:5] or "webm"
+                dest = pasta / "trabalho" / "dublagem"
+                dest.mkdir(parents=True, exist_ok=True)
+                carimbo = time.strftime("%Y%m%d-%H%M%S")
+                bruto = dest / f"gravacao_{carimbo}.{ext}"
+                n = int(self.headers.get("Content-Length") or 0)
+                bruto.write_bytes(self.rfile.read(n))
+                wav = dest / f"voz_{carimbo}.wav"
+                r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(bruto), "-ac", "2", "-ar", "48000",
+                                    str(wav)], capture_output=True, text=True)
+                if r.returncode != 0 or not wav.exists():
+                    return self._erro("não consegui ler a gravação: " + r.stderr[-300:])
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                aud = dict(d.get("audio") or {})
+                dubs = list(aud.get("dublagem") or [])
+                dubs.append({"arquivo": f"trabalho/dublagem/{wav.name}", "inicio": round(float(q.get("inicio", 0)), 2)})
+                aud["dublagem"] = dubs
+                if q.get("substituir") == "1":
+                    aud["original"] = False          # a gravação substitui o som do vídeo
+                aud.setdefault("trilha", True)
+                salvar_dados(q["p"], {"audio": aud})
+                return self._json({"ok": True, "arquivo": f"trabalho/dublagem/{wav.name}"})
             if u.path == "/api/upload":
                 if q.get("ref"):
                     from . import referencias

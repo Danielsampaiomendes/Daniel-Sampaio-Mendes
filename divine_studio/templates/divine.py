@@ -218,6 +218,7 @@ def montar(projeto: dict, versao: dict, combo_codigo: str, duracao_base: float, 
         plano.textos_tela += txts
 
     efeitos.aplicar(plano, projeto, versao, combo, W, H, int(load("exportacao")["fps"]))
+    sons_manuais(plano, projeto)
     transicoes(plano, projeto, sfx_abertura, sfx_fechamento, sfx_transicao, inicio_fech)
     if op.fechamento_marca:
         fechamento(plano, projeto, combo, W, H, larg, sfx_fechamento)
@@ -253,6 +254,14 @@ def desviar(ini: float, dur: float, ocupados: list, folga: float = 0.2) -> float
                 ini = b + folga
                 mudou = True
     return ini
+
+
+def sons_manuais(plano: Plano, projeto: dict) -> None:
+    """Sons colocados à mão na linha do tempo: sons: [{nome, inicio, ganho_db}] (ganho padrão do kit)."""
+    g = float(load("sfx").get("ganho_db", -24))
+    for s in projeto.get("sons") or []:
+        if s.get("nome") and float(s.get("inicio", 0)) < plano.duracao_total:
+            plano.eventos_sfx.append((float(s.get("inicio", 0)), s["nome"], float(s.get("ganho_db", g))))
 
 
 def transicoes(plano: Plano, projeto: dict, sfx_abertura, sfx_fechamento, sfx_transicao, inicio_fech: float):

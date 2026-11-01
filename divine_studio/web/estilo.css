@@ -197,14 +197,19 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
 .tipo { background: var(--painel); border: 1px solid var(--linha); border-radius: 10px; padding: 4px; cursor: pointer; text-align: center; font-size: 11px; color: var(--apagado); }
 .tipo img { width: 100%; border-radius: 6px; display: block; margin-bottom: 4px; }
 .tipo:hover, .tipo.sel { border-color: var(--dourado); color: var(--branco); }
-.tl-barra { position: relative; height: 54px; margin-top: 16px; background: var(--fundo); border: 1px solid var(--linha); border-radius: 10px; cursor: pointer; overflow: hidden; touch-action: none; }
+.tl-barra { position: relative; height: 92px; margin-top: 16px; background: var(--fundo); border: 1px solid var(--linha); border-radius: 10px; cursor: pointer; overflow: hidden; touch-action: none; }
 .tl-zona { position: absolute; top: 0; bottom: 0; }
 .tl-zona.hook { background: #ccbd9122; } .tl-zona.fech { background: #ffffff10; }
 .tl-cursor { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--branco); z-index: 3; pointer-events: none; }
 .tl-marca { position: absolute; top: 8px; height: 38px; border-radius: 6px; font-size: 11px; padding: 2px 6px; overflow: hidden;
   white-space: nowrap; cursor: grab; z-index: 2; box-sizing: border-box; border: 1px solid transparent; }
 .tl-marca.ef { background: #ccbd91cc; color: var(--fundo); }
-.tl-marca.msg { background: #f5f4f1cc; color: var(--fundo); top: 28px; height: 20px; }
+.tl-marca.ef { top: 6px; height: 28px; }
+.tl-marca.msg { background: #f5f4f1cc; color: var(--fundo); top: 38px; height: 20px; }
+.tl-marca.som { background: #8fb3c9cc; color: var(--fundo); top: 62px; height: 22px; min-width: 22px; border-radius: 11px; text-align: center; }
+.tl-marca.voz { background: #b48fc9cc; color: var(--fundo); top: 62px; height: 22px; }
+.m-som::before { background: #8fb3c9; } .m-voz::before { background: #b48fc9; }
+.gravando { color: #e0866f; font-weight: 600; }
 .tl-marca.sel { border-color: var(--branco); box-shadow: 0 0 0 2px var(--dourado2); }
 .tl-marca.perto { background: #e0866fcc; }
 .tl-legenda { display: flex; gap: 14px; font-size: 12px; color: var(--apagado); margin-top: 6px; flex-wrap: wrap; }

@@ -1,6 +1,20 @@
 # Biblioteca_SFX/1_kit_original_divine (só sons livres para uso comercial)
 pasta: Biblioteca_SFX/1_kit_original_divine
 
+# Para que serve cada família (aparece no painel ao escolher um som na linha do tempo)
+familias:
+  whoosh_suave: "zoom, texto deslizando, troca de cena"
+  brilho_dourado: "revelação, brilho dourado"
+  ding_suave: "informação importante, dica, check"
+  notificacao_suave: "card de pergunta, comentário, DM"
+  tick_suave: "itens de lista aparecendo"
+  pop_suave: "selo, ícone, pílula surgindo"
+  camera_shutter: "transição rápida, bastidores"
+  impacto_grave_suave: "ênfase no hook (no máximo 1 por vídeo)"
+  riser_suave: "suspense antes de revelar"
+  swell_reverso: "respiro antes de texto importante"
+  cristal: "condição, tela final, CTA"
+
 # Ganho padrão em dB relativo ao arquivo (o kit sai normalizado em -1 dBFS); tudo bem abaixo da trilha
 ganho_db: -24
 

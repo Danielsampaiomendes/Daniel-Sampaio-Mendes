@@ -1,6 +1,6 @@
 // Aba "Edição": linha do tempo (efeitos e mensagens no ponto exato), hook e fontes por versão, textos.
 // Usa as funções do app.js (api, esc, rodar, atual) e salva só os campos editados (/api/dados).
-const ed = { proj: null, efeitos: [], mensagens: [], versoes: [], sel: null, catalogo: null, fontes: null,
+const ed = { proj: null, efeitos: [], mensagens: [], versoes: [], sons: [], dubs: [], kit: null, sel: null, catalogo: null, fontes: null,
   hooks: [], total: 0, base: 0, fechS: 2.6, intervalo: 1.5, sujo: false, pegandoPonto: null };
 
 const TIPOS_NOME = () => Object.fromEntries((ed.catalogo || []).map((c) => [c.tipo, c]));
@@ -23,6 +23,10 @@ async function carregarEditor() {
   ed.efeitos = JSON.parse(JSON.stringify(d.projeto.efeitos || []));
   ed.mensagens = JSON.parse(JSON.stringify(d.projeto.mensagens || []));
   ed.versoes = JSON.parse(JSON.stringify(d.projeto.versoes || []));
+  ed.sons = JSON.parse(JSON.stringify(d.projeto.sons || []));
+  ed.dubs = JSON.parse(JSON.stringify((d.projeto.audio || {}).dublagem || []));
+  $("#tl-sfx-auto").checked = d.projeto.sfx_automaticos !== false;
+  if (!ed.kit) ed.kit = await api("/api/sons");
   ed.sel = null;
   const v = $("#tl-video");
   if (d.referencia) {
@@ -72,6 +76,8 @@ function desenharTimeline() {
   // mensagem com momento fixo em cima de um efeito de texto: vermelho (as duas disputariam o mesmo lugar)
   const QUADRO_SO = new Set(["zoom_digital", "fundo_pip", "cortina", "filme"]);
   const efs = ed.efeitos.filter((e) => e.tipo && !QUADRO_SO.has(e.tipo)).map((e) => [Number(e.inicio) || 0, (Number(e.inicio) || 0) + duracaoEf(e)]);
+  ed.sons.forEach((s, i) => marca("som", i, Number(s.inicio) || 0, 0.6, "♪", false));
+  ed.dubs.forEach((d, i) => marca("voz", i, Number(d.inicio) || 0, Number(d.dur) || 3, "🎙 voz", false));
   ed.mensagens.forEach((m, i) => { if (m.inicio !== undefined && m.inicio !== null && m.inicio !== "") {
     const a = Number(m.inicio), d = Math.max(1.6, (m.titulo || "").split(/\s+/).length / 3.2 + 0.7);
     const bate = efs.some(([x, y]) => a < y && a + d > x);
@@ -91,7 +97,7 @@ function marca(tipo, i, t, dur, rotulo, perto) {
   el.onpointerdown = (ev) => {
     ev.stopPropagation(); ev.preventDefault();
     ed.sel = { tipo, i }; desenharTimeline(); desenharForm();
-    const lista = tipo === "ef" ? ed.efeitos : ed.mensagens;
+    const lista = { ef: ed.efeitos, msg: ed.mensagens, som: ed.sons, voz: ed.dubs }[tipo];
     const x0 = ev.clientX, t0 = Number(lista[i].inicio) || 0;
     let mexeu = false;
     const mover = (e2) => {
@@ -146,6 +152,68 @@ $("#tl-add-msg").onclick = () => {
   setTimeout(() => { const f = $("#tl-form input"); if (f) f.focus(); }, 50);
 };
 
+$("#tl-add-som").onclick = () => {
+  ed.sons.push({ nome: (ed.kit[0] || {}).nome, inicio: agora() });
+  ed.sel = { tipo: "som", i: ed.sons.length - 1 };
+  $("#tl-video").pause(); sujar(); desenharTimeline(); desenharForm();
+};
+$("#tl-sfx-auto").onchange = () => sujar();
+
+// ---------------------------------------------------------------- gravar voz (dublagem / narração)
+
+let gravador = null;
+$("#tl-gravar").onclick = async () => {
+  const v = $("#tl-video");
+  if (gravador) return gravador.stop();
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    // iPhone pela rede (http) não libera o microfone para páginas: grave no app Gravador e envie o arquivo
+    return mostrarEnvioDeAudio();
+  }
+  const substituir = confirm("A sua voz deve SUBSTITUIR o som do vídeo?\nOK = substituir (dublagem) · Cancelar = somar ao som do vídeo (narração)");
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false } }); }
+  catch (e) { alert("O navegador não liberou o microfone: " + e.message); return; }
+  const tipo = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  const pedacos = [], inicio = agora();
+  gravador = new MediaRecorder(stream, tipo ? { mimeType: tipo } : {});
+  gravador.ondataavailable = (e) => e.data.size && pedacos.push(e.data);
+  gravador.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop());
+    v.pause(); v.muted = false;
+    $("#tl-gravar").textContent = "🎙 Gravar voz aqui"; $("#tl-gravar").classList.remove("gravando");
+    gravador = null;
+    const blob = new Blob(pedacos, { type: tipo || "audio/webm" });
+    const ext = (tipo || "audio/webm").includes("mp4") ? "m4a" : "webm";
+    $("#ed-status").textContent = "Enviando a gravação…";
+    const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${inicio}&ext=${ext}&substituir=${substituir ? 1 : 0}`, { method: "POST", body: blob });
+    const j = await r.json();
+    if (!r.ok) return alert(j.erro);
+    $("#ed-status").textContent = "Voz gravada. Gere as prévias para ouvir no vídeo.";
+    carregarEditor();
+  };
+  v.muted = true; v.currentTime = inicio;
+  gravador.start(250);
+  v.play();
+  $("#tl-gravar").textContent = "■ Parar gravação"; $("#tl-gravar").classList.add("gravando");
+  v.onended = () => gravador && gravador.stop();
+};
+
+function mostrarEnvioDeAudio() {
+  const box = $("#tl-form");
+  box.innerHTML = `<h2>Enviar a sua voz</h2><p class="dica">No iPhone pela rede o navegador não libera o microfone para a página.
+    Grave no app <b>Gravador</b> (ou Notas de voz) assistindo ao vídeo e envie aqui. Ela entra no segundo marcado.</p>
+    <label>Entra em (s)<input id="dub-inicio" type="number" step="0.1" value="${agora()}"></label>
+    <label class="check"><input type="checkbox" id="dub-subst" checked> substituir o som do vídeo</label>
+    <input type="file" id="dub-arq" accept="audio/*">`;
+  $("#dub-arq").onchange = async () => {
+    const f = $("#dub-arq").files[0]; if (!f) return;
+    const ext = (f.name.split(".").pop() || "m4a").toLowerCase();
+    const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${$("#dub-inicio").value || 0}&ext=${ext}&substituir=${$("#dub-subst").checked ? 1 : 0}`, { method: "POST", body: f });
+    if (!r.ok) return alert((await r.json()).erro);
+    carregarEditor();
+  };
+}
+
 // ---------------------------------------------------------------- formulário do item selecionado
 
 const OBRIGATORIOS = new Set(["texto", "itens", "marcos", "mensagens", "barras", "de", "ate"]);
@@ -181,6 +249,33 @@ function lerCampo(c) {
 function desenharForm() {
   const box = $("#tl-form");
   if (!ed.sel) { box.innerHTML = '<p class="dica">Clique numa marca da linha do tempo para editar, ou adicione um efeito no ponto do vídeo.</p>'; return; }
+  if (ed.sel.tipo === "som") {
+    const s = ed.sons[ed.sel.i];
+    const grupos = {};
+    (ed.kit || []).forEach((k) => (grupos[k.familia] = grupos[k.familia] || { uso: k.uso, nomes: [] }).nomes.push(k.nome));
+    box.innerHTML = `<h2>Som</h2>
+      <label>Qual som<select id="s-nome">${Object.entries(grupos).map(([f, g]) => `<optgroup label="${esc(f.replace(/_/g, " "))}: ${esc(g.uso)}">${g.nomes.map((n) =>
+        `<option ${n === s.nome ? "selected" : ""}>${n}</option>`).join("")}</optgroup>`).join("")}</select></label>
+      <div class="linha"><button id="s-ouvir">▶ Ouvir</button></div>
+      <label>Volume (sempre baixo, bem abaixo da voz)<input id="s-ganho" type="range" min="-40" max="-12" step="1" value="${s.ganho_db ?? -24}"></label>
+      <label>Entra em (s)<input id="s-inicio" type="number" step="0.1" value="${s.inicio}"></label>
+      <div class="linha"><button class="link" id="s-del">remover</button><button id="s-ok">Aplicar</button></div>`;
+    const tocar = () => { const a = new Audio(`/sfx.wav?nome=${$("#s-nome").value}`); a.volume = Math.pow(10, ($("#s-ganho").value + 18) / 20 / 2); a.play(); };
+    $("#s-ouvir").onclick = tocar; $("#s-nome").onchange = tocar;
+    $("#s-ok").onclick = () => { s.nome = $("#s-nome").value; s.ganho_db = Number($("#s-ganho").value); s.inicio = Number($("#s-inicio").value) || 0; sujar(); desenharTimeline(); };
+    $("#s-del").onclick = () => { ed.sons.splice(ed.sel.i, 1); ed.sel = null; sujar(); desenharTimeline(); desenharForm(); };
+    return;
+  }
+  if (ed.sel.tipo === "voz") {
+    const d = ed.dubs[ed.sel.i];
+    box.innerHTML = `<h2>Sua voz</h2><audio controls src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(d.arquivo)}"></audio>
+      <label>Entra em (s)<input id="v-inicio" type="number" step="0.1" value="${d.inicio}"></label>
+      <label>Volume<input id="v-ganho" type="range" min="-12" max="6" step="1" value="${d.ganho_db ?? 0}"></label>
+      <div class="linha"><button class="link" id="v-del">remover</button><button id="v-ok">Aplicar</button></div>`;
+    $("#v-ok").onclick = () => { d.inicio = Number($("#v-inicio").value) || 0; d.ganho_db = Number($("#v-ganho").value); sujar(); desenharTimeline(); };
+    $("#v-del").onclick = () => { ed.dubs.splice(ed.sel.i, 1); ed.sel = null; sujar(); desenharTimeline(); desenharForm(); };
+    return;
+  }
   if (ed.sel.tipo === "msg") {
     const m = ed.mensagens[ed.sel.i];
     box.innerHTML = `<h2>Mensagem</h2>
@@ -324,8 +419,11 @@ async function salvarEditor(depois) {
     const o = { ...m }; if (o.inicio === undefined || o.inicio === null || o.inicio === "") delete o.inicio; return o;
   });
   try {
+    const audio = { ...(ed.proj.audio || {}), dublagem: ed.dubs };
+    if (!ed.dubs.length) delete audio.dublagem;
     await api("/api/dados", { p: atual, dados: { efeitos, mensagens, versoes, selo: $("#ed-selo").value,
-      cta_antecipado: $("#ed-cta").value, fechamento: fech } });
+      cta_antecipado: $("#ed-cta").value, fechamento: fech, sons: ed.sons.filter((x) => x.nome),
+      sfx_automaticos: $("#tl-sfx-auto").checked, audio } });
     ed.efeitos = efeitos;
     sujar(false);
     if (pendentes) $("#ed-status").textContent = "Salvo (efeito sem tipo escolhido ficou de fora).";

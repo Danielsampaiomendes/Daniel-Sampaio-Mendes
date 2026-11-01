@@ -266,9 +266,17 @@ def cmd_editar(a):
     if transcrever_fn:
         from .legendas import palavras_na_base
         try:
+            original = (p.get("audio") or {}).get("original", True)
             trans = {c["caminho"]: transcrever_fn(Path(c["caminho"])) for c in meta["clipes"]
-                     if c.get("caminho") and not _clipe_mudo(p, c)}
+                     if original and c.get("caminho") and not _clipe_mudo(p, c)}
             p["_fala"] = palavras_na_base(meta["clipes"], trans)
+            # dublagem gravada no painel: a fala dela também vira legenda, no tempo em que entra
+            for d in (p.get("audio") or {}).get("dublagem") or []:
+                from .ingest import resolver
+                off = float(d.get("inicio", 0))
+                p["_fala"] += [{**w, "inicio": round(w["inicio"] + off, 3), "fim": round(w["fim"] + off, 3)}
+                               for w in transcrever_fn(resolver(p, d["arquivo"]))]
+            p["_fala"].sort(key=lambda w: w["inicio"])
         except SystemExit as e:
             # legenda da fala e mensagens na fala são opcionais: segue sem elas (o corte limpo já teria parado antes)
             print(f"  aviso: sem a fala transcrita, a legenda da fala e o na_fala ficam de fora.\n  {e}")
@@ -293,12 +301,15 @@ def cmd_editar(a):
     sfx_f = escolher_sfx("fechamento", len(versoes), _g("sfx_fechamento"))
     sfx_t = escolher_sfx("transicao", len(versoes), _g("sfx_transicao"),
                          ocupados=[a_ + f_ for a_, f_ in zip(sfx_a, sfx_f)])
+    if p.get("sfx_automaticos") is False:          # só os sons colocados à mão na linha do tempo
+        sfx_a = sfx_f = sfx_t = [[] for _ in versoes]
     arq_rod.write_text(json.dumps({v.get("nome", f"V{k + 1}"): {
         "fontes": fontes[k], "sfx_abertura": sfx_a[k], "sfx_fechamento": sfx_f[k], "sfx_transicao": sfx_t[k]}
         for k, v in enumerate(versoes)}, indent=1, ensure_ascii=False), encoding="utf-8")
 
     aud = p.get("audio") or {}
     voz = ler_audio(base, dur) if aud.get("original", True) else None
+    voz = _com_dublagem(p, voz, dur)
     modo_voz = "sem voz"
     if voz is not None:
         voz, modo_voz = _voz_limpa(p, voz, base, trabalho)
@@ -378,13 +389,37 @@ def _clipe_mudo(p, meta_clipe) -> bool:
     return any(c.get("mudo") for c in p.get("clipes") or [] if c.get("arquivo") == meta_clipe.get("arquivo"))
 
 
+def _com_dublagem(p, voz, dur: float):
+    """Soma as gravações de voz do painel (audio.dublagem: [{arquivo, inicio, ganho_db}]) à voz da base."""
+    import numpy as np
+    from .audio import SR, db, ler_audio
+    from .ingest import resolver
+    dubs = (p.get("audio") or {}).get("dublagem") or []
+    if not dubs:
+        return voz
+    n = int(dur * SR)
+    out = voz.copy() if voz is not None else np.zeros((n, 2), np.float32)
+    for d in dubs:
+        a = ler_audio(resolver(p, d["arquivo"]))
+        i = int(float(d.get("inicio", 0)) * SR)
+        if i >= n:
+            continue
+        a = a[: n - i] * db(float(d.get("ganho_db", 0)))
+        out[i:i + len(a)] += a
+    return out
+
+
 def _voz_limpa(p, voz, base: Path, trabalho: Path):
     """Limpa a voz da base uma vez e guarda (refaz só se a base ou o modo mudarem)."""
     from .audio import ler_audio, salvar_wav
     from .voz import limpar
     modo = (p.get("audio") or {}).get("limpeza") or load("preferencias").get("voz", {}).get("modo", "auto")
     arq, meta = trabalho / "voz_limpa.wav", trabalho / "voz_limpa.json"
-    chave = {"base": base.stat().st_mtime, "modo": modo}
+    from .ingest import resolver
+    dubs = [[d.get("arquivo"), d.get("inicio"), d.get("ganho_db"), resolver(p, d["arquivo"]).stat().st_mtime]
+            for d in (p.get("audio") or {}).get("dublagem") or []]
+    chave = {"base": base.stat().st_mtime, "modo": modo, "dublagem": dubs,
+             "original": (p.get("audio") or {}).get("original", True)}
     if arq.exists() and meta.exists():
         m = json.loads(meta.read_text(encoding="utf-8"))
         if m.get("chave") == chave:
