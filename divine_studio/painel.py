@@ -448,7 +448,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
@@ -480,6 +480,24 @@ class Painel(BaseHTTPRequestHandler):
                                    "formulas": {k: v["nome"] for k, v in c["formulas"].items()}})
             if u.path == "/efeito.png":
                 return self._bytes(amostra_efeito(q["tipo"]), "image/png")
+            if u.path == "/api/ia/estado":
+                from . import assistente, instagram
+                ok, motivo = assistente.disponivel()
+                return self._json({"ok": ok, "motivo": motivo, "instagram": instagram.configurado()})
+            if u.path == "/api/ia/conversa":
+                from . import assistente
+                pasta = _pasta(q["p"]) if q.get("p") else None
+                return self._json(assistente.mensagens_para_tela(assistente.carregar_conversa(pasta, q.get("c"))))
+            if u.path == "/api/referencias":
+                from . import referencias
+                return self._json(referencias.listar())
+            if u.path == "/referencia":
+                from . import referencias
+                pasta = referencias.pasta_de(q["r"])
+                f = (pasta / Path(unquote(q["f"])).name)
+                if not f.is_file():
+                    raise ValueError("arquivo não encontrado")
+                return self._arquivo(f)
             if u.path == "/api/programacao":
                 from . import aprendizado
                 return self._json({"pecas": aprendizado.todas_publicacoes(), "aprendi": aprendizado.resumo()})
@@ -510,6 +528,24 @@ class Painel(BaseHTTPRequestHandler):
             return
         try:
             if u.path == "/api/upload":
+                if q.get("ref"):
+                    from . import referencias
+                    pasta_ref = referencias.pasta_de(q["ref"])
+                    nome = Path(unquote(q["nome"])).name
+                    n = int(self.headers.get("Content-Length") or 0)
+                    parcial = pasta_ref / f".{nome}.parcial"
+                    with open(parcial, "wb") as fh:
+                        while n > 0:
+                            bloco = self.rfile.read(min(1 << 20, n))
+                            if not bloco:
+                                break
+                            fh.write(bloco)
+                            n -= len(bloco)
+                    if n != 0:
+                        parcial.unlink(missing_ok=True)
+                        return self._erro("o envio foi interrompido; mande de novo")
+                    os.replace(parcial, pasta_ref / nome)
+                    return self._json({"ok": True})
                 pasta = _pasta(q["p"])
                 nome = Path(unquote(q["nome"])).name
                 from .carrossel import IMAGEM
@@ -571,6 +607,57 @@ class Painel(BaseHTTPRequestHandler):
                                       semente=int(time.time()) % 1000)
                 salvar_carrossel(pasta, d)
                 return self._json({"ok": True})
+            if u.path == "/api/ia/mensagem":
+                from . import assistente
+                pasta = _pasta(dados["p"]) if dados.get("p") else None
+                return self._json(assistente.conversar(pasta, dados["mensagem"], dados.get("c"),
+                                                       bool(dados.get("olhar_video"))))
+            if u.path == "/api/ia/aplicar":
+                from . import assistente
+                return self._json({"mudou": assistente.aplicar_sugestao(_pasta(dados["p"]), dados["sugestao"])})
+            if u.path == "/api/ia/criar_projeto":
+                from . import assistente
+                sug = dados["sugestao"]
+                ideia = sug.get("ideia_projeto") or {}
+                nome = novo(ideia.get("titulo") or "ideia da IA")
+                pasta = _pasta(nome)
+                if ideia.get("template"):
+                    salvar_yaml(nome, trocar_campo((pasta / "projeto.yaml").read_text(encoding="utf-8"), "template",
+                                                   ideia["template"]))
+                assistente.aplicar_sugestao(pasta, {k: v for k, v in sug.items() if k != "ideia_projeto"})
+                return self._json({"nome": nome})
+            if u.path == "/api/ia/nova_conversa":
+                from . import assistente
+                pasta = _pasta(dados["p"]) if dados.get("p") else None
+                arq = assistente._arquivo_conversa(pasta, dados.get("c"))
+                if arq.exists():       # não apaga: guarda a conversa antiga em _arquivo/
+                    destino = ROOT / "_arquivo" / "conversas_ia"
+                    destino.mkdir(parents=True, exist_ok=True)
+                    os.replace(arq, destino / f"{int(time.time())}_{arq.parent.parent.name}_{arq.name}")
+                return self._json({"ok": True})
+            if u.path == "/api/ia/desempenho":
+                from . import aprendizado, assistente
+                pecas = [{k: p.get(k) for k in ("titulo", "versao", "formato", "status", "gostei", "metricas",
+                                                 "caracteristicas", "data_postagem")}
+                         for p in aprendizado.todas_publicacoes() if p.get("status") == "postado"]
+                msg = ("Analise o desempenho dos posts abaixo (dados do Instagram e o que eu gostei). Diga o que mais "
+                       "funcionou, o que menos funcionou e 3 ajustes concretos para os próximos vídeos (hook, ritmo, "
+                       "fontes, efeitos, duração, objetivo). Seja específico.\n\n"
+                       + json.dumps(pecas, ensure_ascii=False)[:20000])
+                return self._json(assistente.conversar(None, msg, "desempenho"))
+            if u.path == "/api/instagram/sincronizar":
+                from . import instagram
+                return self._json(instagram.sincronizar())
+            if u.path == "/api/referencias/nova":
+                from . import referencias
+                p = referencias.nova(dados.get("titulo", ""), dados.get("link", ""), dados.get("nota", ""))
+                return self._json({"nome": p.name})
+            if u.path == "/api/referencias/analisar":
+                from . import referencias
+                return self._json(referencias.analisar(dados["nome"]))
+            if u.path == "/api/referencias/incorporar":
+                from . import referencias
+                return self._json(referencias.incorporar(dados["nome"]))
             if u.path == "/api/publicacao":
                 from . import aprendizado
                 campos = {k: v for k, v in (dados.get("campos") or {}).items()

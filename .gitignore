@@ -62,3 +62,7 @@ projetos/*teste-sintetico*/
 
 # Código de acesso do iPhone ao painel (fica só no Mac)
 projetos/.codigo_celular
+
+# Conversas com a IA e arquivo morto (ficam só no Mac)
+ideias/conversas/
+_arquivo/conversas_ia/

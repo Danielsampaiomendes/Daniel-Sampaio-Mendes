@@ -124,6 +124,23 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
 #t-log { max-height: 34vh; overflow: auto; margin: 0; font-size: 12px; white-space: pre-wrap; color: var(--texto); }
 .estado-ok { color: var(--ok); } .estado-erro { color: var(--erro); }
 
+/* ---------- chat com a IA ---------- */
+.chat { display: flex; flex-direction: column; gap: 10px; }
+.chat .msgs { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow: auto; padding-right: 4px; }
+.chat .msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; white-space: pre-wrap; line-height: 1.5; font-size: 15px; }
+.chat .msg.user { align-self: flex-end; background: var(--painel2); }
+.chat .msg.assistant { align-self: flex-start; background: var(--fundo); border: 1px solid var(--linha); }
+.chat .sug { margin-top: 8px; padding: 10px; border-radius: 10px; border: 1px dashed var(--dourado2); font-size: 13px; }
+.chat .sug pre { white-space: pre-wrap; margin: 6px 0; color: var(--texto); }
+.chat .entrada { display: flex; gap: 8px; align-items: flex-end; }
+.chat textarea { min-height: 60px; }
+.chat .rapidos { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat .rapidos button { font-size: 12px; padding: 4px 10px; }
+.chat .aviso-ia { color: var(--dourado); font-size: 14px; }
+.ref { margin-bottom: 12px; }
+.ref .arqs { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.ref .arqs img, .ref .arqs video { height: 140px; border-radius: 8px; }
+
 /* ---------- publicação ---------- */
 .pub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pb { padding: 5px 10px; font-size: 13px; }

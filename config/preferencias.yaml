@@ -72,6 +72,10 @@ legendas:                         # legenda da fala na tela (skill divine-legend
   segurar_s: 0.35
   minimo_s: 0.7
 
+ia:                               # assistente (Claude): brainstorm, hooks, ideia, raio-X de referências, desempenho
+  modelo: claude-opus-5-5
+  esforco: medium                 # low | medium | high (mais alto: respostas mais pensadas, mais lentas)
+
 aprendizado:                      # gostei / postei / métricas viram preferência
   versao_ia: true                 # toda edição ganha a versão "IA" (a que o app acredita ser a melhor)
   versao_ia_sem_historico: true   # gera mesmo antes de ter histórico (testa combinações novas)

@@ -59,6 +59,29 @@
         <p class="dica">Marque ♥ Gostei e ✓ Postei nas versões e preencha as métricas dos posts: a versão IA de cada edição usa isso.</p></div>
     </section>
 
+    <section id="ia" class="tela" hidden>
+      <div class="cabecalho"><div><h1>IA e ideias</h1>
+        <div class="pasta">Brainstorm com a IA, que conhece as suas skills, o conhecimento da Divine, o banco de hooks e o que você aprovou.
+          Quando a ideia ficar boa, crie o projeto com um clique.</div></div>
+        <div class="acoes"><button id="ia-desempenho">Analisar desempenho no Instagram</button></div></div>
+      <div class="cartao chat" id="chat-geral"></div>
+    </section>
+
+    <section id="referencias" class="tela" hidden>
+      <div class="cabecalho"><div><h1>Referências</h1>
+        <div class="pasta">Mande vídeos, prints ou links de outros criadores. A IA faz o raio-X, cria ganchos no padrão Divine
+          e lista o que o app deve ganhar.</div></div></div>
+      <form id="ref-form" class="cartao">
+        <div class="grade">
+          <label>Título<input id="ref-titulo" placeholder="ex.: Reels do @perfil com texto atrás da pessoa"></label>
+          <label>Link (opcional)<input id="ref-link" placeholder="https://www.instagram.com/reel/..."></label>
+        </div>
+        <label>O que chamou a sua atenção<textarea id="ref-nota" placeholder="ex.: o jeito que o título entra atrás da cabeça e o som de câmera"></textarea></label>
+        <div class="linha"><input type="file" id="ref-arquivos" multiple accept="video/*,image/*"><button class="dourado" type="submit">Enviar referência</button></div>
+      </form>
+      <div id="ref-lista"></div>
+    </section>
+
     <section id="carrossel" hidden>
       <div class="cabecalho">
         <div><h1 id="cr-titulo"></h1><div class="pasta" id="cr-pasta"></div></div>
@@ -105,6 +128,7 @@
       <nav class="abas">
         <button data-aba="config" class="ativa">Projeto</button>
         <button data-aba="edicao">Edição</button>
+        <button data-aba="ia">IA ✦</button>
         <button data-aba="versoes">Versões <span id="n-versoes"></span></button>
         <button data-aba="relatorio">Relatório e legenda</button>
       </nav>
@@ -228,6 +252,10 @@
         </div>
       </div>
 
+      <div class="aba" id="aba-ia" hidden>
+        <div class="cartao chat" id="chat-projeto"></div>
+      </div>
+
       <div class="aba" id="aba-versoes" hidden>
         <div class="linha-titulo">
           <label class="check"><input type="checkbox" id="so-previas" checked> mostrar prévias</label>
@@ -264,5 +292,6 @@
 <script src="/editor.js"></script>
 <script src="/carrossel.js"></script>
 <script src="/telas.js"></script>
+<script src="/ia.js"></script>
 </body>
 </html>
