@@ -1,0 +1,9 @@
+{
+  "name": "Divine Studio",
+  "short_name": "Divine Studio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#12110F",
+  "theme_color": "#12110F",
+  "icons": [{"src": "/icone-180.png", "sizes": "180x180", "type": "image/png"}]
+}

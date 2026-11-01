@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import secrets
+import socket
 import re
 import subprocess
 import sys
@@ -29,6 +31,43 @@ WEB = Path(__file__).parent / "web"
 VIDEO = {".mp4", ".mov", ".m4v", ".mkv", ".webm"}
 JOBS: dict = {}
 TRAVA = threading.Lock()
+LOCAIS = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+
+
+# ---------------------------------------------------------------- acesso pelo celular
+
+def codigo_celular() -> str:
+    """Código de 6 dígitos para o iPhone entrar (fica guardado: o ícone na Tela de Início continua valendo)."""
+    arq = PROJETOS / ".codigo_celular"
+    if arq.exists() and re.fullmatch(r"\d{6}", arq.read_text().strip()):
+        return arq.read_text().strip()
+    cod = f"{secrets.randbelow(10 ** 6):06d}"
+    PROJETOS.mkdir(exist_ok=True)
+    arq.write_text(cod)
+    arq.chmod(0o600)
+    return cod
+
+
+def ip_da_rede() -> str:
+    """IP do Mac na rede Wi-Fi (nada é enviado: só consulta a rota)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
+PAGINA_ENTRAR = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Divine Studio</title>
+<link rel="apple-touch-icon" href="/icone-180.png"><link rel="stylesheet" href="/estilo.css"></head>
+<body><form method="post" action="/entrar" class="entrar">
+<img src="/logo.jpg" alt="Divine Studio"><h1>Divine Studio</h1>
+<p>Digite o código que aparece no Terminal do Mac.</p>
+<input name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" autofocus>
+<button class="dourado" type="submit">Entrar</button>{erro}</form></body></html>"""
 
 
 # ---------------------------------------------------------------- projetos
@@ -210,6 +249,35 @@ def estado(jid: str) -> dict:
 
 class Painel(BaseHTTPRequestHandler):
     server_version = "DivineStudio"
+    codigo = None            # com código: aceita o celular na rede; sem: só a própria máquina
+
+    def _autorizado(self) -> bool:
+        if self.client_address[0] in LOCAIS:
+            return True
+        if not self.codigo:
+            return False
+        cookie = self.headers.get("Cookie") or ""
+        m = re.search(r"(?:^|;\s*)divine=(\d{6})", cookie)
+        return bool(m) and secrets.compare_digest(m.group(1), self.codigo)
+
+    def _barrar(self, caminho: str) -> bool:
+        """Pede o código ao celular; arquivos do visual (ícone, estilo) passam para a tela de entrada."""
+        if self._autorizado() or caminho in ("/estilo.css", "/logo.jpg", "/icone-180.png", "/icone-64.png",
+                                             "/manifest.json"):
+            return False
+        if caminho.startswith("/api") or caminho == "/arquivo":
+            self._erro("digite o código do Mac", 401)
+        else:
+            self._html(PAGINA_ENTRAR.format(erro=""))
+        return True
+
+    def _html(self, texto: str, codigo: int = 200):
+        corpo = texto.encode()
+        self.send_response(codigo)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(corpo)))
+        self.end_headers()
+        self.wfile.write(corpo)
 
     def log_message(self, fmt, *args):     # silencioso no terminal
         pass
@@ -265,10 +333,12 @@ class Painel(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        if self._barrar(u.path):
+            return
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png"):
+            if u.path in ("/app.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png", "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
                 return self._json(listar())
@@ -289,6 +359,18 @@ class Painel(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        if u.path == "/entrar":
+            dado = parse_qs(self._corpo().decode("utf-8", "ignore")).get("codigo", [""])[0].strip()
+            if self.codigo and secrets.compare_digest(dado.encode(), self.codigo.encode()):
+                self.send_response(303)
+                self.send_header("Set-Cookie", f"divine={self.codigo}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Strict")
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            time.sleep(1.0)            # freia tentativa e erro
+            return self._html(PAGINA_ENTRAR.format(erro='<p class="erro">Código errado.</p>'), 401)
+        if self._barrar(u.path):
+            return
         try:
             if u.path == "/api/upload":
                 pasta = _pasta(q["p"])
@@ -335,11 +417,16 @@ class Painel(BaseHTTPRequestHandler):
             return self._erro(str(e))
 
 
-def rodar(porta: int = 8765, abrir: bool = True) -> None:
+def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
     PROJETOS.mkdir(exist_ok=True)
-    srv = ThreadingHTTPServer(("127.0.0.1", porta), Painel)
+    Painel.codigo = codigo_celular() if celular else None
+    srv = ThreadingHTTPServer(("0.0.0.0" if celular else "127.0.0.1", porta), Painel)
     url = f"http://127.0.0.1:{porta}"
     print(f"Painel do Divine Studio em {url}  (Ctrl+C para fechar)")
+    if celular:
+        print(f"\n  iPhone (mesma rede Wi-Fi): abra no Safari  http://{ip_da_rede()}:{porta}")
+        print(f"  Código de acesso: {Painel.codigo}")
+        print("  Depois: Compartilhar > Adicionar à Tela de Início. O Mac precisa ficar ligado com esta janela aberta.\n")
     if abrir:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:

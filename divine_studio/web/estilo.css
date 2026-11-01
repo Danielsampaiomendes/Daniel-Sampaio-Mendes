@@ -47,6 +47,27 @@ h2 { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: v
 .abas button.ativa { color: var(--branco); border-bottom-color: var(--dourado); }
 .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 1100px) { .grade { grid-template-columns: 1fr; } .app { grid-template-columns: 1fr; } .lateral { border-right: 0; } }
+/* iPhone */
+@media (max-width: 700px) {
+  body { font-size: 16px; }
+  .topo { padding: calc(env(safe-area-inset-top) + 8px) 16px 8px; }
+  .sub { display: none; }
+  .lateral { padding: 12px 16px; border-bottom: 1px solid var(--linha); }
+  .lista { max-height: 34vh; }
+  .principal { padding: 16px 16px 140px; }
+  h1, .vazio h1 { font-size: 24px; }
+  .acoes { width: 100%; }
+  .acoes button { flex: 1 1 45%; padding: 12px; }
+  .acoes button[data-acao="auto"] { flex-basis: 100%; }
+  .abas { overflow-x: auto; }
+  .videos { grid-template-columns: 1fr; }
+  textarea#yaml { min-height: 300px; font-size: 14px; }
+  .tarefa { right: 8px; left: 8px; bottom: calc(env(safe-area-inset-bottom) + 8px); width: auto; }
+  input, select, textarea { font-size: 16px; }   /* sem zoom automático do Safari */
+}
+.entrar { max-width: 340px; margin: 12vh auto; text-align: center; padding: 0 16px; display: flex; flex-direction: column; gap: 14px; }
+.entrar img { width: 140px; height: 140px; border-radius: 28px; margin: 0 auto; }
+.entrar input { text-align: center; font-size: 28px; letter-spacing: .4em; }
 .cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
 .cartao label { display: block; margin-bottom: 12px; color: var(--apagado); font-size: 13px; }
 .cartao label select { margin-top: 4px; color: var(--texto); }

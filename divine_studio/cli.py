@@ -478,7 +478,7 @@ def cmd_efeitos(a):
 
 def cmd_painel(a):
     from .painel import rodar
-    rodar(a.porta, not a.sem_navegador)
+    rodar(a.porta, not a.sem_navegador, a.celular)
 
 
 def cmd_regra(a):
@@ -605,6 +605,7 @@ def main(argv=None):
     s = sub.add_parser("painel", help="abre a interface no navegador (http://127.0.0.1:8765)")
     s.add_argument("--porta", type=int, default=8765)
     s.add_argument("--sem-navegador", action="store_true")
+    s.add_argument("--celular", action="store_true", help="aceita o iPhone na mesma rede Wi-Fi, com código de acesso")
     s.set_defaults(f=cmd_painel)
     s = sub.add_parser("regra", help="registra uma regra aprendida")
     s.add_argument("texto")

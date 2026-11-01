@@ -19,6 +19,8 @@ Transcrição na nuvem em vez da local: `export ASSEMBLYAI_API_KEY=...`. Limpeza
 
 `python3 -m divine_studio painel` abre `http://127.0.0.1:8765` (só na sua máquina): criar projeto, arrastar os brutos, escolher template, revisar, ver o corte, gerar prévias, comparar as versões lado a lado, aprovar e exportar a final, copiar a legenda e ensinar regras novas. Usa só a biblioteca padrão do Python.
 
+No iPhone: `Divine Studio iPhone.command` (ou `painel --celular`) libera o painel na rede Wi-Fi com um código de 6 dígitos; no Safari, Compartilhar > Adicionar à Tela de Início.
+
 ## Uso
 
 ```bash

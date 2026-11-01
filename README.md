@@ -38,6 +38,16 @@ Abre `http://127.0.0.1:8765` no navegador (só na sua máquina). Nele você:
 6. Copia a legenda do post na aba "Relatório e legenda".
 7. Ensina uma regra nova quando corrigir alguma coisa: ela passa a valer para os próximos vídeos.
 
+## No iPhone
+
+O Mac continua fazendo a edição; o iPhone vira o controle (e pode mandar os vídeos direto do rolo da câmera).
+
+1. No Mac, dois cliques em **`Divine Studio iPhone.command`**. O Terminal mostra o endereço (ex.: `http://192.168.0.12:8765`) e um código de 6 dígitos.
+2. No iPhone, na mesma rede Wi-Fi, abra esse endereço no Safari e digite o código (só na primeira vez).
+3. Compartilhar > **Adicionar à Tela de Início**: aparece o ícone do Divine Studio e ele abre como app.
+
+O Mac precisa ficar ligado, com a janela do Terminal aberta. Fora de casa ou da clínica (outra rede), não conecta. Sem o código ninguém da rede entra; para trocar o código, apague `projetos/.codigo_celular`.
+
 ## Pela linha de comando
 
 ```bash

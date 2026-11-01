@@ -82,3 +82,49 @@ def test_salvar_recusa_yaml_quebrado(servidor):
         urllib.request.urlopen(req)
     assert e.value.code == 400
     assert (painel.PROJETOS / "2026-10-28_x" / "projeto.yaml").read_text().startswith("titulo: X")
+
+
+@pytest.fixture
+def servidor_celular(servidor, monkeypatch):
+    """Mesmo servidor, mas tratando a conexão como se viesse do iPhone (fora da própria máquina)."""
+    monkeypatch.setattr(painel, "LOCAIS", set())
+    monkeypatch.setattr(painel.Painel, "codigo", "123456")
+    return servidor
+
+
+def test_celular_sem_codigo_ve_so_a_tela_de_entrada(servidor_celular):
+    st, corpo, _ = _get(servidor_celular + "/")
+    assert st == 200 and b"Digite o c" in corpo and b"app.js" not in corpo
+    assert _get(servidor_celular + "/api/projetos")[0] == 401
+    assert _get(servidor_celular + "/arquivo?p=2026-10-28_x&f=saida/a_V1_PREVIA.mp4")[0] == 401
+    assert _get(servidor_celular + "/icone-180.png")[0] == 200            # ícone da Tela de Início liberado
+
+
+def test_celular_com_codigo_entra(servidor_celular):
+    import http.client
+    from urllib.parse import urlparse
+    u = urlparse(servidor_celular)
+    c = http.client.HTTPConnection(u.hostname, u.port)
+    c.request("POST", "/entrar", body="codigo=000000", headers={"Content-Type": "application/x-www-form-urlencoded"})
+    r = c.getresponse()
+    assert r.status == 401 and "Set-Cookie" not in r.headers
+    r.read()
+    c.request("POST", "/entrar", body="codigo=123456", headers={"Content-Type": "application/x-www-form-urlencoded"})
+    r = c.getresponse()
+    r.read()
+    assert r.status == 303 and "divine=123456" in r.headers["Set-Cookie"]
+    st, corpo, _ = _get(servidor_celular + "/api/projetos", {"Cookie": "divine=123456"})
+    assert st == 200 and json.loads(corpo)[0]["nome"] == "2026-10-28_x"
+    assert _get(servidor_celular + "/api/projetos", {"Cookie": "divine=654321"})[0] == 401
+
+
+def test_sem_modo_celular_ninguem_de_fora_entra(servidor, monkeypatch):
+    monkeypatch.setattr(painel, "LOCAIS", set())
+    monkeypatch.setattr(painel.Painel, "codigo", None)
+    assert _get(servidor + "/api/projetos", {"Cookie": "divine=123456"})[0] == 401
+
+
+def test_codigo_fica_guardado(tmp_path, monkeypatch):
+    monkeypatch.setattr(painel, "PROJETOS", tmp_path)
+    a = painel.codigo_celular()
+    assert len(a) == 6 and a.isdigit() and painel.codigo_celular() == a
