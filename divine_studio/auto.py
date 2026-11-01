@@ -21,7 +21,7 @@ from pathlib import Path
 
 import yaml
 
-from .config import load
+from .config import load, nome_proprio
 
 VIDEO = {".mov", ".mp4", ".m4v", ".mkv", ".webm"}
 
@@ -193,7 +193,7 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
     p["fechamento"] = {"frase": rot.get("fechamento", ""), "cta": rot.get("cta", "Agende sua avaliação")}
     if p["template"] == "tv":
         nome_trat = rot.get("selo") or titulo
-        p["tv"] = {**(p.get("tv") or {}), "tratamento": (p.get("tv") or {}).get("tratamento", nome_trat.title())}
+        p["tv"] = {**(p.get("tv") or {}), "tratamento": (p.get("tv") or {}).get("tratamento", nome_proprio(nome_trat))}
         # TV: painel esquerdo com as mensagens do tema (sem fala) + uma da marca para fechar o ciclo
         p["mensagens"] = [dict(m) for m in rot.get("mensagens", [])] + [dict(cfg["padrao"]["mensagens"][0])]
 

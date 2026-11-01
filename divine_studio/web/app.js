@@ -92,6 +92,12 @@ async function abrir(nome) {
   history.replaceState(null, "", "#" + encodeURIComponent(nome));
   dados = await api("/api/projeto?p=" + encodeURIComponent(nome));
   $("#vazio").hidden = true;
+  if (dados.tipo === "carrossel") {          // carrossel tem tela própria (carrossel.js)
+    $("#projeto").hidden = true; $("#carrossel").hidden = false;
+    carregarLista();
+    return abrirCarrossel(dados);
+  }
+  $("#carrossel").hidden = true;
   $("#projeto").hidden = false;
   $("#p-titulo").textContent = dados.titulo;
   $("#p-pasta").textContent = "projetos/" + dados.nome;

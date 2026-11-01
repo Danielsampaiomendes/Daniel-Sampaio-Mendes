@@ -275,7 +275,8 @@ def cmd_editar(a):
         hook_txt = " ".join(b.get("titulo", "") for b in (v.get("hook") or [])) if isinstance(v.get("hook"), list) \
             else (v.get("hook") or {}).get("titulo", "")
         hook_slug = slug(hook_txt.replace("*", ""), 28) if hook_txt.strip() else ""
-        tema = f"{p['categoria']}_{slug(p.get('tema', ''), 24)}" if p.get("categoria") else slug(p.get("titulo", "video"), 30)
+        cat = p.get("categoria") if p.get("categoria") != p.get("formato") else None
+        tema = f"{cat}_{slug(p.get('tema', ''), 24)}" if cat else slug(p.get("tema") or p.get("titulo", "video"), 30)
         arq = f"{p.get('data', hoje())}_{p.get('formato', 'reels')}_{tema}_{nome}_" \
               f"{hook_slug}{'_autorizacao-pendente' if pendente else ''}" \
               f"{'_USO-INTERNO-NAO-POSTAR' if p.get('uso_interno') else ''}.mp4"
@@ -469,6 +470,19 @@ def cmd_legenda(a):
     print(f"Salva em {out.relative_to(ROOT)}")
 
 
+def cmd_carrossel(a):
+    from . import carrossel
+    if a.acao == "novo":
+        pasta = carrossel.novo(" ".join(a.alvo), a.formula, a.objetivo, a.estilo)
+        print(f"Carrossel criado: {pasta.relative_to(ROOT)} (edite no painel ou no projeto.yaml)")
+        return
+    p = ler_projeto(Path(a.alvo[0]))
+    if p.get("tipo") != "carrossel":
+        raise SystemExit("Este projeto não é um carrossel.")
+    r = carrossel.exportar(p["_pasta"], p)
+    print(f"{len(r['cards'])} cards exportados · {Path(r['zip']).relative_to(ROOT)}\n{r['checklist']}")
+
+
 def cmd_formatos(a):
     from . import formatos
     p = ler_projeto(Path(a.projeto))
@@ -634,6 +648,13 @@ def main(argv=None):
     s = sub.add_parser("legenda", help="gera a legenda do post em saida/legenda.txt")
     s.add_argument("projeto")
     s.set_defaults(f=cmd_legenda)
+    s = sub.add_parser("carrossel", help='carrossel: novo "tema" [--formula] | exportar <pasta>')
+    s.add_argument("acao", choices=["novo", "exportar"])
+    s.add_argument("alvo", nargs="+")
+    s.add_argument("--formula", default="lista", choices=["lista", "mito_verdade", "metodo", "pergunta", "expectativa", "livre"])
+    s.add_argument("--objetivo", choices=["salvar", "enviar", "comentar", "seguir"])
+    s.add_argument("--estilo", default="divine", choices=["divine", "claro", "daniel", "george", "pessoal"])
+    s.set_defaults(f=cmd_carrossel)
     s = sub.add_parser("formatos", help="a mesma edição em Stories, Feed e TV (padrão: formatos do projeto ou stories,tv)")
     s.add_argument("projeto")
     s.add_argument("--formatos", help="ex.: stories,feed45,tv")

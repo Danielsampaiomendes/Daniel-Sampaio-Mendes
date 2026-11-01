@@ -23,6 +23,10 @@ No iPhone: `Divine Studio iPhone.command` (ou `painel --celular`) libera o paine
 
 Aba **Edição** do painel: linha do tempo sobre a prévia (efeitos e mensagens no segundo exato, arrastando; ponto do círculo/zoom com um clique no vídeo; vermelho quando dois itens disputam o mesmo momento), hook e combinação de fontes por versão com amostra visual, e textos (selo, CTA, mensagens, fechamento) sem mexer no YAML. O que tem momento fixo tem prioridade: as mensagens em sequência desviam dele.
 
+Tags e objetivo do post no painel; botão **Formatos** (Stories, Feed 4:5/1:1, TV) gera a mesma edição em outros tamanhos (`python3 -m divine_studio formatos <pasta> [--formatos stories,tv] [--final]`); **carrossel** com rascunho por fórmula, editor de cards e exportação em PNG (`carrossel novo|exportar`, regras em `config/carrossel.yaml`).
+
+Incorporado das skills Divine (01/11/2026): fontes no padrão CAIXA ALTA em degradê dourado + cursiva (O1 a O6, rodízio em `config/fontes.yaml`), legenda da fala com palavra falada maior e palavra-chave em Lora itálico, voz com a cadeia da video-pro e −14 LUFS no Instagram (−16 na TV), grão fino, revisão anti cara de IA e dobra de 125 caracteres, CORTE com "Leia na legenda", durações do pacote da skill de categorias, 5 efeitos da skill dos 17 (gancho digitado, prompt, CTA WhatsApp, frame de título, chip; códigos D01 a D17 em `config/efeitos.yaml`).
+
 ## Uso
 
 ```bash

@@ -1,0 +1,59 @@
+# Carrosséis (skill divine-instagram-pro, seção 5): 5 a 8 cards, card 1 é promessa (abre loop), valor mais forte no
+# card 2 ou 3, um ponto por card (lido em 2 s), último card = resumo salvável + um pedido só. Sem numeração nos cards.
+formato: feed45                 # feed45 (1080x1350) | feed11 (1080x1080)
+min_cards: 5
+max_cards: 8
+
+estilos:
+  divine:  {nome: "Divine escuro e dourado", fundo: "#12110F", texto: "#F5F4F1", apoio: "#CDCDCB", destaque: "#CCBD91", marca: true}
+  claro:   {nome: "Claro (creme e dourado)", fundo: "#FBF8F1", texto: "#12110F", apoio: "#4A4740", destaque: "#B8A169", marca: true}
+  daniel:  {nome: "Dr. Daniel (verde-petróleo)", fundo: "#143A3F", texto: "#F5F4F1", apoio: "#D9E2E0", destaque: "#CCBD91", marca: true, pessoa: daniel}
+  george:  {nome: "Enf. George (azul-marinho)", fundo: "#0E194A", texto: "#F5F4F1", apoio: "#D5D9E8", destaque: "#CCBD91", marca: true, pessoa: george}
+  pessoal: {nome: "Pessoal do Renato (sem marca)", fundo: "#12110F", texto: "#F5F4F1", apoio: "#CDCDCB", destaque: "#E6D9A8", marca: false}
+
+# Fórmulas (IG da skill) e como o rascunho é montado
+formulas:
+  lista:        {nome: "Lista (IG5, salvar)", objetivo: salvar}
+  mito_verdade: {nome: "Mito vs Verdade (IG7, enviar)", objetivo: enviar}
+  metodo:       {nome: "Método nomeado (IG8, salvar)", objetivo: salvar}
+  pergunta:     {nome: "Pergunta frequente (salvar)", objetivo: salvar}
+  expectativa:  {nome: "Expectativa vs Realidade (enviar)", objetivo: enviar}
+  livre:        {nome: "Livre", objetivo: salvar}
+
+# Pedido do último card por objetivo (um só)
+pedidos:
+  salvar: "Salva para lembrar antes da sua próxima sessão."
+  enviar: "Manda para quem ainda acredita no primeiro."
+  comentar: "Me conta: qual desses você já viveu?"
+  seguir: "Segue a Divine para ver o protocolo completo."
+
+# Mito vs Verdade aprovados por tema (texto no padrão CFM: sem promessa, prazo ou percentual)
+mitos:
+  co2:
+    - {mito: "Laser de CO2 é só para o rosto.", verdade: "Pescoço, colo, mãos e corpo também podem ser tratados, conforme a avaliação."}
+    - {mito: "A luz vermelha é o laser.", verdade: "Ela é só a mira. O laser de verdade é invisível."}
+    - {mito: "Dá para fazer em qualquer época sem cuidado.", verdade: "Dá, com fotoproteção e as orientações do pós."}
+  endolaser:
+    - {mito: "Endolaser é só para gordura.", verdade: "Ele também auxilia na firmeza da pele da região tratada."}
+    - {mito: "É uma cirurgia.", verdade: "É um procedimento minimamente invasivo, feito no consultório."}
+  cmslim:
+    - {mito: "Substitui o treino.", verdade: "Não compete com o seu treino. Ele soma."}
+    - {mito: "É só deitar e pronto.", verdade: "Funciona melhor com acompanhamento, rotina e plano individual."}
+  cabelo:
+    - {mito: "Queda de cabelo é sempre do shampoo.", verdade: "Pode ter causa hormonal ou nutricional: a investigação vem primeiro."}
+    - {mito: "Vitamina resolve tudo.", verdade: "Suplementar sem exame pode não tratar a causa."}
+  pellets:
+    - {mito: "É um implante enorme.", verdade: "É do tamanho de um grão de arroz."}
+    - {mito: "Precisa de cirurgia.", verdade: "É um procedimento rápido, no consultório, com indicação individual."}
+  padrao:
+    - {mito: "Procedimento estético é tudo igual.", verdade: "A indicação muda de pessoa para pessoa: começa na avaliação."}
+    - {mito: "Mais sessões sempre é melhor.", verdade: "O protocolo certo é o pensado para você."}
+
+# Método nomeado (IG8): pilares do Protocolo Divine
+metodo:
+  nome: "Protocolo Divine"
+  pilares:
+    - {titulo: "Avaliação", texto: "Escuta, exame e objetivo de verdade antes de qualquer tecnologia."}
+    - {titulo: "Plano individual", texto: "A combinação certa para o seu corpo, no seu tempo."}
+    - {titulo: "Tecnologia", texto: "Aparelhos de ponta escolhidos pela indicação, não pela moda."}
+    - {titulo: "Acompanhamento", texto: "Cada etapa revisada com a equipe médica."}

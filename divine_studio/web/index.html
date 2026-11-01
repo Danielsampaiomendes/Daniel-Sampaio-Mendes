@@ -27,6 +27,10 @@
       <input id="novo-nome" placeholder="Novo projeto: tema do vídeo" autocomplete="off">
       <button type="submit" title="Criar projeto">+</button>
     </form>
+    <form id="form-carrossel" class="novo">
+      <input id="novo-carrossel" placeholder="Novo carrossel: tema" autocomplete="off">
+      <button type="submit" title="Criar carrossel">▦</button>
+    </form>
     <input id="filtro" class="filtro" placeholder="Buscar projeto" autocomplete="off">
     <div id="filtro-tags" class="chips"></div>
     <ul id="lista" class="lista"></ul>
@@ -38,6 +42,34 @@
       <h1>Escolha um projeto à esquerda</h1>
       <p>ou crie um novo com o tema do vídeo. Depois é só arrastar os vídeos brutos para cá.</p>
     </div>
+
+    <section id="carrossel" hidden>
+      <div class="cabecalho">
+        <div><h1 id="cr-titulo"></h1><div class="pasta" id="cr-pasta"></div></div>
+        <div class="acoes">
+          <button id="cr-exportar" class="dourado">Exportar cards (PNG)</button>
+          <a id="cr-zip" class="botao" hidden download>Baixar .zip</a>
+        </div>
+      </div>
+      <div class="cartao cr-barra">
+        <label>Estilo<select id="cr-estilo"></select></label>
+        <label>Fórmula<select id="cr-formula"></select></label>
+        <button id="cr-rascunho">Refazer rascunho</button>
+        <label>Fontes<select id="cr-fontes"></select></label>
+        <span id="cr-status" class="dica"></span>
+      </div>
+      <div class="cr-grade">
+        <div class="cr-cards" id="cr-cards"></div>
+        <div class="cartao cr-editor">
+          <div class="cr-preview"><img id="cr-preview" alt=""></div>
+          <div id="cr-form"></div>
+        </div>
+      </div>
+      <div class="cartao">
+        <div class="linha-titulo"><h2>Legenda do carrossel</h2><button id="cr-copiar">Copiar</button></div>
+        <pre id="cr-legenda" class="legenda">A legenda sai junto com a exportação.</pre>
+      </div>
+    </section>
 
     <section id="projeto" hidden>
       <div class="cabecalho">
@@ -214,5 +246,6 @@
 
 <script src="/app.js"></script>
 <script src="/editor.js"></script>
+<script src="/carrossel.js"></script>
 </body>
 </html>

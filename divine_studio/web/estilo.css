@@ -124,6 +124,22 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
 #t-log { max-height: 34vh; overflow: auto; margin: 0; font-size: 12px; white-space: pre-wrap; color: var(--texto); }
 .estado-ok { color: var(--ok); } .estado-erro { color: var(--erro); }
 
+/* ---------- carrossel ---------- */
+.cr-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.cr-barra label { margin: 0; min-width: 180px; }
+.cr-grade { display: grid; grid-template-columns: 240px 1fr; gap: 16px; }
+.cr-cards { display: flex; flex-direction: column; gap: 10px; max-height: 78vh; overflow: auto; padding-right: 4px; }
+.cr-card { flex-shrink: 0; position: relative; border-radius: 10px; overflow: hidden; border: 2px solid transparent; cursor: pointer; }
+.cr-card img { width: 100%; display: block; }
+.cr-card.sel { border-color: var(--dourado); }
+.cr-card .cr-mini { position: absolute; right: 6px; top: 6px; display: flex; gap: 4px; }
+.cr-card .cr-mini button { padding: 2px 8px; font-size: 12px; background: #12110Fcc; }
+.cr-add { border: 1.5px dashed var(--linha); border-radius: 10px; padding: 14px; text-align: center; color: var(--apagado); cursor: pointer; }
+.cr-editor { display: grid; grid-template-columns: minmax(220px, 360px) 1fr; gap: 18px; align-items: start; }
+.cr-preview img { width: 100%; border-radius: 12px; box-shadow: 0 8px 30px #000a; }
+.botao { display: inline-block; background: var(--painel2); border: 1px solid var(--dourado2); border-radius: 999px; padding: 7px 16px; color: var(--dourado); text-decoration: none; }
+@media (max-width: 1100px) { .cr-grade, .cr-editor { grid-template-columns: 1fr; } .cr-cards { flex-direction: row; max-height: none; overflow-x: auto; } .cr-card { min-width: 120px; } }
+
 /* ---------- aba Edição ---------- */
 .barra-salvar { position: sticky; top: 0; z-index: 5; display: flex; gap: 10px; align-items: center; justify-content: flex-end;
   background: var(--fundo); padding: 8px 0 12px; flex-wrap: wrap; }

@@ -146,19 +146,26 @@ def detalhe(nome: str) -> dict:
             "autorizacao_imagem": d.get("autorizacao_imagem", "pendente"),
             "versoes": [v.get("nome") for v in d.get("versoes") or []],
             "brutos": [{"nome": b, "no_projeto": b in usados} for b in brutos], "saidas": saidas,
+            "fotos": sorted(f.name for f in (pasta / "bruto").glob("*") if f.suffix.lower() in
+                            {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"} and not f.name.startswith("."))
+            if (pasta / "bruto").exists() else [],
+            "cards": d.get("cards") or [], "estilo": d.get("estilo", "divine"), "fontes": d.get("fontes"),
+            "formula": d.get("formula", "lista"),
+            "zip": next((f"saida/{z.name}" for z in sorted((pasta / "saida").glob("*.zip"))), None)
+            if (pasta / "saida").exists() else None,
             "relatorio": _ler_md(pasta / "relatorio.md"), "cortes": _ler_md(pasta / "trabalho" / "cortes.md"),
             "legenda": _ler_md(pasta / "saida" / "legenda.txt") or d.get("legenda", ""),
             "aprovacao": json.loads(_ler_md(pasta / "trabalho" / "aprovacao.json") or "{}"),
             "templates": list(TEMPLATES), "job": _job_do_projeto(nome),
             "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
-            "objetivo": d.get("objetivo", "")}
+            "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video")}
 
 
 # ---------------------------------------------------------------- editor por campos (sem YAML)
 
 CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
-                    "tags", "formatos", "objetivo"}
+                    "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -284,7 +291,7 @@ def novo(nome: str) -> str:
 ACOES = {
     "revisar": ["revisar"], "transcrever": ["transcrever"], "cortar": ["cortar"], "legenda": ["legenda"],
     "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"], "auto": ["auto", "--previa"],
-    "formatos": ["formatos"], "formatos_final": ["formatos", "--final"],
+    "formatos": ["formatos"], "formatos_final": ["formatos", "--final"], "carrossel": ["carrossel", "exportar"],
 }
 
 
@@ -303,7 +310,10 @@ def iniciar(nome: str, acao: str, versoes: list | None = None) -> str:
         if _job_do_projeto(nome):
             raise ValueError("já tem uma tarefa rodando neste projeto")
         jid = uuid.uuid4().hex[:10]
-        cmd = [sys.executable, "-u", "-m", "divine_studio", *ACOES[acao][:1], str(pasta), *ACOES[acao][1:]]
+        if acao == "carrossel":
+            cmd = [sys.executable, "-u", "-m", "divine_studio", "carrossel", "exportar", str(pasta)]
+        else:
+            cmd = [sys.executable, "-u", "-m", "divine_studio", *ACOES[acao][:1], str(pasta), *ACOES[acao][1:]]
         if versoes and acao in ("previa", "final"):
             cmd += ["--versoes", ",".join(versoes)]
         log = pasta / "trabalho" / f"painel_{acao}_{jid}.log"
@@ -437,7 +447,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/editor.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
@@ -457,6 +467,16 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json(catalogo())
             if u.path == "/fonte.png":
                 return self._bytes(amostra_fonte(q["c"], q.get("t", "Sua frase / em *destaque.*")[:80]), "image/png")
+            if u.path == "/carrossel.jpg":
+                from .carrossel import png as png_card
+                pasta = _pasta(q["p"])
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                return self._bytes(png_card(d, int(q["i"]), pasta, int(q.get("w", 540))), "image/jpeg")
+            if u.path == "/api/carrossel/config":
+                from .config import load
+                c = load("carrossel")
+                return self._json({"estilos": {k: v["nome"] for k, v in c["estilos"].items()},
+                                   "formulas": {k: v["nome"] for k, v in c["formulas"].items()}})
             if u.path == "/efeito.png":
                 return self._bytes(amostra_efeito(q["tipo"]), "image/png")
             if u.path == "/api/hooks":
@@ -488,8 +508,9 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/upload":
                 pasta = _pasta(q["p"])
                 nome = Path(unquote(q["nome"])).name
-                if Path(nome).suffix.lower() not in VIDEO:
-                    return self._erro("só arquivos de vídeo (.mov, .mp4…)")
+                from .carrossel import IMAGEM
+                if Path(nome).suffix.lower() not in VIDEO | IMAGEM:
+                    return self._erro("só vídeos (.mov, .mp4…) ou fotos (.jpg, .png, .heic)")
                 if _job_do_projeto(q["p"]):
                     return self._erro("espere a tarefa deste projeto terminar para enviar vídeos")
                 destino = pasta / "bruto" / nome
@@ -531,6 +552,20 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json({"job": iniciar(dados["p"], dados["acao"], dados.get("versoes"))})
             if u.path == "/api/dados":
                 salvar_dados(dados["p"], dados["dados"])
+                return self._json({"ok": True})
+            if u.path == "/api/carrossel/novo":
+                from .carrossel import novo as novo_carrossel
+                pasta = novo_carrossel(dados["titulo"], dados.get("formula", "lista"), dados.get("objetivo") or None,
+                                       dados.get("estilo", "divine"))
+                return self._json({"nome": str(pasta.relative_to(PROJETOS))})
+            if u.path == "/api/carrossel/rascunho":
+                from .carrossel import rascunho, salvar as salvar_carrossel
+                pasta = _pasta(dados["p"])
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                d["formula"] = dados.get("formula", d.get("formula", "lista"))
+                d["cards"] = rascunho(d.get("titulo", ""), d["formula"], d.get("objetivo"),
+                                      semente=int(time.time()) % 1000)
+                salvar_carrossel(pasta, d)
                 return self._json({"ok": True})
             if u.path == "/api/regra":
                 from .cli import main

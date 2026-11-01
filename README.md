@@ -39,6 +39,16 @@ Abre `http://127.0.0.1:8765` no navegador (só na sua máquina). Nele você:
 7. Copia a legenda do post na aba "Relatório e legenda".
 8. Ensina uma regra nova quando corrigir alguma coisa: ela passa a valer para os próximos vídeos.
 
+### Outros tamanhos, tags e objetivo
+
+Na aba **Projeto**: marque **Stories, Feed 4:5, Feed 1:1 ou TV** e clique em "Gerar formatos": a mesma edição (mesmos textos, hooks, fontes e efeitos) sai em cada tamanho, e a TV no template oficial de janela 4:5. Coloque **tags** (ex.: co2, daniel, outubro rosa) para achar e filtrar os projetos, e escolha o **objetivo** do post (enviar, salvar, comentar, seguir): ele decide o CTA na tela e na legenda.
+
+### Carrossel
+
+No campo "Novo carrossel", digite o tema e o app escreve o rascunho dos cards (capa que é promessa, um ponto por card, último card com resumo e um pedido só). Troque a **fórmula** (Lista, Mito vs Verdade, Método nomeado, Pergunta frequente, Expectativa vs Realidade, Livre), o **estilo** (Divine escuro, claro, Dr. Daniel, Enf. George, pessoal) e as **fontes**; edite card a card vendo a prévia, envie fotos de fundo, reordene, e clique em "Exportar cards (PNG)" para baixar o .zip com os cards em 1080x1350 e copiar a legenda. Tudo passa pelo revisor de compliance.
+
+Linha de comando: `python3 -m divine_studio carrossel novo "Queda de cabelo" --formula mito_verdade` e `... carrossel exportar <pasta>`.
+
 ## No iPhone
 
 O Mac continua fazendo a edição; o iPhone vira o controle (e pode mandar os vídeos direto do rolo da câmera).

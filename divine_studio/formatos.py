@@ -15,6 +15,7 @@ import shutil
 
 import yaml
 
+from .config import nome_proprio
 from .pacote import _rel
 
 NOMES = {"reels": "Reels 9:16", "stories": "Stories 9:16", "feed45": "Feed 4:5", "feed11": "Feed 1:1", "tv": "TV 16:9"}
@@ -40,7 +41,7 @@ def derivar(projeto: dict, formato: str) -> dict:
         p["corte_limpo"] = False
         p.pop("efeitos", None)                 # a TV tem o próprio layout
         tv = dict(p.get("tv") or {})
-        tv.setdefault("tratamento", (base.get("selo") or base.get("titulo", "")).title())
+        tv.setdefault("tratamento", nome_proprio(base.get("selo") or base.get("titulo", "")))
         p["tv"] = tv
         # textos com mais de uma frase ficam no painel esquerdo
         p["mensagens"] = [{k: v for k, v in m.items() if k in ("titulo", "apoio")} for m in p.get("mensagens") or []]

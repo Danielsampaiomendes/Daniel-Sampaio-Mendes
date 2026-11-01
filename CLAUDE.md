@@ -35,6 +35,7 @@ Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 
 - **Tráfego pago (jun/2026)**: briefings Meta, plano Google Ads e ClassPass na raiz.
 - **Divine Studio**: `divine_studio/` (código), `config/` (regras em YAML), `tests/`, `projetos/` (um projeto por vídeo; exemplo: `projetos/2026-10-28_teste-co2-loops/`).
 - **Templates do Divine Studio**: `divine` (suave), `daniel`, `george`, `tv`, `react`, `pessoal` (ver `docs/DIVINE_STUDIO.md`); fotos oficiais de perfil em `assets/pessoas/` (só no Mac).
+- **Carrosséis**: projetos com `tipo: carrossel` (painel: "Novo carrossel"); regras e textos em `config/carrossel.yaml`.
 - **Índice de vídeos editados pelo Divine Studio**: `docs/INDICE_VIDEOS_EDITADOS.md` (atualizado sozinho a cada exportação final). Os índices antigos `claude/indice-videos-editados*.md` estão só no projeto do app.
 
 ## Regras que valem sempre

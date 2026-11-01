@@ -44,6 +44,20 @@ def slug(texto: str, maximo: int = 40) -> str:
     return t[:maximo].strip("-") or "video"
 
 
+def nome_proprio(t: str) -> str:
+    """'LASER DE CO2' -> 'Laser de CO2' (siglas e números preservados, conectivos em minúscula)."""
+    peq = {"de", "da", "do", "das", "dos", "e", "em", "no", "na", "com", "para"}
+    out = []
+    for k, w in enumerate(str(t).split()):
+        if re.search(r"\d", w):
+            out.append(w.upper())
+        elif w.lower() in peq and k:
+            out.append(w.lower())
+        else:
+            out.append(w[:1].upper() + w[1:].lower())
+    return " ".join(out)
+
+
 def hoje() -> str:
     return _dt.date.today().isoformat()
 
