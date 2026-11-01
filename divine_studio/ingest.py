@@ -102,6 +102,14 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
             raise SystemExit(f"Clipe {c['arquivo']}: início ({ini:.2f}s) depois do fim do vídeo ({fim:.2f}s). "
                              "Ajuste inicio/fim no projeto.")
         vel = float(c.get("velocidade", 1.0))
+        from .qualidade import opcoes, preparar
+        ops = opcoes(projeto, c)
+        if ops and projeto.get("_pasta"):
+            # bruto melhorado (estabilizado, sem ruído, upscale) só no trecho usado; cache em trabalho/qualidade
+            arq = preparar(arq, ini, fim, ops, (W, H), Path(projeto["_pasta"]) / "trabalho" / "qualidade")
+            fim, ini = fim - ini, 0.0
+            p = probe(arq)
+            fim = min(fim, p["duracao"] or fim)
         dur_out = (fim - ini) / vel
         fx, fy = (c.get("foco") or [0.5, 0.5])
         z = float(c.get("zoom", 1.0))
@@ -119,7 +127,8 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
             v.append(hqcfg["denoise"])
         v.append(f"setpts=(PTS-STARTPTS)/{vel}")
         if vel < 1.0:
-            v.append(f"framerate=fps={fps}")
+            from .qualidade import filtro_camera_lenta
+            v.append(filtro_camera_lenta(fps) if ops.get("camera_lenta_suave") else f"framerate=fps={fps}")
         v.append(f"scale={int(W * z)}:{int(H * z)}:force_original_aspect_ratio=increase:flags=lanczos")
         v.append(f"crop={W}:{H}:(iw-{W})*{fx}:(ih-{H})*{fy}")
         if hq:

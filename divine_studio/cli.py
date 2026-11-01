@@ -77,7 +77,7 @@ def _digital_base(p, tamanho=None) -> str:
         except (SystemExit, OSError, KeyError):
             arquivos[c.get("arquivo", "?")] = None
     cfg = {"exportacao": load("exportacao"), "animacao": load("preferencias").get("animacao")}
-    return json.dumps({**{k: p.get(k) for k in ("clipes", "dissolve", "zoom_respiro", "formato", "template")},
+    return json.dumps({**{k: p.get(k) for k in ("clipes", "dissolve", "zoom_respiro", "formato", "template", "qualidade")},
                        "tamanho": tamanho, "arquivos": arquivos, "cfg": cfg}, sort_keys=True, default=str)
 
 

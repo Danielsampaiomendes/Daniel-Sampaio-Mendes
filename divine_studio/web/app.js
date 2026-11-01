@@ -115,7 +115,12 @@ async function abrir(nome) {
   $("#c-autorizacao").value = dados.autorizacao_imagem;
   $("#c-tags").value = (dados.tags || []).join(", ");
   $("#c-objetivo").value = dados.objetivo || "";
-  $$(".formatos input").forEach((c) => c.checked = (dados.formatos || []).includes(c.value) && c.value !== dados.formato);
+  $("#c-camera").checked = !!dados.camera_elegante;
+  $("#c-qualidade").checked = !!dados.qualidade;
+  $("#c-qualidade-info").textContent = dados.qualidade_info || "";
+  $("#c-camera").onchange = (e) => api("/api/dados", { p: atual, dados: { camera_elegante: e.target.checked || null } }).catch((err) => alert(err.message));
+$("#c-qualidade").onchange = (e) => api("/api/dados", { p: atual, dados: { qualidade: e.target.checked ? "maxima" : null } }).catch((err) => alert(err.message));
+$$(".formatos input").forEach((c) => c.checked = (dados.formatos || []).includes(c.value) && c.value !== dados.formato);
   $$(".formatos input").forEach((c) => c.disabled = c.value === dados.formato);
   $("#yaml").value = dados.yaml;
   $("#yaml-erro").textContent = dados.erro_yaml;

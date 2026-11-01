@@ -180,3 +180,6 @@ Composição: palavra pesada grande + script fino dourado cruzando a base; ou pa
 ## 12. Regras aprendidas (acrescentar aqui, com data, toda correção nova)
 
 - 27/10/2026: exportado para o Claude Code. Daqui em diante, registrar aqui.
+- 01/11/2026: todo efeito (gráfico, sonoro, 3D) é pensado para prender a atenção, sempre com movimento elegante: perspectiva e zoom mudam devagar, nada treme nem pisca. Recursos com "cara de difícil de filmar" (câmera elegante, parallax, vertigem, chicote, congelar) entram como tempero, um por vez.
+- 01/11/2026: antes e depois padronizado sai em TV, Stories e Feed, mas continua só de uso interno (consulta). Arquivos NAO-POSTAR, só com autorização de imagem; o painel não deixa marcar como postado.
+- 01/11/2026: imagens de marca, pessoas, tecnologias, clínica e produtos ficam na Biblioteca (`assets/`); o app pede as que faltam e usa sozinho (foto da tecnologia do tema na capa de carrossel e post).

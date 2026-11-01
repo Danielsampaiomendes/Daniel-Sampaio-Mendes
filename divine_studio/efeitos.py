@@ -697,6 +697,8 @@ TIPOS = {
 }
 QUADRO = {"zoom_digital": zoom_digital, "fundo_pip": fundo_pip, "cortina": cortina, "filme": filme,
           "vidro": vidro, "texto_atras": texto_atras}
+from . import efeitos3d as _e3d                                       # noqa: E402  (3D, espaciais e câmera)
+QUADRO.update(_e3d.EFEITOS)
 
 
 def resolver_tipo(ef: dict) -> str:
@@ -728,8 +730,21 @@ def espacar(efeitos: list, intervalo: float) -> list:
     return out
 
 
+def _cortes(projeto: dict) -> list:
+    """Instantes dos cortes entre clipes (trabalho/base.json), para a câmera mudar de direção a cada take."""
+    import json
+    arq = projeto.get("_pasta") and projeto["_pasta"] / "trabalho" / "base.json"
+    if not arq or not arq.exists():
+        return []
+    return [c.get("inicio_base", 0) for c in json.loads(arq.read_text(encoding="utf-8")).get("clipes") or []]
+
+
 def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps: int = 30) -> None:
     lista = list(projeto.get("efeitos") or []) + list(versao.get("efeitos") or [])
+    cam = versao.get("camera_elegante", projeto.get("camera_elegante"))
+    if cam:     # câmera elegante no vídeo inteiro (antes dos outros efeitos de quadro)
+        intensidade = float(cam) if isinstance(cam, (int, float)) and not isinstance(cam, bool) else 0.8
+        plano.efeitos_quadro.insert(0, _e3d.camera_continua(plano.inicio_fechamento, _cortes(projeto), intensidade))
     if not lista:
         return
     for ef in lista:
@@ -826,6 +841,7 @@ NOMES = {
     "pergunta": "Card de pergunta", "chat": "Conversa de chat", "grafico": "Gráfico em expansão",
     "zoom_digital": "Zoom digital", "fundo_pip": "Vídeo em janela (PiP)", "cortina": "Cortina",
     "filme": "Visual de filme", "vidro": "Texto em vidro dourado", "texto_atras": "Título atrás da pessoa",
+    **_e3d.NOMES,
 }
 _POS = ("posicao", "escolha:topo|centro|base", "Posição")
 CAMPOS = {
@@ -851,11 +867,13 @@ CAMPOS = {
     "filme": [],
     "vidro": [("texto", "texto", "Frase"), _POS],
     "texto_atras": [("texto", "texto", "Título (fica atrás da pessoa)")],
+    **_e3d.CAMPOS,
 }
 DURACAO_PADRAO = {"camadas": 3.0, "queda_letras": 3.0, "letra_a_letra": 3.0, "riscado": 3.6, "digitando": 3.5,
                   "checklist": 4.5, "contador": 3.2, "linha_tempo": 3.6, "circulo": 3.0, "notificacao": 3.4,
                   "artigo": 3.6, "tweet": 4.0, "pergunta": 3.6, "chat": 4.0, "grafico": 3.6, "zoom_digital": 2.5,
-                  "fundo_pip": 3.0, "cortina": 1.4, "filme": 4.0, "vidro": 3.0, "texto_atras": 3.5}
+                  "fundo_pip": 3.0, "cortina": 1.4, "filme": 4.0, "vidro": 3.0, "texto_atras": 3.5,
+                  **_e3d.DURACAO}
 
 
 def catalogo() -> list:
@@ -866,7 +884,7 @@ def catalogo() -> list:
             cods.setdefault(e["tipo"], []).append(cod)
     return [{"tipo": t, "nome": NOMES.get(t, t), "codigos": cods.get(t, []), "duracao": DURACAO_PADRAO.get(t, 3.0),
              "campos": [{"campo": c, "tipo": k, "rotulo": r} for c, k, r in CAMPOS.get(t, [])],
-             "exemplo": EXEMPLOS.get(t, {})} for t in list(TIPOS) + list(QUADRO)]
+             "exemplo": EXEMPLOS.get(t, _e3d.EXEMPLOS.get(t, {}))} for t in list(TIPOS) + list(QUADRO)]
 
 
 def amostra(tipo: str, combo_codigo: str = "B", W: int = 270, H: int = 480) -> Image.Image:
@@ -877,6 +895,12 @@ def amostra(tipo: str, combo_codigo: str = "B", W: int = 270, H: int = 480) -> I
     yy = np.linspace(0, 1, H)[:, None, None]
     q[:] = (np.array([70, 60, 52]) * (1 - yy) + np.array([30, 28, 26]) * yy).astype(np.uint8)
     ex = dict(EXEMPLOS.get(tipo, {}))
+    if tipo in _e3d.EFEITOS:
+        q = _cena_referencia(W, H)
+        f = QUADRO[tipo]({"tipo": tipo, "inicio": 0.0, **_e3d.EXEMPLOS.get(tipo, {})}, combo, W, H, 10)
+        for t in np.arange(0, _e3d.MOMENTO_AMOSTRA.get(tipo, 1.0), 0.1):
+            f(q, float(t))                     # efeitos com memória (congelar) veem os quadros anteriores
+        return Image.fromarray(f(q, _e3d.MOMENTO_AMOSTRA.get(tipo, 1.0)))
     if tipo in ("zoom_digital", "fundo_pip", "cortina", "filme", "texto_atras"):
         ex.setdefault("texto", "CAPA")
         # um "vídeo" de referência para o efeito de quadro aparecer
@@ -892,6 +916,24 @@ def amostra(tipo: str, combo_codigo: str = "B", W: int = 270, H: int = 480) -> I
         for c in cams:
             c.pintar(q, 1.5)
     return Image.fromarray(q)
+
+
+def _cena_referencia(W: int, H: int) -> np.ndarray:
+    """Cena de mentira para as miniaturas dos efeitos 3D: sala com piso em grade e uma pessoa no meio."""
+    im = Image.new("RGB", (W, H), (58, 50, 44))
+    d = ImageDraw.Draw(im)
+    for k in range(0, H, max(4, H // 24)):
+        c = int(58 - 30 * k / H)
+        d.line((0, k, W, k), fill=(c + 20, c + 12, c + 6))
+    for k in range(-W, 2 * W, max(8, W // 8)):
+        d.line((W / 2, H * 0.55, k, H), fill=(110, 96, 78), width=1)
+    for k in range(6):
+        y = H * 0.55 + (H * 0.45) * (k / 6) ** 1.6
+        d.line((0, y, W, y), fill=(110, 96, 78), width=1)
+    d.rectangle((W * 0.08, H * 0.15, W * 0.3, H * 0.45), outline=(204, 189, 145), width=2)
+    d.ellipse((W * 0.40, H * 0.30, W * 0.60, H * 0.43), fill=(196, 160, 138))
+    d.rounded_rectangle((W * 0.33, H * 0.44, W * 0.67, H * 0.82), radius=W // 10, fill=(20, 30, 70))
+    return np.asarray(im).copy()
 
 
 # ---------------------------------------------------------------- efeitos da skill divine-efeitos-17

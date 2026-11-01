@@ -31,8 +31,8 @@ input:focus, select:focus, textarea:focus { outline: 1px solid var(--dourado2); 
 .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--linha); cursor: pointer; color: var(--apagado); background: none; }
 .chip.ativo { border-color: var(--dourado); color: var(--dourado); }
 .tag { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 999px; background: var(--painel2); color: var(--dourado); margin: 3px 4px 0 0; }
-.formatos { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 4px 0 10px; }
-.formatos .check { margin: 0; }
+.formatos, .cinema { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 4px 0 10px; }
+.formatos .check, .cinema .check { margin: 0; }
 .lista { list-style: none; margin: 0; padding: 0; overflow: auto; }
 .lista li { padding: 10px 12px; border-radius: 10px; cursor: pointer; margin-bottom: 4px; }
 .lista li:hover { background: var(--painel); }

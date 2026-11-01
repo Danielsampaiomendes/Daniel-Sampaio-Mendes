@@ -34,3 +34,10 @@ alta_qualidade:
   crf_intermediario: 13
   final_hevc: true          # HEVC (hvc1) em 2 passes abaixo do limite
   preset_hevc: medium
+
+# Qualidade máxima do bruto (projeto.yaml: qualidade: maxima, ou {estabilizar, denoise, upscale, nitidez, camera_lenta_suave})
+qualidade:
+  suavizar: 20                       # estabilização vid.stab: janela de suavização (maior = mais "gimbal")
+  realesrgan: realesrgan-ncnn-vulkan # binário do Real-ESRGAN (upscale com IA); sem ele, Lanczos + nitidez
+  modelo_realesrgan: realesr-animevideov3
+  escala_realesrgan: 2

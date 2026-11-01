@@ -160,11 +160,19 @@ def detalhe(nome: str) -> dict:
             "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
             "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video"),
             "subtitulo": d.get("subtitulo", ""), "pares": d.get("pares") or [], "cta": d.get("cta", ""),
-            "video": d.get("video", True),
+            "video": d.get("video", True), "camera_elegante": d.get("camera_elegante"), "qualidade": d.get("qualidade"),
+            "qualidade_info": _qualidade_info() if d.get("qualidade") else "",
             "imagens": sorted(f"saida/{x.name}" for x in (pasta / "saida").glob("*") if x.suffix.lower() in (".png", ".mp4")
                               and not x.name.startswith(".")) if (pasta / "saida").exists() else [],
             "pedidos_imagem": _pedidos(d),
             "publicacoes": d.get("publicacoes") or []}
+
+
+def _qualidade_info() -> str:
+    from .qualidade import diagnostico
+    q = diagnostico()
+    return ("estabilização vid.stab" if q["vidstab"] else "estabilização simples (deshake)") + " · " + \
+        ("upscale com IA (Real-ESRGAN)" if q["realesrgan"] else "upscale Lanczos (instale o Real-ESRGAN para IA)")
 
 
 def _pedidos(d: dict) -> list:
@@ -183,7 +191,8 @@ def _pedidos(d: dict) -> list:
 CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
-                    "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video"}
+                    "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
+                    "qualidade"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -207,7 +216,7 @@ def salvar_dados(nome: str, novos: dict) -> None:
     for k, v in novos.items():
         if k not in CAMPOS_EDITAVEIS:
             raise ValueError(f"campo não editável: {k}")
-        if v in (None, "", []) and k in ("efeitos", "legenda", "selo"):
+        if v in (None, "", []) and k in ("efeitos", "legenda", "selo", "camera_elegante", "qualidade"):
             d.pop(k, None)      # vazio = sem efeito/selo; a legenda vazia volta a ser gerada sozinha
         else:
             d[k] = v
