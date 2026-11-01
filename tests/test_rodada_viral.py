@@ -132,3 +132,23 @@ def test_duplicar_e_arquivar_sem_apagar(projetos, tmp_path, monkeypatch):
 def test_diagnostico_lista_os_itens():
     itens = {d["item"]: d for d in painel.diagnostico()}
     assert "FFmpeg" in itens and "IA (Claude)" in itens and all("ok" in d for d in itens.values())
+
+
+def test_clipe_novo_nunca_quebra_o_yaml_e_tira_o_exemplo():
+    modelo = (painel.Path(painel.__file__).parent / "modelo_projeto.yaml").read_text(encoding="utf-8")
+    t = painel.adicionar_clipe(modelo, "bruto/a.mov")
+    assert [c["arquivo"] for c in yaml.safe_load(t)["clipes"]] == ["bruto/a.mov"] and "# Projeto de vídeo" in t
+    regravado = yaml.safe_dump(yaml.safe_load(modelo), allow_unicode=True, sort_keys=False, default_flow_style=None)
+    t2 = painel.adicionar_clipe(painel.adicionar_clipe(regravado, "bruto/a.mov"), "bruto/b.mov")
+    assert [c["arquivo"] for c in yaml.safe_load(t2)["clipes"]] == ["bruto/a.mov", "bruto/b.mov"]
+
+
+def test_reparo_de_projeto_quebrado(tmp_path):
+    pasta = tmp_path / "p"
+    pasta.mkdir()
+    (pasta / "projeto.yaml").write_text("titulo: x\nclipes:\n  - {arquivo: \"bruto/a.mov\"}\n- {arquivo: bruto/IMG_0001.MOV, inicio: 0}\n",
+                                        encoding="utf-8")
+    assert painel.reparar_projeto(pasta)
+    assert [c["arquivo"] for c in yaml.safe_load((pasta / "projeto.yaml").read_text())["clipes"]] == ["bruto/a.mov"]
+    assert (pasta / "trabalho" / "projeto.yaml.antes-do-reparo").exists()
+    assert not painel.reparar_projeto(pasta)                                   # já está bom: não mexe

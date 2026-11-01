@@ -66,8 +66,18 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
         for o in outros:
             q = o.ler()
             ext.append(q if q is not None else (o.ultimo if o.ultimo is not None else np.zeros((o.h, o.w, 3), np.uint8)))
-        for ef in plano.efeitos_quadro:
-            quadro = ef(quadro, t)
+        for k, ef in enumerate(plano.efeitos_quadro):
+            if ef is None:
+                continue
+            try:
+                r = ef(quadro, t)
+                if r is None or r.shape != quadro.shape:
+                    raise ValueError(f"quadro de tamanho {None if r is None else r.shape}")
+                quadro = r
+            except Exception as e:                  # um efeito com problema não derruba a prévia inteira
+                nome = getattr(ef, "__qualname__", "efeito").split(".")[0]
+                print(f"  aviso: efeito {nome} falhou em {t:.1f}s ({type(e).__name__}: {e}); seguindo sem ele", flush=True)
+                plano.efeitos_quadro[k] = None
         if not quadro.flags.writeable:
             quadro = quadro.copy()
         if plano.moldura is not None:

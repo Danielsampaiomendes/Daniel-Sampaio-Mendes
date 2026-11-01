@@ -25,6 +25,10 @@ from .anim import clamp, ease_in_out
 from .config import cor
 
 
+# prévia rápida: a câmera elegante usa recorte simples (sem a inclinação de perspectiva); ligado pelo editar --rapido
+RAPIDO = {"ligado": False}
+
+
 # ---------------------------------------------------------------- geometria
 
 def coeficientes(saida: list, entrada: list) -> tuple:
@@ -67,6 +71,10 @@ def _janela(q: np.ndarray, cx: float, cy: float, s: float, keystone: float, incl
     # nunca mostra borda: o quadrilátero fica dentro da fonte
     fx = [clamp(x, 0, w - 1) for x, _ in fonte]
     fy = [clamp(y, 0, h - 1) for _, y in fonte]
+    if RAPIDO["ligado"] or (abs(k) < 1e-4 and abs(v) < 1e-4):
+        # prévia (ou sem perspectiva): recorte + redimensiono, ~4x mais rápido; a final usa a perspectiva completa
+        box = (min(fx), min(fy), max(fx), max(fy))
+        return np.asarray(Image.fromarray(q).resize((w, h), Image.BILINEAR, box=box))
     c = coeficientes([(0, 0), (w, 0), (w, h), (0, h)], list(zip(fx, fy)))
     return np.asarray(Image.fromarray(q).transform((w, h), Image.PERSPECTIVE, c, Image.BILINEAR))
 

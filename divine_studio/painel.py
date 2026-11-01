@@ -155,10 +155,11 @@ def nova_edicao(tipo: str, titulo: str) -> str:
     if tipo not in TIPOS_EDICAO:
         raise ValueError("tipo de edição desconhecido")
     nome = novo(titulo)
-    extra = dict(TIPOS_EDICAO[tipo]["dados"])
-    if tipo == "stories":
-        extra["titulo"] = titulo
-    salvar_dados(nome, extra)
+    pasta = _pasta(nome)
+    texto = (pasta / "projeto.yaml").read_text(encoding="utf-8")
+    for campo, valor in TIPOS_EDICAO[tipo]["dados"].items():     # edição no texto: o modelo comentado continua igual
+        texto = trocar_campo(texto, campo, json.dumps(valor, ensure_ascii=False) if isinstance(valor, list) else valor)
+    salvar_yaml(nome, texto)
     return nome
 
 
@@ -302,6 +303,10 @@ def _ler_md(p: Path) -> str:
 
 def detalhe(nome: str) -> dict:
     pasta = _pasta(nome)
+    try:
+        reparar_projeto(pasta)
+    except (OSError, yaml.YAMLError):
+        pass
     texto = (pasta / "projeto.yaml").read_text(encoding="utf-8")
     try:
         d = yaml.safe_load(texto) or {}
@@ -472,7 +477,67 @@ def trocar_campo(texto: str, campo: str, valor: str) -> str:
     return linha + "\n" + texto
 
 
+EXEMPLO_CLIPE = "bruto/IMG_0001.MOV"
+
+
+def _clipe_estruturado(texto: str, arquivo: str) -> str:
+    """Plano B (YAML já regravado pelo editor): carrega, troca o exemplo do modelo e acrescenta o clipe."""
+    d = yaml.safe_load(texto) or {}
+    clipes = [c for c in d.get("clipes") or [] if isinstance(c, dict) and c.get("arquivo") != EXEMPLO_CLIPE]
+    if not any(c.get("arquivo") == arquivo for c in clipes):
+        clipes.append({"arquivo": arquivo})
+    d["clipes"] = clipes
+    return "# Divine Studio\n" + yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000, default_flow_style=None)
+
+
+def _yaml_ok(texto: str, arquivo: str | None = None) -> bool:
+    try:
+        d = yaml.safe_load(texto) or {}
+    except yaml.YAMLError:
+        return False
+    arqs = [c.get("arquivo") for c in d.get("clipes") or [] if isinstance(c, dict)]
+    return isinstance(d, dict) and (arquivo is None or (arquivo in arqs and EXEMPLO_CLIPE not in arqs))
+
+
 def adicionar_clipe(texto: str, arquivo: str) -> str:
+    """Acrescenta o clipe preservando os comentários do modelo; se o arquivo já foi regravado em outro formato,
+    usa o YAML estruturado (nunca deixa o projeto.yaml quebrado nem com o vídeo de exemplo)."""
+    novo_texto = _adicionar_clipe_texto(texto, arquivo)
+    if _yaml_ok(novo_texto, arquivo):
+        return novo_texto
+    return _clipe_estruturado(texto, arquivo)
+
+
+def reparar_projeto(pasta: Path) -> bool:
+    """Conserta projeto.yaml quebrado pelo clipe com recuo errado (versões até 01/11/2026). Guarda o original."""
+    arq = pasta / "projeto.yaml"
+    texto = arq.read_text(encoding="utf-8")
+    if _yaml_ok(texto):
+        d = yaml.safe_load(texto) or {}
+        exemplo = [c for c in d.get("clipes") or [] if isinstance(c, dict) and c.get("arquivo") == EXEMPLO_CLIPE]
+        reais = [c for c in d.get("clipes") or [] if isinstance(c, dict) and c.get("arquivo") != EXEMPLO_CLIPE]
+        if not (exemplo and reais and not (pasta / EXEMPLO_CLIPE).exists()):
+            return False
+        novo = texto
+    else:
+        linhas = texto.split("\n")
+        for i, ln in enumerate(linhas):
+            if re.match(r"^  - \{arquivo: ", ln):            # clipe inserido com recuo onde a lista está na coluna 0
+                linhas[i] = ln[2:]
+        novo = "\n".join(linhas)
+        if not _yaml_ok(novo):
+            return False
+    d = yaml.safe_load(novo) or {}
+    d["clipes"] = [c for c in d.get("clipes") or [] if not (isinstance(c, dict) and c.get("arquivo") == EXEMPLO_CLIPE
+                                                            and not (pasta / EXEMPLO_CLIPE).exists())]
+    (pasta / "trabalho").mkdir(exist_ok=True)
+    (pasta / "trabalho" / "projeto.yaml.antes-do-reparo").write_text(texto, encoding="utf-8")
+    arq.write_text("# Divine Studio (reparado)\n" + yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000,
+                                                                     default_flow_style=None), encoding="utf-8")
+    return True
+
+
+def _adicionar_clipe_texto(texto: str, arquivo: str) -> str:
     """Acrescenta `- {arquivo: bruto/X}` na lista de clipes (troca o exemplo do modelo, se ainda estiver lá)."""
     item = f"  - {{arquivo: {json.dumps(arquivo, ensure_ascii=False)}}}"
     if re.search(r"^clipes:\s*\[\]\s*$", texto, re.M):
@@ -512,6 +577,10 @@ def _job_do_projeto(nome: str):
 
 def iniciar(nome: str, acao: str, versoes: list | None = None) -> str:
     pasta = _pasta(nome)
+    try:
+        reparar_projeto(pasta)
+    except (OSError, yaml.YAMLError):
+        pass
     if acao not in ACOES:
         raise ValueError("ação desconhecida")
     with TRAVA:

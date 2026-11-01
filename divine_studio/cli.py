@@ -209,6 +209,8 @@ def _resolver_hooks(p) -> None:
 
 
 def cmd_editar(a):
+    from . import efeitos3d
+    efeitos3d.RAPIDO["ligado"] = bool(getattr(a, "rapido", False))
     from .audio import ler_audio, mixar, salvar_wav
     from .compliance import linha_checklist, revisar
     from .exportar import exportar, quadros
