@@ -135,7 +135,7 @@ def detalhe(nome: str) -> dict:
     saidas = []
     for f in sorted(x for x in (pasta / "saida").glob("*.mp4") if not x.name.startswith(".")) \
             if (pasta / "saida").exists() else []:
-        m = re.search(r"_(V\d+|TV)_", f.name + "_")
+        m = re.search(r"_(V\d+|TV|IA)_", f.name + "_")
         saidas.append({"arquivo": f"saida/{f.name}", "nome": f.name, "versao": m.group(1) if m else "",
                        "previa": "_PREVIA" in f.name, "mb": round(f.stat().st_size / 1e6, 1),
                        "quando": f.stat().st_mtime})
@@ -158,7 +158,8 @@ def detalhe(nome: str) -> dict:
             "aprovacao": json.loads(_ler_md(pasta / "trabalho" / "aprovacao.json") or "{}"),
             "templates": list(TEMPLATES), "job": _job_do_projeto(nome),
             "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
-            "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video")}
+            "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video"),
+            "publicacoes": d.get("publicacoes") or []}
 
 
 # ---------------------------------------------------------------- editor por campos (sem YAML)
@@ -447,7 +448,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
@@ -479,6 +480,9 @@ class Painel(BaseHTTPRequestHandler):
                                    "formulas": {k: v["nome"] for k, v in c["formulas"].items()}})
             if u.path == "/efeito.png":
                 return self._bytes(amostra_efeito(q["tipo"]), "image/png")
+            if u.path == "/api/programacao":
+                from . import aprendizado
+                return self._json({"pecas": aprendizado.todas_publicacoes(), "aprendi": aprendizado.resumo()})
             if u.path == "/api/hooks":
                 from .hooks import sortear
                 return self._json([{"id": h["id"], "tipo": h["tipo"], "batidas": h["batidas"]}
@@ -566,6 +570,23 @@ class Painel(BaseHTTPRequestHandler):
                 d["cards"] = rascunho(d.get("titulo", ""), d["formula"], d.get("objetivo"),
                                       semente=int(time.time()) % 1000)
                 salvar_carrossel(pasta, d)
+                return self._json({"ok": True})
+            if u.path == "/api/publicacao":
+                from . import aprendizado
+                campos = {k: v for k, v in (dados.get("campos") or {}).items()
+                          if k in ("status", "gostei", "nao_gostei", "data_agendada", "data_postagem", "rede", "link",
+                                   "metricas", "obs")}
+                if campos.get("status") and campos["status"] not in aprendizado.STATUS:
+                    raise ValueError("status inválido")
+                pub = aprendizado.marcar(_pasta(dados["p"]), dados["versao"], dados.get("arquivo"), **campos)
+                return self._json(pub)
+            if u.path == "/api/abrir_pasta":
+                if self.client_address[0] not in LOCAIS:
+                    raise ValueError("só no próprio Mac")
+                alvo = (ROOT / dados["caminho"]).resolve()
+                if ROOT.resolve() not in alvo.parents and alvo != ROOT.resolve():
+                    raise ValueError("caminho fora do projeto")
+                subprocess.run(["open", "-R", str(alvo)] if alvo.is_file() else ["open", str(alvo)], check=False)
                 return self._json({"ok": True})
             if u.path == "/api/regra":
                 from .cli import main

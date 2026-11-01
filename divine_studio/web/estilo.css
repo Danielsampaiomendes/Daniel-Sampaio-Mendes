@@ -124,6 +124,28 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
 #t-log { max-height: 34vh; overflow: auto; margin: 0; font-size: 12px; white-space: pre-wrap; color: var(--texto); }
 .estado-ok { color: var(--ok); } .estado-erro { color: var(--erro); }
 
+/* ---------- publicação ---------- */
+.pub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pb { padding: 5px 10px; font-size: 13px; }
+.pb.on { border-color: var(--dourado); color: var(--dourado); }
+.status { margin-top: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+.st-postado { color: var(--ok); } .st-agendado { color: var(--dourado); } .st-aprovado { color: var(--branco); }
+.video.ia { outline: 1px solid var(--dourado2); }
+.selo-ia { font-size: 12px; color: var(--dourado); margin-bottom: 8px; }
+.topo nav { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.topo nav button { padding: 6px 12px; font-size: 13px; background: none; }
+.topo nav button.ativa { border-color: var(--dourado); color: var(--dourado); }
+.prog { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 14px; }
+.prog-col h2 { display: flex; justify-content: space-between; }
+.peca { background: var(--fundo); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; }
+.peca .t { color: var(--branco); cursor: pointer; }
+.peca .m { color: var(--apagado); font-size: 12px; }
+.peca .metricas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; }
+.peca .metricas input { padding: 4px 6px; font-size: 12px; }
+.aprendi li { margin-bottom: 4px; }
+@media (max-width: 1100px) { .prog { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px) { .prog { grid-template-columns: 1fr; } .topo nav { width: 100%; } }
+
 /* ---------- carrossel ---------- */
 .cr-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .cr-barra label { margin: 0; min-width: 180px; }

@@ -92,6 +92,8 @@ async function abrir(nome) {
   history.replaceState(null, "", "#" + encodeURIComponent(nome));
   dados = await api("/api/projeto?p=" + encodeURIComponent(nome));
   $("#vazio").hidden = true;
+  $$(".tela").forEach((s) => s.hidden = true);
+  $$(".topo nav button").forEach((b) => b.classList.toggle("ativa", b.dataset.tela === "projetos"));
   if (dados.tipo === "carrossel") {          // carrossel tem tela própria (carrossel.js)
     $("#projeto").hidden = true; $("#carrossel").hidden = false;
     carregarLista();
@@ -208,19 +210,69 @@ function desenharVideos() {
   const ultimas = lista.filter((s) => { const k = s.versao + (s.previa ? "p" : "f"); if (vistos.has(k)) return false; vistos.add(k); return true; })
     .sort((a, b) => a.versao.localeCompare(b.versao) || a.previa - b.previa);
   const ns = notas();
+  const pubs = Object.fromEntries((dados.publicacoes || []).map((p) => [p.versao, p]));
   $("#n-versoes").textContent = ultimas.length ? `(${ultimas.length})` : "";
-  $("#videos").innerHTML = ultimas.map((s) => `<div class="video" data-v="${esc(s.versao)}">
+  $("#videos").innerHTML = ultimas.map((s) => { const pub = pubs[s.versao] || {}; return `<div class="video ${s.versao === "IA" ? "ia" : ""}" data-v="${esc(s.versao)}" data-arq="${esc(s.arquivo)}">
+      ${s.versao === "IA" ? '<div class="selo-ia">✦ versão IA: a que o app acredita ser a melhor</div>' : ""}
       <video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(s.arquivo)}" controls playsinline preload="metadata" loop></video>
       <div class="rotulo"><span class="v">${esc(s.versao)} ${s.previa ? "· prévia" : "· final"}</span>
         <label class="check"><input type="checkbox" class="aprova" value="${esc(s.versao)}"> aprovar</label></div>
       <div class="nome">${esc(s.nome)} · ${s.mb} MB</div>
       ${ns[s.versao] ? `<div class="nota">${esc(ns[s.versao])}</div>` : ""}
-    </div>`).join("") || '<p class="dica">Nenhuma versão ainda. Clique em "Gerar prévias".</p>';
+      <div class="pub">
+        <button class="pb ${pub.gostei ? "on" : ""}" data-pub="gostei" title="Gostei: o app aprende com isso">♥ Gostei</button>
+        <button class="pb ${pub.status === "postado" ? "on" : ""}" data-pub="postei" title="Marcar como postado">✓ Postei</button>
+        <button class="pb ${pub.status === "agendado" ? "on" : ""}" data-pub="agendar" title="Agendar postagem">📅 ${pub.data_agendada ? esc(pub.data_agendada.slice(5).split("-").reverse().join("/")) : "Agendar"}</button>
+        <button class="pb" data-pub="salvar" title="Salvar na galeria / compartilhar">⤓ Salvar</button>
+      </div>
+      ${pub.status ? `<div class="status st-${esc(pub.status)}">${esc(pub.status)}${pub.link ? ` · <a href="${esc(pub.link)}" target="_blank">ver post</a>` : ""}</div>` : ""}
+    </div>`; }).join("") || '<p class="dica">Nenhuma versão ainda. Clique em "Gerar prévias".</p>';
+  $$("#videos .pb").forEach((b) => b.onclick = () => acaoPublicacao(b.closest(".video"), b.dataset.pub));
   $$(".aprova").forEach((c) => c.onchange = () => c.closest(".video").classList.toggle("escolhido", c.checked));
   // tocar uma pausa as outras
   $$("#videos video").forEach((v) => v.onplay = () => $$("#videos video").forEach((o) => o !== v && o.pause()));
 }
 $("#so-previas").onchange = desenharVideos;
+
+async function marcarPub(versao, campos, arquivo) {
+  await api("/api/publicacao", { p: atual, versao, campos, arquivo });
+}
+
+async function acaoPublicacao(card, acao) {
+  const versao = card.dataset.v, arq = card.dataset.arq;
+  const pub = (dados.publicacoes || []).find((p) => p.versao === versao) || {};
+  try {
+    if (acao === "gostei") await marcarPub(versao, { gostei: !pub.gostei }, arq);
+    else if (acao === "postei") {
+      const link = prompt("Link do post (opcional, ajuda a puxar as métricas depois):", pub.link || "");
+      if (link === null) return;
+      await marcarPub(versao, { status: "postado", link: link || undefined, rede: dados.formato === "tv" ? "tv" : "instagram" }, arq);
+    } else if (acao === "agendar") {
+      const d = prompt("Data da postagem (DD/MM, ou DD/MM/AAAA):", pub.data_agendada ? pub.data_agendada.split("-").reverse().join("/") : "");
+      if (!d) return;
+      const [dia, mes, ano] = d.split("/");
+      const iso = `${ano || new Date().getFullYear()}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+      await marcarPub(versao, { status: "agendado", data_agendada: iso }, arq);
+    } else if (acao === "salvar") return salvarNaGaleria(`/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(arq)}`, arq.split("/").pop());
+    abrir(atual);
+  } catch (err) { alert(err.message); }
+}
+
+// iPhone: abre a folha de compartilhar (Salvar vídeo / Salvar imagem); Mac: baixa o arquivo
+async function salvarNaGaleria(url, nome) {
+  try {
+    if (navigator.canShare) {
+      const blob = await (await fetch(url)).blob();
+      const arquivo = new File([blob], nome, { type: blob.type });
+      if (navigator.canShare({ files: [arquivo] })) return await navigator.share({ files: [arquivo], title: nome });
+    }
+  } catch (e) { if (e.name === "AbortError") return; }
+  if (/iPhone|iPad/.test(navigator.userAgent)) {
+    window.open(url, "_blank");      // no Safari: botão compartilhar > Salvar vídeo
+    return;
+  }
+  const a = document.createElement("a"); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+}
 
 $("#b-aprovar").onclick = () => {
   const vs = [...new Set($$(".aprova:checked").map((c) => c.value))];

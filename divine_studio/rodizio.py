@@ -11,6 +11,21 @@ CAB = ("# Rodízio de fontes e SFX entre vídeos (o Divine Studio atualiza sozin
        "# Mais recente por último.\n")
 
 
+def _nota_fonte(codigo: str) -> float:
+    """Nota aprendida da combinação (gostei, postei, métricas); 0 sem histórico."""
+    global _PREFS
+    try:
+        if _PREFS is None:
+            from .aprendizado import preferencias
+            _PREFS = preferencias()
+        return _PREFS.get("fontes", {}).get(codigo, (0, 0))[0]
+    except Exception:
+        return 0.0
+
+
+_PREFS = None
+
+
 def escolher_fontes(n: int, fixas: list | None = None, evitar_ultimas: int = 6) -> list:
     """n combinações diferentes entre si, evitando as usadas por último; respeita as já definidas."""
     hist = load("historico").get("fontes", [])
@@ -26,6 +41,7 @@ def escolher_fontes(n: int, fixas: list | None = None, evitar_ultimas: int = 6) 
             continue
         candidatas = [c for c in ciclo if c not in recentes and c not in escolhidas] or \
                      [c for c in ciclo if c not in escolhidas]
+        candidatas = sorted(candidatas, key=lambda c: -_nota_fonte(c))   # o que você aprovou vem primeiro
         escolhidas.append(candidatas[0])
     return escolhidas
 

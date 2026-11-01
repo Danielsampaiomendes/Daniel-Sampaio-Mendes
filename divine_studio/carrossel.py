@@ -407,6 +407,19 @@ def exportar(pasta: Path, p: dict) -> dict:
             z.write(a, a.name)
     (saida / "legenda.txt").write_text(p["legenda"], encoding="utf-8")
     checklist = linha_checklist(p, ach)
+    # entrega organizada e status na programação
+    import shutil
+    from . import aprendizado
+    pasta_ent = ROOT / "entregas" / str(p.get("data", hoje()))[:7] / "Carrosseis"
+    pasta_ent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(zipf, pasta_ent / zipf.name)
+    try:
+        atual = next((x for x in aprendizado.ler(pasta).get("publicacoes") or [] if x.get("versao") == "carrossel"), {})
+        aprendizado.marcar(pasta, "carrossel", arquivo=f"saida/{zipf.name}", rede="instagram",
+                           status=atual.get("status") if atual.get("status") in ("agendado", "postado") else "aprovado",
+                           entrega=str((pasta_ent / zipf.name).relative_to(ROOT)))
+    except Exception as e:      # projeto sem projeto.yaml (testes) segue sem registro
+        print(f"  aviso: não registrei na programação ({e})")
     (pasta / "relatorio.md").write_text(
         f"# {p.get('titulo')} · carrossel\n\n{n} cards · estilo {p.get('estilo', 'divine')} · fórmula "
         f"{p.get('formula', '')} · objetivo {p.get('objetivo', '')}\n\n**Compliance:** {checklist}\n\n"

@@ -171,7 +171,7 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
     pos.append("vignette=angle=PI/5")
     grao = int((pref.get("acabamento") or {}).get("grao", 0))
     if grao > 0:
-        pos.append(f"noise=alls={grao}:allf=t")
+        pos.append(f"noise=alls={grao}:allf=u")       # grão fixo: acabamento sem inflar o arquivo
     pos.append("format=yuv420p")
     filtros.append(f"[vc]{','.join(pos)}[vout]")
 

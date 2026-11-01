@@ -72,8 +72,14 @@ legendas:                         # legenda da fala na tela (skill divine-legend
   segurar_s: 0.35
   minimo_s: 0.7
 
+aprendizado:                      # gostei / postei / métricas viram preferência
+  versao_ia: true                 # toda edição ganha a versão "IA" (a que o app acredita ser a melhor)
+  versao_ia_sem_historico: true   # gera mesmo antes de ter histórico (testa combinações novas)
+  suavizacao: 2                   # quanto menos dados, menos peso
+  entregas: true                  # finais copiadas para entregas/AAAA-MM/<tipo>/
+
 acabamento:                       # skill divine-video-pro: grão fino unifica celular e gráficos
-  grao: 4                         # 0 desliga
+  grao: 3                         # 0 desliga (grão fixo, não pesa no arquivo)
 
 progresso:
   altura_px: 6

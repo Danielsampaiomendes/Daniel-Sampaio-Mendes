@@ -19,6 +19,13 @@
   <img class="logo" src="/icone-180.png" alt="Divine Studio">
   <div class="marca"><span class="divine">DIVINE</span><span class="studio">STUDIO</span></div>
   <div class="sub">edição de vídeo · Divine Medical Spa</div>
+  <nav>
+    <button data-tela="projetos" class="ativa">Projetos</button>
+    <button data-tela="programacao">Programação</button>
+    <button data-tela="ia">IA e ideias</button>
+    <button data-tela="referencias">Referências</button>
+    <button data-tela="biblioteca">Biblioteca</button>
+  </nav>
 </header>
 
 <div class="app">
@@ -42,6 +49,15 @@
       <h1>Escolha um projeto à esquerda</h1>
       <p>ou crie um novo com o tema do vídeo. Depois é só arrastar os vídeos brutos para cá.</p>
     </div>
+
+    <section id="programacao" class="tela" hidden>
+      <div class="cabecalho"><div><h1>Programação</h1>
+        <div class="pasta">Tudo o que foi aprovado, agendado, postado e o que está na TV. As finais ficam em <code>entregas/AAAA-MM/</code>.</div></div>
+        <div class="acoes"><button id="pg-entregas">Abrir pasta de entregas</button></div></div>
+      <div class="prog" id="pg-colunas"></div>
+      <div class="cartao"><h2>O que o app aprendeu com você</h2><ul id="pg-aprendi" class="aprendi"></ul>
+        <p class="dica">Marque ♥ Gostei e ✓ Postei nas versões e preencha as métricas dos posts: a versão IA de cada edição usa isso.</p></div>
+    </section>
 
     <section id="carrossel" hidden>
       <div class="cabecalho">
@@ -247,5 +263,6 @@
 <script src="/app.js"></script>
 <script src="/editor.js"></script>
 <script src="/carrossel.js"></script>
+<script src="/telas.js"></script>
 </body>
 </html>

@@ -131,6 +131,54 @@ def _precisa_fala(p) -> bool:
                 or ativas(p) or any(m.get("na_fala") for m in p.get("mensagens") or []))
 
 
+def _versao_ia(p, a) -> None:
+    """Acrescenta a versão IA (guardada em trabalho/versao_ia.json para a final sair igual à prévia)."""
+    from . import aprendizado
+    from .hooks import batidas_do_hook
+    if getattr(a, "sem_ia", False) or p.get("versao_ia") is False:
+        return
+    arq = p["_pasta"] / "trabalho" / "versao_ia.json"
+    arq.parent.mkdir(exist_ok=True)
+    if arq.exists():
+        v = json.loads(arq.read_text(encoding="utf-8"))
+    else:
+        rod = p["_pasta"] / "trabalho" / "rodizio_escolhido.json"
+        usadas = [x.get("fontes") for x in (json.loads(rod.read_text(encoding="utf-8")).values() if rod.exists() else [])]
+        usadas += [v.get("fontes") for v in p.get("versoes") or []]
+        v = aprendizado.versao_ia(p, p.get("versoes") or [], [u for u in usadas if u])
+        if not v:
+            return
+        arq.write_text(json.dumps(v, ensure_ascii=False, indent=1), encoding="utf-8")
+    v = dict(v)
+    if v.get("hook_id") and not v.get("hook"):
+        try:
+            v["hook"] = batidas_do_hook(v["hook_id"])
+        except SystemExit:
+            return
+    if not any(x.get("nome") == "IA" for x in p.get("versoes") or []):
+        p["versoes"] = list(p.get("versoes") or []) + [v]
+        print(f"  IA: {'; '.join(v.get('porque', []))}")
+
+
+def _entregar(p, arq: Path, nome_versao: str) -> None:
+    """Final aprovada: cópia em entregas/AAAA-MM/<tipo>/ e status 'aprovado' na programação."""
+    from . import aprendizado
+    if not load("preferencias").get("aprendizado", {}).get("entregas", True):
+        return
+    tipo = {"reels": "Instagram Reels", "stories": "Instagram Stories", "feed45": "Instagram Feed",
+            "feed11": "Instagram Feed", "tv": "TV da clinica"}.get(p.get("formato", "reels"), "Outros")
+    if p.get("uso_interno"):
+        tipo = "Uso interno (nao postar)"
+    destino = ROOT / "entregas" / str(p.get("data", hoje()))[:7] / tipo
+    destino.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(arq, destino / arq.name)
+    atual = next((x for x in p.get("publicacoes") or [] if x.get("versao") == nome_versao), {})
+    status = atual.get("status") if atual.get("status") in ("agendado", "postado") else "aprovado"
+    aprendizado.marcar(p["_pasta"], nome_versao, arquivo=f"saida/{arq.name}", status=status,
+                       rede="tv" if p.get("formato") == "tv" else "instagram",
+                       entrega=str((destino / arq.name).relative_to(ROOT)))
+
+
 def _resolver_hooks(p) -> None:
     """hook vazio + hook_id = frase do banco; hook: auto = sorteio (positivo, curiosidade, negativo), guardado."""
     from .hooks import batidas_do_hook, sortear
@@ -186,6 +234,7 @@ def cmd_editar(a):
     print(f"Divine Studio {__version__} · {p.get('titulo')} · template {p.get('template', 'divine')} · "
           f"{p.get('formato', 'reels')} {W}x{H}")
     _resolver_hooks(p)
+    _versao_ia(p, a)
     transcrever_fn = _transcritor(pasta, ocr=_ocr_cfg(p)) if _precisa_fala(p) else None
     md_cortes = ""
     if transcrever_fn and (p.get("corte_limpo") or any(c.get("corte_limpo") for c in p.get("clipes") or [])):
@@ -286,6 +335,8 @@ def cmd_editar(a):
         ex = exportar(master, saida / arq, alta_qualidade=meta["alta_qualidade"], rapido=a.rapido,
                       limite_mb=p.get("limite_mb"), tv=p.get("formato") == "tv")
         nota = nota_viral(p, plano, ach_v, voz is not None)
+        if not a.rapido and not a.teste and not p.get("uso_interno_sem_entrega"):
+            _entregar(p, saida / arq, nome)
         folha = quadros(saida / arq, trabalho / f"{nome}_quadros.jpg")
         print(f"  ✓ {arq} · {ex['mb']} MB · render {seg:.0f}s")
         resultado.append({"nome": nome, "arquivo": arq, "mb": ex["mb"], "fontes": fontes[i], "hook_id": v.get("hook_id"),
@@ -356,6 +407,9 @@ def _relatorio(p, res, checklist, achados, segundos, extras=None):
                       f"{' + '.join(r['sfx_abertura'] + r.get('sfx_transicao', []) + r['sfx_fechamento'])} | {r['duracao']}s | {r['mb']} MB | "
                       f"`saida/{r['arquivo']}` |")
     linhas += [""] + [f"- {x}" for x in extras or []]
+    for v in p.get("versoes") or []:
+        if v.get("nome") == "IA" and v.get("porque"):
+            linhas.append(f"- **Versão IA (a que o app acredita ser a melhor):** {'; '.join(v['porque'])}")
     for r in res:
         n = r.get("nota")
         if n:
@@ -615,6 +669,7 @@ def main(argv=None):
     s.add_argument("--forcar", action="store_true", help="ignora bloqueios do revisor (só para teste interno)")
     s.add_argument("--teste", action="store_true", help="não registra no histórico de rodízio")
     s.add_argument("--rapido", action="store_true", help="prévia rápida (exportação veryfast, nome com _PREVIA)")
+    s.add_argument("--sem-ia", action="store_true", help="não gera a versão IA")
     s.set_defaults(f=cmd_editar)
     s = sub.add_parser("transcrever", help="transcreve a fala dos clipes (tempo por palavra)")
     s.add_argument("projeto")
