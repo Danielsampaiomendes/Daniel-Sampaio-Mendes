@@ -26,6 +26,7 @@
     <button data-tela="ia">IA e ideias</button>
     <button data-tela="referencias">Referências</button>
     <button data-tela="biblioteca">Biblioteca</button>
+    <button id="b-celular" title="Abrir no iPhone">📱</button>
   </nav>
 </header>
 
@@ -49,6 +50,7 @@
       <div class="cabecalho"><div><h1>Nova edição</h1>
         <div class="pasta">Escolha o tipo, escreva o tema e pronto: o projeto já nasce no formato certo, com o padrão viral luxo.</div></div></div>
       <div class="tipos-edicao" id="tipos-edicao"></div>
+      <div class="cartao saude"><h2>Saúde do app</h2><ul id="saude" class="aprendi"></ul></div>
       <div class="cartao importar">
         <h2>Trazer o que já existe</h2>
         <p class="dica">Importa os vídeos brutos e editados da pasta <b>Divine Medical Spa Marketing</b>: cada tema vira um projeto,
@@ -64,7 +66,9 @@
     <section id="galeria" class="tela" hidden>
       <div class="cabecalho"><div><h1>Galeria</h1>
         <div class="pasta">Só as peças validadas: as que você marcou ★ Validar, aprovou na final ou postou. Clique para assistir; "Editar" abre o projeto.</div></div>
-        <div class="acoes"><div id="gal-filtro" class="chips tipos"></div></div></div>
+        <div class="acoes"><input id="gal-busca" placeholder="buscar" autocomplete="off">
+          <select id="gal-ordem"><option value="recentes">mais recentes</option><option value="views">mais vistos</option></select>
+          <div id="gal-filtro" class="chips tipos"></div></div></div>
       <div class="galeria" id="gal-grade"></div>
     </section>
 
@@ -187,6 +191,8 @@
           <button data-acao="cortar" title="Mostra o que sai e o que fica no corte limpo">Ver corte</button>
           <button data-acao="previa" title="Prévia rápida das versões com o projeto.yaml atual">Gerar prévias</button>
           <button data-acao="pacote" title="Cria as peças por categoria (longo, curto, viral, TV...)">Pacote</button>
+          <button id="b-duplicar" title="Cópia do projeto (mesmos brutos) para testar outra ideia">Duplicar</button>
+          <button id="b-arquivar" class="link" title="Tira da lista sem apagar (vai para _arquivo/projetos)">arquivar</button>
         </div>
       </div>
       <div id="p-pedidos"></div>

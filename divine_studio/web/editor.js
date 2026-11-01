@@ -178,6 +178,8 @@ async function mostrarCopy() {
   box.innerHTML = `<h2>🎙 Copy para gravar</h2>
     <p class="dica">Veio de: ${esc(c.fonte)} · cerca de <b id="cp-seg">${c.segundos}</b> s falando. Edite à vontade: é o que vai aparecer no teleprompter.</p>
     <textarea id="cp-texto" class="copy-voz">${esc(c.copy)}</textarea>
+    <p class="aviso-ia" id="cp-longa" hidden></p>
+    <label>Velocidade do teleprompter <input id="cp-vel" type="range" min="1.8" max="3.6" step="0.1" value="${localStorage.getItem("tp_vel") || 2.6}"></label>
     ${c.alertas.length ? `<p class="aviso-ia">${c.alertas.map(esc).join("<br>")}</p>` : ""}
     <div class="linha">
       ${iaOk ? '<button id="cp-ia">✦ Melhorar com IA</button>' : ""}
@@ -188,7 +190,16 @@ async function mostrarCopy() {
     ${semMic ? `<p class="dica">No iPhone pela rede o navegador não libera o microfone: leia a copy, grave no app <b>Gravador</b> e envie aqui.</p>
       <input type="file" id="dub-arq" accept="audio/*">` : '<button class="dourado" id="cp-gravar">● Gravar lendo o teleprompter</button>'}`;
   const campo = $("#cp-texto");
-  campo.oninput = () => { $("#cp-seg").textContent = (campo.value.split(/\s+/).filter(Boolean).length / 2.6).toFixed(1); };
+  campo.oninput = () => {
+    const seg = campo.value.split(/\s+/).filter(Boolean).length / Number($("#cp-vel").value || 2.6);
+    $("#cp-seg").textContent = seg.toFixed(1);
+    const dur = $("#tl-video").duration, ini = Number($("#cp-inicio") ? $("#cp-inicio").value : 0) || 0;
+    const longa = dur && seg > dur - ini;
+    $("#cp-longa").hidden = !longa;
+    if (longa) $("#cp-longa").textContent = `A copy leva ${seg.toFixed(0)} s e o vídeo tem ${(dur - ini).toFixed(0)} s a partir daqui: corte algumas frases.`;
+  };
+  $("#cp-vel").oninput = () => { try { localStorage.setItem("tp_vel", $("#cp-vel").value); } catch (e) { /* sem storage */ } campo.oninput(); };
+  campo.oninput();
   const salvar = () => api("/api/copy", { p: atual, copy: campo.value });
   $("#cp-salvar").onclick = async () => { await salvar(); $("#ed-status").textContent = "Copy salva no projeto."; };
   $("#cp-sug").onclick = () => { campo.value = c.sugerida; campo.oninput(); };
@@ -249,7 +260,9 @@ async function gravar(inicio, substituir, texto) {
   $("#tl-gravar").textContent = "■ Parar gravação"; $("#tl-gravar").classList.add("gravando");
   v.onended = () => gravador && gravador.stop();
   const caixa = tp.querySelector(".tp-texto");
-  const dur = Math.max(4, texto.split(/\s+/).filter(Boolean).length / 2.6) * 1000, t0 = performance.now();
+  let vel = 2.6;
+  try { vel = Number(localStorage.getItem("tp_vel")) || 2.6; } catch (e) { /* padrão */ }
+  const dur = Math.max(4, texto.split(/\s+/).filter(Boolean).length / vel) * 1000, t0 = performance.now();
   const rolar = (agoraMs) => {
     if (!gravador) return;
     caixa.scrollTop = (caixa.scrollHeight - caixa.clientHeight) * Math.min(1, (agoraMs - t0) / dur);

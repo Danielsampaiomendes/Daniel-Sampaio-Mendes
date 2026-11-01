@@ -47,7 +47,8 @@ async function carregarProgramacao() {
         <div class="pub">${id === "aprovado" || id === "agendado" ? '<button class="pb" data-a="postei">✓ Postei</button>' : ""}
           ${id === "aprovado" ? '<button class="pb" data-a="agendar">📅 Agendar</button>' : ""}
           ${p.arquivo ? '<button class="pb" data-a="salvar">⤓ Salvar</button>' : ""}
-          ${p.entrega ? '<button class="pb" data-a="pasta">Pasta</button>' : ""}</div></div>`;
+          ${p.entrega ? '<button class="pb" data-a="pasta">Pasta</button>' : ""}
+          ${id !== "consulta" ? '<button class="pb" data-a="legenda" title="Copiar a legenda do post">Legenda</button>' : ""}</div></div>`;
     }).join("") || '<p class="dica">Nada aqui.</p>'}</div>`;
   }).join("");
   $("#pg-aprendi").innerHTML = aprendi.map((a) => `<li>${esc(a)}</li>`).join("") || '<li class="dica">Ainda sem histórico.</li>';
@@ -60,6 +61,13 @@ async function carregarProgramacao() {
   $$(".peca [data-a]").forEach((b) => b.onclick = async () => {
     const el = b.closest(".peca"), p = pecaDe(el);
     if (b.dataset.a === "salvar") return salvarNaGaleria(`/arquivo?p=${encodeURIComponent(p.projeto)}&f=${encodeURIComponent(p.arquivo)}`, p.arquivo.split("/").pop());
+    if (b.dataset.a === "legenda") {
+      const d = await api("/api/projeto?p=" + encodeURIComponent(p.projeto));
+      if (!d.legenda) return alert("Este projeto ainda não tem legenda (gere em Relatório e legenda).");
+      try { await navigator.clipboard.writeText(d.legenda); b.textContent = "Copiada ✓"; }
+      catch (e) { prompt("Copie a legenda:", d.legenda); }
+      return;
+    }
     if (b.dataset.a === "pasta") return api("/api/abrir_pasta", { caminho: p.entrega }).catch((e) => alert(e.message));
     let campos;
     if (b.dataset.a === "postei") {
@@ -88,7 +96,7 @@ const EDICOES = [
   ["antes_depois", "◫", "Antes e depois", "Uso interno em consulta (nunca postar): fotos padronizadas em TV, Stories e Feed.", "ex.: Bumbum Up"],
 ];
 
-function montarNovaEdicao() {
+let montarNovaEdicao = function () {
   $("#tipos-edicao").innerHTML = EDICOES.map(([k, ic, nome, txt, ex]) => `<form class="tipo-edicao ${k === "epico" ? "epico" : ""}" data-tipo="${k}">
       <div class="ic">${ic}</div><h2>${nome}</h2><p>${txt}</p>
       <div class="linha"><input placeholder="${esc(ex)}" autocomplete="off"><button class="dourado" type="submit">Criar</button></div></form>`).join("");
@@ -101,7 +109,7 @@ function montarNovaEdicao() {
       await carregarLista(); mostrarTela("projetos"); abrir(r.nome);
     } catch (err) { alert(err.message); }
   });
-}
+};
 $("#b-nova").onclick = () => mostrarTela("nova");
 
 // ---------------------------------------------------------------- Galeria (só peças validadas)
@@ -114,7 +122,10 @@ window.carregarGaleria = async () => {
   $("#gal-filtro").innerHTML = [["", "Tudo"], ...cats.map((c) => [c, nomes[c]])].map(([c, n]) =>
     `<button class="chip ${c === galFiltro ? "ativo" : ""}" data-c="${c}">${n}</button>`).join("");
   $$("#gal-filtro .chip").forEach((b) => b.onclick = () => { galFiltro = b.dataset.c; window.carregarGaleria(); });
-  const lista = itens.filter((i) => !galFiltro || i.categoria === galFiltro);
+  const busca = ($("#gal-busca").value || "").toLowerCase();
+  const lista = itens.filter((i) => !galFiltro || i.categoria === galFiltro)
+    .filter((i) => !busca || (i.titulo + " " + (i.tags || []).join(" ") + " " + i.versao).toLowerCase().includes(busca));
+  if ($("#gal-ordem").value === "views") lista.sort((a, b) => (b.views || 0) - (a.views || 0));
   const url = (i) => `/arquivo?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}`;
   const capa = (i) => `/miniatura.jpg?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}`;
   const selo = { postado: "postado", agendado: "agendado", aprovado: "pronto" };
@@ -142,6 +153,7 @@ function abrirPeca(i, url) {
         : `<img src="/miniatura.jpg?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}" alt="">`}
       <div class="modal-info"><h2>${esc(i.titulo)}</h2><p class="dica">${esc(i.versao)} · ${esc(i.status || "validado")}</p>
         <div class="linha"><button class="dourado" data-a="editar">✎ Editar</button><button data-a="salvar">⤓ Salvar</button>
+          ${i.status !== "postado" ? '<button data-a="postei">✓ Postei</button>' : ""}
           <button data-a="tirar" class="link">tirar da galeria</button><button data-a="fechar" class="link">fechar</button></div></div></div>`;
   document.body.appendChild(m);
   const fechar = () => m.remove();
@@ -149,6 +161,12 @@ function abrirPeca(i, url) {
   m.querySelector('[data-a="fechar"]').onclick = fechar;
   m.querySelector('[data-a="editar"]').onclick = () => { fechar(); mostrarTela("projetos"); abrir(i.projeto); };
   m.querySelector('[data-a="salvar"]').onclick = () => salvarNaGaleria(url, i.arquivo.split("/").pop());
+  const pb = m.querySelector('[data-a="postei"]');
+  if (pb) pb.onclick = async () => {
+    const link = prompt("Link do post (opcional):", ""); if (link === null) return;
+    await api("/api/publicacao", { p: i.projeto, versao: i.versao, campos: { status: "postado", link: link || undefined } });
+    fechar(); window.carregarGaleria();
+  };
   m.querySelector('[data-a="tirar"]').onclick = async () => {
     await api("/api/publicacao", { p: i.projeto, versao: i.versao, campos: { validado: null, ...(i.status === "aprovado" ? { status: "rascunho" } : {}) } });
     fechar(); window.carregarGaleria();
@@ -168,3 +186,31 @@ async function importar(simular) {
 }
 $("#imp-simular").onclick = () => importar(true);
 $("#imp-ok").onclick = () => importar(false);
+
+$("#gal-busca").oninput = () => window.carregarGaleria();
+$("#gal-ordem").onchange = () => window.carregarGaleria();
+
+// ---------------------------------------------------------------- saúde do app
+async function carregarSaude() {
+  try {
+    const d = await api("/api/diagnostico");
+    $("#saude").innerHTML = d.map((x) => `<li>${x.ok ? "✓" : "•"} ${esc(x.item)}${x.ok ? "" : ` <span class="dica">(${esc(x.dica)})</span>`}</li>`).join("");
+  } catch (err) { $("#saude").innerHTML = `<li class="dica">${esc(err.message)}</li>`; }
+}
+const _montarNova = montarNovaEdicao;
+montarNovaEdicao = function () { _montarNova(); carregarSaude(); };
+
+// ---------------------------------------------------------------- abrir no iPhone
+$("#b-celular").onclick = async () => {
+  const c = await api("/api/celular").catch(() => ({}));
+  const m = document.createElement("div");
+  m.className = "modal";
+  m.innerHTML = `<div class="cartao" style="max-width:440px"><h2>📱 Abrir no iPhone</h2>${c.ativo
+    ? `<p>No Safari do iPhone, no <b>mesmo Wi-Fi</b>:</p><p class="endereco">${esc(c.endereco)}</p>
+       ${c.codigo ? `<p>Código de acesso: <b class="endereco">${esc(c.codigo)}</b></p>` : ""}
+       <p class="dica">Depois: Compartilhar > Adicionar à Tela de Início. O Mac precisa ficar ligado com o painel aberto.</p>`
+    : `<p>O painel está aberto só neste Mac. Feche e abra com <b>Divine Studio iPhone.command</b>: ele mostra o endereço e o código para o celular.</p>`}
+    <button class="dourado" data-f>Fechar</button></div>`;
+  document.body.appendChild(m);
+  m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) m.remove(); };
+};

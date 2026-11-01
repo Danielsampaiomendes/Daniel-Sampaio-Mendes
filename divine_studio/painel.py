@@ -162,6 +162,75 @@ def nova_edicao(tipo: str, titulo: str) -> str:
     return nome
 
 
+def diagnostico() -> list:
+    """Saúde do app: o que está instalado e o que falta (para a tela Nova edição)."""
+    import importlib.util
+    import shutil as _sh
+    from . import assistente, instagram, qualidade
+    from .biblioteca import listar as listar_bib
+    from .transcricao import motor_disponivel
+    ok_ia, motivo_ia = assistente.disponivel()
+    q = qualidade.diagnostico()
+    faltam_img = sum(c["faltam_obrigatorios"] for c in listar_bib())
+    return [
+        {"item": "FFmpeg", "ok": bool(_sh.which("ffmpeg")), "dica": "brew install ffmpeg"},
+        {"item": "Logo oficial", "ok": bool(__import__("divine_studio.biblioteca", fromlist=["logo"]).logo("divine-simbolo")),
+         "dica": "Biblioteca > Logomarcas"},
+        {"item": "Imagens essenciais", "ok": faltam_img == 0, "dica": f"faltam {faltam_img} na Biblioteca"},
+        {"item": "IA (Claude)", "ok": ok_ia, "dica": motivo_ia or ""},
+        {"item": "Transcrição da fala", "ok": bool(motor_disponivel()), "dica": "pip3 install faster-whisper"},
+        {"item": "Recorte da pessoa (parallax, vertigem)", "ok": importlib.util.find_spec("mediapipe") is not None,
+         "dica": "pip3 install mediapipe"},
+        {"item": "Estabilização vid.stab", "ok": q["vidstab"], "dica": "ffmpeg com libvidstab (brew install ffmpeg)"},
+        {"item": "Upscale com IA (Real-ESRGAN)", "ok": q["realesrgan"], "dica": "realesrgan-ncnn-vulkan no PATH"},
+        {"item": "Instagram conectado", "ok": instagram.configurado(), "dica": "INSTAGRAM_TOKEN e INSTAGRAM_USER_ID"},
+    ]
+
+
+def duplicar(nome: str) -> str:
+    """Cópia do projeto para testar outra ideia (mesmos brutos, sem as saídas)."""
+    import shutil as _sh
+    pasta = _pasta(nome)
+    base = re.sub(r"-v\d+$", "", pasta.name)
+    k = 2
+    while (pasta.parent / f"{base}-v{k}").exists():
+        k += 1
+    nova = pasta.parent / f"{base}-v{k}"
+    for sub in ("bruto", "trabalho", "saida"):
+        (nova / sub).mkdir(parents=True)
+    for f in (pasta / "bruto").iterdir() if (pasta / "bruto").exists() else []:
+        alvo = nova / "bruto" / f.name
+        if f.is_symlink():
+            os.symlink(os.readlink(f), alvo)
+        else:
+            try:
+                os.link(f, alvo)              # mesmo arquivo no disco: não ocupa espaço
+            except OSError:
+                _sh.copy2(f, alvo)
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    d.pop("publicacoes", None)
+    d["titulo"] = f"{d.get('titulo', nome)} (v{k})"
+    texto = yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000, default_flow_style=None)
+    (nova / "projeto.yaml").write_text("# Divine Studio (cópia)\n" + texto, encoding="utf-8")
+    for f in pasta.glob("*.md"):
+        _sh.copy2(f, nova / f.name)
+    return str(nova.relative_to(PROJETOS))
+
+
+def arquivar(nome: str) -> str:
+    """Tira o projeto da lista sem apagar: vai para _arquivo/projetos/."""
+    import shutil as _sh
+    pasta = _pasta(nome)
+    destino = ROOT / "_arquivo" / "projetos" / pasta.name
+    k = 2
+    while destino.exists():
+        destino = destino.with_name(f"{pasta.name}-{k}")
+        k += 1
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    _sh.move(str(pasta), destino)
+    return str(destino.relative_to(ROOT))
+
+
 def galeria() -> list:
     """Peças validadas (★), aprovadas na final ou postadas, com arquivo existente. Uso interno não entra."""
     from . import aprendizado
@@ -670,6 +739,11 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/copy":
                 from .copy_voz import ler
                 return self._json(ler(_pasta(q["p"])))
+            if u.path == "/api/diagnostico":
+                return self._json(diagnostico())
+            if u.path == "/api/celular":
+                return self._json({"ativo": bool(Painel.codigo), "endereco": f"http://{ip_da_rede()}:{self.server.server_address[1]}",
+                                   "codigo": Painel.codigo if self.client_address[0] in LOCAIS else None})
             if u.path == "/api/galeria":
                 return self._json(galeria())
             if u.path == "/miniatura.jpg":
@@ -792,6 +866,12 @@ class Painel(BaseHTTPRequestHandler):
                 from .importar import importar
                 return self._json(importar(dados.get("origem") or None, bool(dados.get("copiar")),
                                            bool(dados.get("simular"))))
+            if u.path == "/api/duplicar":
+                return self._json({"nome": duplicar(dados["p"])})
+            if u.path == "/api/arquivar":
+                if _job_do_projeto(dados["p"]):
+                    raise ValueError("espere a tarefa deste projeto terminar")
+                return self._json({"destino": arquivar(dados["p"])})
             if u.path == "/api/nova_edicao":
                 return self._json({"nome": nova_edicao(dados.get("tipo", "video"), dados.get("titulo", ""))})
             if u.path == "/api/post/novo":

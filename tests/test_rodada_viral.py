@@ -114,3 +114,21 @@ def test_importar_cria_projetos_com_atalhos_sem_mexer_na_origem(projetos, tmp_pa
     importar.importar(origem)                                                   # de novo: não duplica
     assert len(yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8"))["publicacoes"]) == 2
     assert sorted(str(p) for p in origem.rglob("*")) == antes                  # origem intacta
+
+
+def test_duplicar_e_arquivar_sem_apagar(projetos, tmp_path, monkeypatch):
+    monkeypatch.setattr(painel, "ROOT", tmp_path)
+    pasta = _projeto(projetos, "2026-11-01_co2")
+    (pasta / "bruto" / "a.mp4").write_bytes(b"video")
+    aprendizado.marcar(pasta, "V1", status="postado")
+    nome = painel.duplicar(pasta.name)
+    nova = projetos / nome
+    assert nome.endswith("-v2") and (nova / "bruto" / "a.mp4").read_bytes() == b"video"
+    assert "publicacoes" not in yaml.safe_load((nova / "projeto.yaml").read_text(encoding="utf-8"))
+    destino = painel.arquivar(nome)
+    assert not nova.exists() and (tmp_path / destino / "projeto.yaml").exists()
+
+
+def test_diagnostico_lista_os_itens():
+    itens = {d["item"]: d for d in painel.diagnostico()}
+    assert "FFmpeg" in itens and "IA (Claude)" in itens and all("ok" in d for d in itens.values())

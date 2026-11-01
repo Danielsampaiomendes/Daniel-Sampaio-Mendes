@@ -715,8 +715,16 @@ def cmd_verificar(a):
     m = motor_disponivel()
     print(f"{'✓' if m else '•'} transcrição: " + (m or "nenhum motor (pip3 install faster-whisper ou ASSEMBLYAI_API_KEY); "
                                                  "só precisa para corte limpo e legenda da fala"))
-    simb = ROOT / load("marca")["logo"]["simbolo_png"]
-    print(f"{'✓' if simb.exists() else '•'} logo: {'PNG oficial' if simb.exists() else 'usando o SVG vetorial'}")
+    from .biblioteca import logo
+    simb = logo("divine-simbolo") or ROOT / load("marca")["logo"]["simbolo_png"]
+    print(f"{'✓' if simb.exists() else '•'} logo: {'oficial (' + simb.name + ')' if simb.exists() else 'usando o SVG vetorial'}")
+    try:
+        from .painel import diagnostico
+        print("Extras:")
+        for d in diagnostico():
+            print(f"  {'✓' if d['ok'] else '•'} {d['item']}" + ("" if d["ok"] else f"  ({d['dica']})"))
+    except Exception as e:                 # diagnóstico extra nunca bloqueia
+        print(f"  (diagnóstico extra indisponível: {e})")
     print("✓ tudo pronto" if ok else "Ajuste os itens acima.")
 
 

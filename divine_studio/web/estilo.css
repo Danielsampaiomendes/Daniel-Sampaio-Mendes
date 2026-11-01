@@ -299,3 +299,7 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
   .topo nav { display: flex; flex-wrap: nowrap; overflow-x: auto; width: 100%; gap: 6px; padding-bottom: 4px; }
   .topo nav button { flex: 0 0 auto; }
 }
+.endereco { font-size: 22px; color: var(--dourado); word-break: break-all; }
+#gal-busca { width: 140px; } #gal-ordem { width: auto; }
+.cabecalho .acoes #gal-busca, .cabecalho .acoes #gal-ordem { margin-right: 6px; }
+.saude { margin-top: 18px; }

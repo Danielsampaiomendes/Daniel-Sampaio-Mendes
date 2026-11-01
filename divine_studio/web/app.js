@@ -350,6 +350,7 @@ function acompanhar(job, titulo) {
     if (e.estado === "rodando") setTimeout(tick, 1200);
     else {
       jobAtivo = null;
+      avisarFim(titulo, e.estado === "ok");
       $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
       if (atual) abrir(atual);
       if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) $('[data-aba="versoes"]').click();
@@ -372,3 +373,26 @@ carregarLista().then(() => {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h) abrir(h).catch(() => {});
 });
+
+// aviso de tarefa pronta: título da aba, vibração no iPhone e um "ding" suave
+function avisarFim(titulo, ok) {
+  const antes = document.title;
+  document.title = (ok ? "✓ " : "⚠ ") + titulo;
+  setTimeout(() => { document.title = antes; }, 8000);
+  try { navigator.vibrate && navigator.vibrate(ok ? 80 : [60, 60, 60]); } catch (e) { /* sem vibração */ }
+  try { const a = new Audio("/sfx.wav?nome=ding_suave_a"); a.volume = 0.35; a.play().catch(() => {}); } catch (e) { /* sem som */ }
+}
+
+$("#b-duplicar").onclick = async () => {
+  try { const r = await api("/api/duplicar", { p: atual }); await carregarLista(); abrir(r.nome); }
+  catch (err) { alert(err.message); }
+};
+$("#b-arquivar").onclick = async () => {
+  if (!confirm("Tirar este projeto da lista? Ele não é apagado: vai para _arquivo/projetos/.")) return;
+  try {
+    const r = await api("/api/arquivar", { p: atual });
+    atual = null; history.replaceState(null, "", "#"); await carregarLista();
+    $("#projeto").hidden = true; $("#vazio").hidden = false;
+    alert("Guardado em " + r.destino);
+  } catch (err) { alert(err.message); }
+};
