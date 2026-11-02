@@ -106,8 +106,11 @@ def todas_publicacoes() -> list:
         except yaml.YAMLError:
             continue
         nome = str(pasta.relative_to(PROJETOS))
+        from .instagram import conta_do_projeto
+        conta_proj = conta_do_projeto(d)
         for pub in d.get("publicacoes") or []:
             out.append({"projeto": nome, "titulo": d.get("titulo", nome), "tipo": d.get("tipo", "video"),
+                        "conta": pub.get("conta") or conta_proj,
                         "formato": d.get("formato", "reels"), "template": d.get("template", "divine"),
                         "tags": d.get("tags") or [], **pub})
     return out
@@ -135,9 +138,15 @@ def pontuar(pub: dict, mediana_alcance: float | None = None) -> float:
     return s
 
 
-def preferencias() -> dict:
-    """{campo: {valor: (média, n)}} para cada característica, com suavização (poucos dados pesam pouco)."""
+def preferencias(conta: str | None = None) -> dict:
+    """{campo: {valor: (média, n)}} para cada característica, com suavização (poucos dados pesam pouco).
+    Com 'conta', aprende só com o perfil (@dvmedicalspa e @drdanielmendess têm públicos diferentes); com pouca
+    coisa do perfil (menos de 3 peças), usa tudo."""
     pubs = [p for p in todas_publicacoes() if p.get("caracteristicas")]
+    if conta:
+        do_perfil = [p for p in pubs if p.get("conta") == conta]
+        if len(do_perfil) >= 3:
+            pubs = do_perfil
     alcances = [(p.get("metricas") or {}).get("alcance") or (p.get("metricas") or {}).get("views") for p in pubs]
     alcances = [a for a in alcances if a]
     med = statistics.median(alcances) if alcances else None
@@ -181,7 +190,8 @@ def versao_ia(projeto: dict, versoes: list, fontes_escolhidas: list) -> dict | N
     """A versão que o app acredita ser a melhor: hook, fontes e efeitos com melhor histórico (e o porquê)."""
     if not _cfg().get("versao_ia", True) or projeto.get("template") == "tv" or projeto.get("tipo") == "carrossel":
         return None
-    prefs = preferencias()
+    from .instagram import conta_do_projeto
+    prefs = preferencias(conta_do_projeto(projeto))
     if not prefs and not _cfg().get("versao_ia_sem_historico", True):
         return None
     from .fonts import todas_combinacoes

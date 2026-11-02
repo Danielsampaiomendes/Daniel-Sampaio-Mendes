@@ -154,25 +154,52 @@ def test_reparo_de_projeto_quebrado(tmp_path):
     assert not painel.reparar_projeto(pasta)                                   # já está bom: não mexe
 
 
-def test_conectar_instagram_guarda_fora_do_repositorio(tmp_path, monkeypatch):
+def test_conectar_instagram_duas_contas_fora_do_repositorio(tmp_path, monkeypatch, projetos):
     from divine_studio import instagram
-    monkeypatch.delenv("INSTAGRAM_TOKEN", raising=False)
-    monkeypatch.delenv("INSTAGRAM_USER_ID", raising=False)
-    monkeypatch.setattr(instagram, "ARQUIVO", tmp_path / "instagram.json")
-    chamadas = []
+    for v in ("INSTAGRAM_TOKEN", "INSTAGRAM_USER_ID"):
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setattr(instagram, "ARQUIVO", tmp_path / "ig" / "instagram.json")
 
     def falso(caminho, token=None, **params):
-        chamadas.append(caminho)
-        return {"data": [{"name": "Divine", "instagram_business_account": {"id": "1784", "username": "dvmedicalspa"}}]}
+        if caminho == "me/accounts":
+            return {"data": [{"name": "Divine", "instagram_business_account": {"id": "1", "username": "dvmedicalspa"}},
+                             {"name": "Dr Daniel", "instagram_business_account": {"id": "2", "username": "drdanielmendess"}}]}
+        if caminho.endswith("/media"):
+            uid = caminho.split("/")[0]
+            return {"data": [{"id": f"m{uid}", "permalink": f"https://www.instagram.com/reel/COD{uid}/"}]}
+        if caminho.endswith("/insights"):
+            return {"data": [{"values": [{"value": 100 if caminho.startswith("m2") else 50}]}]}
+        raise AssertionError(caminho)
     monkeypatch.setattr(instagram, "_get", falso)
     assert not instagram.configurado()
     r = instagram.conectar("EAA" + "x" * 40)
-    assert r == {"conectado": True, "usuario": "dvmedicalspa", "user_id": "1784"} and chamadas == ["me/accounts"]
-    assert oct((tmp_path / "instagram.json").stat().st_mode)[-3:] == "600"
-    instagram.desconectar()
-    assert not instagram.configurado()
+    assert sorted(r["novas"]) == ["drdanielmendess", "dvmedicalspa"]
+    assert all(c["conectado"] for c in r["contas"])
+    assert oct(instagram.ARQUIVO.stat().st_mode)[-3:] == "600"
+    # peça do template Daniel vai para o perfil dele; métricas vêm da conta certa
+    pasta = _projeto(projetos, "pd", {"template": "daniel"})
+    aprendizado.marcar(pasta, "V1", status="postado", link="https://www.instagram.com/reel/COD2/")
+    sinc = instagram.sincronizar()
+    assert sinc["atualizadas"] == 1 and sinc["por_conta"] == {"dvmedicalspa": 1, "drdanielmendess": 1}
+    pub = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8"))["publicacoes"][0]
+    assert pub["conta"] == "drdanielmendess" and pub["metricas"]["views"] == 100
+    assert {p["conta"] for p in aprendizado.todas_publicacoes()} == {"drdanielmendess"}
+    instagram.desconectar("drdanielmendess")
+    assert instagram.configurado() and [c["usuario"] for c in instagram.contas_conectadas() if c["conectado"]] == ["dvmedicalspa"]
     with pytest.raises(SystemExit):
         instagram.conectar("curto")
+
+
+def test_formato_antigo_de_uma_conta_continua_valendo(tmp_path, monkeypatch):
+    import json
+    from divine_studio import instagram
+    for v in ("INSTAGRAM_TOKEN", "INSTAGRAM_USER_ID"):
+        monkeypatch.delenv(v, raising=False)
+    arq = tmp_path / "instagram.json"
+    arq.write_text(json.dumps({"token": "EAAx", "user_id": "9", "usuario": "dvmedicalspa"}))
+    monkeypatch.setattr(instagram, "ARQUIVO", arq)
+    assert instagram.configurado() and instagram.conta()["usuario"] == "dvmedicalspa"
+
 
 
 @pytest.mark.skipif(not shutil.which("ffmpeg"), reason="sem ffmpeg")

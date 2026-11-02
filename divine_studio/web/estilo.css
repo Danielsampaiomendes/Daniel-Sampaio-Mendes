@@ -426,3 +426,24 @@ details.pedidos[open] summary { margin-bottom: 6px; }
 .m-auto::before { background: transparent !important; border: 1px dashed var(--dourado2); }
 .grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input[type=range] { padding: 0; border: 0; background: none; }
+
+/* ---------- perfis, semana, avisos ---------- */
+.perfil { display: inline-block; font-size: 11px; color: var(--dourado); border: 1px solid var(--linha); border-radius: 999px; padding: 0 7px; margin-left: 4px; }
+.semana { display: grid; grid-template-columns: repeat(7, minmax(110px, 1fr)); gap: 8px; margin: 12px 0 16px; overflow-x: auto; }
+.semana .dia { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 8px; min-height: 92px; display: flex; flex-direction: column; gap: 4px; }
+.semana .dia b { color: var(--branco); font-weight: 500; text-transform: capitalize; } .semana .dia span { color: var(--apagado); font-size: 12px; }
+.semana .dia.hoje { border-color: var(--dourado); } .semana .dia i { color: var(--linha); font-size: 12px; font-style: normal; }
+.semana .ag { background: var(--painel2); border-left: 3px solid var(--dourado); border-radius: 6px; padding: 4px 6px; font-size: 12px; cursor: pointer;
+  color: var(--branco); display: flex; flex-direction: column; overflow: hidden; }
+.semana .ag small { color: var(--dourado); font-size: 10px; }
+.contas-ig { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.conta-ig { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; }
+.conta-ig.on { border-color: var(--ok); } .conta-ig span { color: var(--apagado); font-size: 13px; }
+.conta-ig em { font-style: normal; font-size: 12px; color: var(--apagado); } .conta-ig.on em { color: var(--ok); }
+.passo-a-passo li { margin: 4px 0; font-size: 14px; }
+.toasts { position: fixed; top: 16px; right: 16px; z-index: 80; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
+.toast { background: var(--painel2); border: 1px solid var(--dourado2); color: var(--branco); border-radius: 12px; padding: 12px 14px; font-size: 14px;
+  box-shadow: 0 12px 30px #000b; cursor: pointer; white-space: pre-line; transition: opacity .5s, transform .5s; }
+.toast.erro { border-color: var(--erro); } .toast.sai { opacity: 0; transform: translateY(-6px); }
+.atalhos-tec { display: block; color: var(--apagado); font-size: 12px; margin-top: 2px; }
+@media (max-width: 700px) { .semana { grid-template-columns: repeat(7, 120px); } .atalhos-tec { display: none; } }

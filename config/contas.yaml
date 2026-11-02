@@ -1,0 +1,10 @@
+# Perfis do Instagram que o Divine Studio acompanha (Programação, métricas e aprendizado separados por perfil).
+# templates: qual perfil cada template usa por padrão (dá para trocar no projeto: conta: drdanielmendess).
+contas:
+  dvmedicalspa:
+    nome: "Divine Medical Spa"
+    templates: [divine, george, tv, react]
+    padrao: true
+  drdanielmendess:
+    nome: "Dr. Daniel Mendes"
+    templates: [daniel]

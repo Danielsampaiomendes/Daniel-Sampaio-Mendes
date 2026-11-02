@@ -111,7 +111,7 @@ def listar() -> list:
                     "tags": [str(t) for t in d.get("tags") or []],
                     "tipo": d.get("tipo") if d.get("tipo") in ("carrossel", "post", "antes_depois") else "video",
                     "categoria": categoria(d), "epico": d.get("ritmo") == "epico" or bool(d.get("epico")),
-                    "importado": bool(d.get("importado"))})
+                    "importado": bool(d.get("importado")), "conta": _conta(d)})
     # mais recente primeiro; as peças de um pacote e os outros formatos logo abaixo do projeto de origem
     raiz = lambda nome: re.split(r"-(?:pacote|formatos)/", nome)[0]   # noqa: E731
     out.sort(key=lambda x: (raiz(x["nome"]), 0 if not x["pacote"] else 1, x["nome"]))
@@ -119,6 +119,16 @@ def listar() -> list:
     for x in out:
         grupos.setdefault(raiz(x["nome"]), []).append(x)
     return [x for k in sorted(grupos, reverse=True) for x in grupos[k]]
+
+
+def _conta(d: dict):
+    from .instagram import conta_do_projeto
+    return conta_do_projeto(d)
+
+
+def _perfis() -> dict:
+    from .instagram import perfis
+    return {u: c.get("nome", u) for u, c in perfis().items()}
 
 
 def categoria(d: dict) -> str:
@@ -261,7 +271,7 @@ def videos() -> list:
                         "previa": previa, "status": pub.get("status") or ("" if previa else "final"),
                         "validado": bool(pub.get("validado")), "gostei": bool(pub.get("gostei")),
                         "categoria": categoria(d), "tags": [str(t) for t in d.get("tags") or []],
-                        "importado": bool(d.get("importado")), "quando": f.stat().st_mtime,
+                        "importado": bool(d.get("importado")), "quando": f.stat().st_mtime, "conta": _conta(d),
                         "mb": round(f.stat().st_size / 1e6, 1),
                         "views": (pub.get("metricas") or {}).get("views") or (pub.get("metricas") or {}).get("alcance")})
     return sorted(out, key=lambda x: -x["quando"])
@@ -379,6 +389,8 @@ def detalhe(nome: str) -> dict:
             "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
             "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video"),
             "subtitulo": d.get("subtitulo", ""), "pares": d.get("pares") or [], "cta": d.get("cta", ""),
+            "conta": _conta(d), "conta_definida": d.get("conta"),
+            "perfis": _perfis(),
             "video": d.get("video", True), "camera_elegante": d.get("camera_elegante"), "qualidade": d.get("qualidade"),
             "ritmo": d.get("ritmo"), "epico": d.get("epico"),
             "qualidade_info": _qualidade_info() if d.get("qualidade") else "",
@@ -413,7 +425,7 @@ CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
                     "qualidade", "ritmo", "epico", "validado", "copy_dublagem", "clipes", "cor",
-                    "ritmo_fixo", "dissolve", "musica_licenciada"}
+                    "ritmo_fixo", "dissolve", "musica_licenciada", "conta"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -499,7 +511,7 @@ def salvar_dados(nome: str, novos: dict) -> None:
         if k not in CAMPOS_EDITAVEIS:
             raise ValueError(f"campo não editável: {k}")
         if v in (None, "", []) and k in ("efeitos", "legenda", "selo", "camera_elegante", "qualidade", "epico", "copy_dublagem",
-                                                  "cor", "ritmo_fixo", "musica_licenciada"):
+                                                  "cor", "ritmo_fixo", "musica_licenciada", "conta"):
             d.pop(k, None)      # vazio = sem efeito/selo; a legenda vazia volta a ser gerada sozinha
         else:
             d[k] = v
@@ -1153,7 +1165,7 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json(r)
             if u.path == "/api/instagram/desconectar":
                 from . import instagram
-                instagram.desconectar()
+                instagram.desconectar(dados.get("usuario"))
                 return self._json({"ok": True})
             if u.path == "/api/instagram/sincronizar":
                 from . import instagram

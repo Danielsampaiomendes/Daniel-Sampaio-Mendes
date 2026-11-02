@@ -37,7 +37,8 @@ async function carregarEditor() {
   const v = $("#tl-video");
   if (d.referencia) {
     v.src = `/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(d.referencia)}`;
-    $("#tl-dica").innerHTML = "Dê play, pause no ponto que quiser e clique em <b>+ Efeito aqui</b> ou <b>+ Mensagem aqui</b>. Arraste as marcas para mudar o momento.";
+    $("#tl-dica").innerHTML = "Dê play, pause no ponto e use <b>+ Efeito</b>, <b>+ Mensagem</b>, <b>♪ Som</b> ou <b>✂ Dividir</b>. Arraste as marcas para mudar o momento. " +
+      "<span class='atalhos-tec'>Atalhos: espaço toca/pausa · ← → quadro a quadro · S divide · Delete remove · ⌘S salva</span>";
   } else {
     v.removeAttribute("src"); v.load();
     $("#tl-dica").innerHTML = "Gere as prévias uma vez (ou a <b>edição automática</b>) para ver o vídeo aqui. Dá para adicionar efeitos digitando o segundo.";
@@ -674,3 +675,26 @@ $("#ed-musica").onchange = async () => {
 
 // a linha do tempo é desenhada pela largura: redesenha quando a aba aparece ou a tela muda de tamanho
 if (window.ResizeObserver) new ResizeObserver(() => { if (ed.proj && $("#tl-barra").clientWidth) desenharTimeline(); }).observe($("#tl-barra"));
+
+
+// atalhos de teclado na aba Edição (como no CapCut): espaço toca/pausa, S divide, Delete remove, ⌘/Ctrl+S salva
+document.addEventListener("keydown", (e) => {
+  if ($("#aba-edicao").hidden || $("#projeto").hidden) return;
+  const digitando = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "");
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); salvarEditor(false); return; }
+  if (digitando) return;
+  const v = $("#tl-video");
+  if (e.key === " ") { e.preventDefault(); if (v.src) (v.paused ? v.play() : v.pause()); }
+  else if (e.key.toLowerCase() === "s") { e.preventDefault(); $("#tl-dividir").click(); }
+  else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (!v.src) return;
+    e.preventDefault(); v.currentTime = Math.max(0, v.currentTime + (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 1 : 1 / 30));
+  } else if ((e.key === "Delete" || e.key === "Backspace") && ed.sel && !ed.sel.tipo.endsWith(" auto")) {
+    e.preventDefault();
+    const listas = { ef: ed.efeitos, msg: ed.mensagens, som: ed.sons, voz: ed.dubs, clip: ed.clipes };
+    const l = listas[ed.sel.tipo];
+    if (!l || !l[ed.sel.i]) return;
+    if (ed.sel.tipo === "clip") { if (ed.clipes.length < 2 || !confirm("Remover este clipe?")) return; ed.clipesInfo.splice(ed.sel.i, 1); }
+    l.splice(ed.sel.i, 1); ed.sel = null; sujar(); desenharMsgs(); desenharTimeline(); desenharForm();
+  }
+});

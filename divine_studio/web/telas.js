@@ -30,9 +30,27 @@ const COLUNAS = [
   ["consulta", "Uso interno (consulta)", (p) => p.rede === "consulta"],
 ];
 
+let pgPerfil = "";
 async function carregarProgramacao() {
-  const { pecas, aprendi } = await api("/api/programacao");
+  const r = await api("/api/programacao");
+  const aprendi = r.aprendi;
+  const perfisUsados = [...new Set(r.pecas.map((p) => p.conta).filter(Boolean))];
+  $("#pg-perfis").innerHTML = perfisUsados.length > 1 ? [["", "Todos os perfis"], ...perfisUsados.map((u) => [u, "@" + u])].map(([u, n]) =>
+    `<button class="chip ${u === pgPerfil ? "ativo" : ""}" data-u="${esc(u)}">${esc(n)} <span>${u ? r.pecas.filter((p) => p.conta === u).length : r.pecas.length}</span></button>`).join("") : "";
+  $$("#pg-perfis .chip").forEach((b) => b.onclick = () => { pgPerfil = b.dataset.u; carregarProgramacao(); });
+  const pecas = r.pecas.filter((p) => !pgPerfil || p.conta === pgPerfil);
   const fmt = (d) => d ? d.split("-").reverse().join("/") : "";
+  // próximos 7 dias: o que está agendado em cada dia
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const dias = [...Array(7)].map((_, k) => { const d = new Date(hoje); d.setDate(d.getDate() + k); return d; });
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const nomeDia = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  $("#pg-semana").innerHTML = dias.map((d, k) => {
+    const doDia = pecas.filter((p) => p.status === "agendado" && p.data_agendada === iso(d));
+    return `<div class="dia ${k === 0 ? "hoje" : ""} ${doDia.length ? "cheio" : ""}"><b>${k === 0 ? "hoje" : nomeDia[d.getDay()]}</b><span>${d.getDate()}/${d.getMonth() + 1}</span>
+      ${doDia.map((p) => `<div class="ag" data-p="${esc(p.projeto)}" title="${esc(p.titulo)}">${esc(p.titulo)}<small>${p.conta ? "@" + esc(p.conta) : ""}</small></div>`).join("") || '<i>livre</i>'}</div>`;
+  }).join("");
+  $$("#pg-semana .ag").forEach((el) => el.onclick = () => { mostrarTela("projetos"); abrir(el.dataset.p); });
   $("#pg-colunas").innerHTML = COLUNAS.map(([id, nome, f]) => {
     let lista = pecas.filter(f);
     if (id === "agendado") lista.sort((a, b) => (a.data_agendada || "").localeCompare(b.data_agendada || ""));
@@ -41,6 +59,7 @@ async function carregarProgramacao() {
       const m = p.metricas || {};
       return `<div class="peca" data-p="${esc(p.projeto)}" data-v="${esc(p.versao)}">
         <div class="t">${esc(p.titulo)} · <b>${esc(p.versao)}</b></div>
+        ${p.conta ? `<div class="perfil">@${esc(p.conta)}</div>` : ""}
         <div class="m">${esc(p.tipo === "carrossel" ? "carrossel" : p.tipo === "antes_depois" ? "antes e depois" : p.tipo === "post" ? "post " + p.versao : p.formato)}${p.data_agendada && id === "agendado" ? " · " + fmt(p.data_agendada) : ""}${p.data_postagem && id !== "agendado" ? " · postado " + fmt(p.data_postagem) : ""}${p.gostei ? " · ♥" : ""}</div>
         ${p.tags && p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
         ${id === "postado" ? `<div class="metricas" title="Métricas do Instagram (o app aprende com elas)">
@@ -116,7 +135,7 @@ $("#b-nova").onclick = () => mostrarTela("nova");
 
 // ---------------------------------------------------------------- Galeria (só peças validadas)
 
-let galFiltro = "", vidEstado = null;
+let galFiltro = "", vidEstado = null, vidPerfil = "";
 const ESTADOS = [["melhores", "★ Melhores"], ["finais", "Finais"], ["previas", "Prévias"], ["postados", "Postados"], ["todos", "Todos"]];
 const NOMES_CAT = { video: "Vídeos", stories: "Stories", carrossel: "Carrosséis", post: "Posts", tv: "TV" };
 const urlPeca = (i) => `/arquivo?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}`;
@@ -155,9 +174,13 @@ window.carregarGaleria = async () => {
   $("#gal-filtro").innerHTML = cats.length > 1 ? [["", "Todos os tipos"], ...cats.map((c) => [c, NOMES_CAT[c]])].map(([c, n]) =>
     `<button class="chip ${c === galFiltro ? "ativo" : ""}" data-c="${c}">${n}</button>`).join("") : "";
   $$("#gal-filtro .chip").forEach((b) => b.onclick = () => { galFiltro = b.dataset.c; window.carregarGaleria(); });
+  const perfis = [...new Set(itens.map((i) => i.conta).filter(Boolean))];
+  $("#vid-perfil").innerHTML = perfis.length > 1 ? [["", "Todos os perfis"], ...perfis.map((u) => [u, "@" + u])].map(([u, n]) =>
+    `<button class="chip ${u === vidPerfil ? "ativo" : ""}" data-u="${esc(u)}">${esc(n)}</button>`).join("") : "";
+  $$("#vid-perfil .chip").forEach((b) => b.onclick = () => { vidPerfil = b.dataset.u; window.carregarGaleria(); });
   const busca = ($("#gal-busca").value || "").toLowerCase();
   const filtroEstado = { melhores: melhor, finais: (i) => !i.previa, previas: (i) => i.previa, postados: (i) => i.status === "postado", todos: () => true }[vidEstado];
-  const lista = itens.filter(filtroEstado).filter((i) => !galFiltro || i.categoria === galFiltro)
+  const lista = itens.filter(filtroEstado).filter((i) => !galFiltro || i.categoria === galFiltro).filter((i) => !vidPerfil || i.conta === vidPerfil)
     .filter((i) => !busca || (i.titulo + " " + (i.tags || []).join(" ") + " " + i.versao).toLowerCase().includes(busca));
   if ($("#gal-ordem").value === "views") lista.sort((a, b) => (b.views || 0) - (a.views || 0));
   const vazio = vidEstado === "melhores"
@@ -283,58 +306,64 @@ $("#b-celular").onclick = async () => {
   m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) m.remove(); };
 };
 
-// ---------------------------------------------------------------- Instagram
+// ---------------------------------------------------------------- Instagram (várias contas)
 async function estadoInstagram() {
-  const c = await api("/api/instagram").catch(() => ({}));
-  $("#pg-insta").textContent = c.conectado ? `📷 @${c.usuario || "conectado"}` : "Conectar Instagram";
-  $("#pg-insta").classList.toggle("dourado", !c.conectado);
-  $("#pg-sinc").hidden = !c.conectado;
+  const c = await api("/api/instagram").catch(() => ({ contas: [] }));
+  const lig = (c.contas || []).filter((x) => x.conectado);
+  $("#pg-insta").textContent = lig.length ? "📷 " + lig.map((x) => "@" + x.usuario).join(" · ") : "Conectar Instagram";
+  $("#pg-insta").classList.toggle("dourado", !lig.length);
+  $("#pg-sinc").hidden = !lig.length;
   return c;
 }
 $("#pg-sinc").onclick = async () => {
   const b = $("#pg-sinc"); b.disabled = true; b.textContent = "Puxando…";
-  try { const r = await api("/api/instagram/sincronizar", {}); alert(`${r.atualizadas} post(s) atualizado(s) com as métricas do Instagram.`); carregarProgramacao(); }
-  catch (err) { alert(err.message); }
+  try {
+    const r = await api("/api/instagram/sincronizar", {});
+    alert(`${r.atualizadas} post(s) com métricas novas.` + (r.erros && r.erros.length ? "\n" + r.erros.join("\n") : ""));
+    carregarProgramacao();
+  } catch (err) { alert(err.message); }
   b.disabled = false; b.textContent = "↻ Puxar métricas";
 };
 $("#pg-insta").onclick = async () => {
   const c = await estadoInstagram();
   const m = document.createElement("div");
   m.className = "modal";
-  m.innerHTML = `<div class="cartao insta" style="max-width:560px">${c.conectado
-    ? `<h2>📷 Instagram conectado</h2><p>Conta <b>@${esc(c.usuario)}</b>. O app puxa views, alcance, curtidas, comentários, envios e
-       salvamentos dos posts marcados como ✓ Postei (com o link) e aprende com eles.</p>
-       <div class="linha"><button class="dourado" data-sinc>↻ Puxar métricas agora</button><button data-sair class="link">desconectar</button>
-       <button data-f class="link">fechar</button></div>`
-    : `<h2>📷 Conectar o Instagram</h2>
-       <ol class="passo-a-passo">
-         <li>A conta <b>@dvmedicalspa</b> precisa ser <b>profissional</b> (Empresa ou Criador) e estar ligada a uma <b>Página do Facebook</b>.</li>
-         <li>No computador, abra <b>developers.facebook.com</b> > Meus apps > Criar app (tipo "Empresa").</li>
-         <li>No app, adicione o produto <b>"Instagram"</b> e, em <b>Ferramentas > Explorador da API do Graph</b>, gere um token com:
-           <code>instagram_basic</code>, <code>instagram_manage_insights</code>, <code>pages_show_list</code>, <code>pages_read_engagement</code>.</li>
-         <li>Troque por um token de <b>longa duração</b> (60 dias): no Explorador, ícone "i" > Abrir no Depurador de token > Estender.</li>
-         <li>Cole o token aqui embaixo. O app acha a conta sozinho.</li>
-       </ol>
-       <textarea id="insta-token" placeholder="EAA..." rows="3"></textarea>
-       <p class="dica">O token fica só no seu Mac (~/.divine_studio/instagram.json), nunca vai para o GitHub.</p>
-       <div class="linha"><button class="dourado" data-ok>Conectar</button><button data-f class="link">fechar</button></div>
-       <p id="insta-msg" class="dica"></p>`}</div>`;
+  m.innerHTML = `<div class="cartao insta" style="max-width:600px"><h2>📷 Perfis do Instagram</h2>
+    <div class="contas-ig">${(c.contas || []).map((x) => `<div class="conta-ig ${x.conectado ? "on" : ""}"><b>@${esc(x.usuario)}</b><span>${esc(x.nome)}</span>
+      ${x.conectado ? `<em>conectado</em><button class="link" data-sair="${esc(x.usuario)}">desconectar</button>` : "<em>não conectado</em>"}</div>`).join("")}</div>
+    <details ${(c.contas || []).every((x) => x.conectado) ? "" : "open"}><summary>Conectar uma conta</summary>
+    <ol class="passo-a-passo">
+      <li>Cada perfil (@dvmedicalspa e @drdanielmendess) precisa ser <b>profissional</b> (Empresa ou Criador) e estar ligado a uma <b>Página do Facebook</b>.</li>
+      <li>Se as duas Páginas estão no mesmo Facebook (o seu), <b>um token só conecta os dois perfis</b> de uma vez.</li>
+      <li>Em <b>developers.facebook.com</b> > Meus apps > Criar app (tipo "Empresa") > produto "Instagram".</li>
+      <li><b>Ferramentas > Explorador da API do Graph</b>: gere um token com <code>instagram_basic</code>, <code>instagram_manage_insights</code>,
+        <code>pages_show_list</code>, <code>pages_read_engagement</code>, marcando as duas Páginas quando o Facebook perguntar.</li>
+      <li>Estenda para <b>60 dias</b> (ícone "i" > Depurador de token > Estender) e cole aqui. Se o Dr. Daniel administra a página dele
+        em outro Facebook, gere um segundo token no Facebook dele e cole também: as contas se somam.</li>
+    </ol>
+    <textarea id="insta-token" placeholder="EAA..." rows="3"></textarea>
+    <p class="dica">Os tokens ficam só no seu Mac (~/.divine_studio/instagram.json), nunca vão para o GitHub.</p>
+    <div class="linha"><button class="dourado" data-ok>Conectar</button></div></details>
+    <p id="insta-msg" class="dica"></p>
+    <div class="linha">${(c.contas || []).some((x) => x.conectado) ? '<button data-sinc>↻ Puxar métricas agora</button>' : ""}<button data-f class="link">fechar</button></div></div>`;
   document.body.appendChild(m);
   const fechar = () => { m.remove(); estadoInstagram(); };
   m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) fechar(); };
-  const ok = m.querySelector("[data-ok]");
-  if (ok) ok.onclick = async () => {
-    ok.disabled = true; m.querySelector("#insta-msg").textContent = "Testando o token…";
+  m.querySelector("[data-ok]").onclick = async (e) => {
+    const ok = e.target; ok.disabled = true; m.querySelector("#insta-msg").textContent = "Testando o token…";
     try {
       const r = await api("/api/instagram/conectar", { token: m.querySelector("#insta-token").value });
-      m.querySelector("#insta-msg").textContent = `Conectado: @${r.usuario}. ` + (r.sincronizado ? `${r.sincronizado.atualizadas} post(s) com métricas.` : (r.aviso || ""));
-      setTimeout(fechar, 2500); carregarProgramacao();
+      m.querySelector("#insta-msg").textContent = `Conectado: ${r.novas.map((u) => "@" + u).join(" e ")}. ` +
+        (r.sincronizado ? `${r.sincronizado.atualizadas} post(s) com métricas.` : (r.aviso || ""));
+      setTimeout(() => { fechar(); $("#pg-insta").click(); }, 2200); carregarProgramacao();
     } catch (err) { m.querySelector("#insta-msg").textContent = err.message; ok.disabled = false; }
   };
   const sinc = m.querySelector("[data-sinc]");
   if (sinc) sinc.onclick = () => { fechar(); $("#pg-sinc").click(); };
-  const sair = m.querySelector("[data-sair]");
-  if (sair) sair.onclick = async () => { if (confirm("Desconectar o Instagram deste Mac?")) { await api("/api/instagram/desconectar", {}); fechar(); } };
+  m.querySelectorAll("[data-sair]").forEach((b) => b.onclick = async () => {
+    if (!confirm(`Desconectar @${b.dataset.sair} deste Mac?`)) return;
+    await api("/api/instagram/desconectar", { usuario: b.dataset.sair }); fechar(); $("#pg-insta").click();
+  });
 };
 const _carregarProg = carregarProgramacao;
 carregarProgramacao = async function () { estadoInstagram(); return _carregarProg(); };

@@ -86,6 +86,7 @@
         <div class="pasta">Todos os vídeos criados e importados. Toque para assistir; "Editar" abre o projeto a qualquer momento.</div></div></div>
       <div class="filtros-videos">
         <div id="vid-estado" class="chips seg"></div>
+        <div id="vid-perfil" class="chips tipos"></div>
         <div id="gal-filtro" class="chips tipos"></div>
         <div class="linha"><input id="gal-busca" placeholder="buscar por tema ou tag" autocomplete="off">
           <select id="gal-ordem"><option value="recentes">mais recentes</option><option value="views">mais vistos</option></select>
@@ -100,6 +101,8 @@
         <div class="acoes"><button id="pg-insta" class="dourado">Conectar Instagram</button>
           <button id="pg-sinc" hidden>↻ Puxar métricas</button>
           <button id="pg-entregas">Abrir pasta de entregas</button></div></div>
+      <div id="pg-perfis" class="chips seg"></div>
+      <div class="semana" id="pg-semana"></div>
       <div class="prog" id="pg-colunas"></div>
       <div class="cartao"><h2>O que o app aprendeu com você</h2><ul id="pg-aprendi" class="aprendi"></ul>
         <p class="dica">Marque ♥ Gostei e ✓ Postei nas versões e preencha as métricas dos posts: a versão IA de cada edição usa isso.</p></div>
@@ -253,6 +256,8 @@
                 <option value="sim">sim, assinada</option><option value="pendente">pendente</option>
                 <option value="nao_aparece">ninguém aparece</option><option value="proprio">conteúdo próprio</option>
               </select></label>
+            <label>Perfil do Instagram
+              <select id="c-conta"></select></label>
             <label>Objetivo do post (decide o CTA)
               <select id="c-objetivo"><option value="">(sem objetivo definido)</option>
                 <option value="enviar">Enviar: verdade que dá vontade de mandar para alguém</option>

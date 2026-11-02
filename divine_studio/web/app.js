@@ -14,6 +14,21 @@ async function api(caminho, corpo) {
   return j;
 }
 
+// avisos discretos no canto (no lugar das janelas que travam a tela); toque para fechar
+const _alertaNativo = window.alert.bind(window);
+function aviso(msg, tipo = "") {
+  let caixa = document.querySelector(".toasts");
+  if (!caixa) { caixa = document.createElement("div"); caixa.className = "toasts"; document.body.appendChild(caixa); }
+  const t = document.createElement("div");
+  t.className = "toast " + tipo;
+  t.textContent = String(msg);
+  t.onclick = () => t.remove();
+  caixa.appendChild(t);
+  setTimeout(() => t.classList.add("sai"), Math.min(9000, 3500 + String(msg).length * 40));
+  setTimeout(() => t.remove(), Math.min(9600, 4100 + String(msg).length * 40));
+}
+window.alert = (msg) => { try { aviso(msg, /erro|falh|não |nao |recus|precisa|bloque/i.test(String(msg)) ? "erro" : ""); } catch (e) { _alertaNativo(msg); } };
+
 function esc(t) {
   return String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
@@ -69,7 +84,7 @@ async function carregarLista() {
     .filter((p) => !tagFiltro || p.tags.includes(tagFiltro))
     .filter((p) => !tipoFiltro || p.categoria === tipoFiltro)
     .map((p) => `<li data-nome="${esc(p.nome)}" class="${p.nome === atual ? "ativo" : ""} ${p.pacote ? "peca" : ""}">
-        <div class="t">${p.epico ? '<span class="epico">✦</span> ' : ""}${esc(p.titulo)}${p.aprovado ? '<span class="selo">aprovado</span>' : ""}</div>
+        <div class="t">${p.epico ? '<span class="epico">✦</span> ' : ""}${esc(p.titulo)}${p.conta && p.conta !== "dvmedicalspa" ? ` <span class="perfil">@${esc(p.conta)}</span>` : ""}${p.aprovado ? '<span class="selo">aprovado</span>' : ""}</div>
         <div class="m">${({ carrossel: "carrossel", post: "post", antes_depois: "antes e depois · uso interno", stories: "stories · " + esc(p.template), tv: "TV" })[p.categoria] || esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
         ${p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
       </li>`).join("") || '<li class="m">Nenhum projeto ainda.</li>';
@@ -111,6 +126,8 @@ async function abrir(nome) {
   $("#c-autorizacao").value = dados.autorizacao_imagem;
   $("#c-tags").value = (dados.tags || []).join(", ");
   $("#c-objetivo").value = dados.objetivo || "";
+  $("#c-conta").innerHTML = `<option value="">Automático pelo template (@${esc(dados.conta || "nenhum")})</option>` +
+    Object.entries(dados.perfis || {}).map(([u, n]) => `<option value="${esc(u)}" ${dados.conta_definida === u ? "selected" : ""}>@${esc(u)} · ${esc(n)}</option>`).join("");
   $("#c-ritmo").value = dados.epico ? "epico" : (dados.ritmo || "viral");
   $("#c-qualidade").checked = !!dados.qualidade;
   $("#c-qualidade-info").textContent = dados.qualidade_info || "";
@@ -144,6 +161,7 @@ $("#c-tags").onchange = async (e) => {
   const tags = [...new Set(e.target.value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))];
   try { await api("/api/dados", { p: atual, dados: { tags } }); abrir(atual); } catch (err) { alert(err.message); }
 };
+$("#c-conta").onchange = (e) => api("/api/dados", { p: atual, dados: { conta: e.target.value || null } }).then(() => carregarLista()).catch((err) => alert(err.message));
 $("#c-ritmo").onchange = (e) => api("/api/dados", { p: atual, dados: { ritmo: e.target.value, epico: null } }).catch((err) => alert(err.message));
 $("#c-qualidade").onchange = (e) => api("/api/dados", { p: atual, dados: { qualidade: e.target.checked ? "maxima" : null } }).catch((err) => alert(err.message));
 $$(".formatos input").forEach((c) => c.onchange = async () => {
