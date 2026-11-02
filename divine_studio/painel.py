@@ -107,13 +107,13 @@ def listar() -> list:
                     "previas": len([s for s in saidas if "_PREVIA" in s.name]),
                     "finais": len([s for s in saidas if "_PREVIA" not in s.name]),
                     "aprovado": (pasta / "trabalho" / "aprovacao.json").exists(),
-                    "pacote": "-pacote/" in nome or "-formatos/" in nome,
+                    "pacote": "-pacote/" in nome or "-formatos/" in nome or "-cortes/" in nome,
                     "tags": [str(t) for t in d.get("tags") or []],
                     "tipo": d.get("tipo") if d.get("tipo") in ("carrossel", "post", "antes_depois") else "video",
                     "categoria": categoria(d), "epico": d.get("ritmo") == "epico" or bool(d.get("epico")),
                     "importado": bool(d.get("importado")), "conta": _conta(d)})
     # mais recente primeiro; as peças de um pacote e os outros formatos logo abaixo do projeto de origem
-    raiz = lambda nome: re.split(r"-(?:pacote|formatos)/", nome)[0]   # noqa: E731
+    raiz = lambda nome: re.split(r"-(?:pacote|formatos|cortes)/", nome)[0]   # noqa: E731
     out.sort(key=lambda x: (raiz(x["nome"]), 0 if not x["pacote"] else 1, x["nome"]))
     grupos = {}
     for x in out:
@@ -145,7 +145,10 @@ TIPOS_EDICAO = {
     "video": {"dados": {"formato": "reels"}},
     "epico": {"dados": {"formato": "reels", "ritmo": "epico", "tags": ["vídeo épico"]}},
     "stories": {"dados": {"formato": "stories", "tags": ["stories"]}},
+    "longo": {"dados": {"formato": "reels", "tags": ["vídeo longo"]}},
     "tv": {"dados": {"template": "tv", "formato": "tv", "tags": ["tv"]}},
+    "react": {"dados": {"template": "react", "formato": "reels", "layout": "auto", "legendas": "true",
+                        "tags": ["tela dividida"]}},
 }
 
 
@@ -268,6 +271,7 @@ def videos() -> list:
             pub = pubs.get(rel) or pubs_v.get(versao) or {}
             previa = "_PREVIA" in f.name
             out.append({"projeto": nome, "titulo": d.get("titulo", nome), "versao": versao, "arquivo": rel,
+                        "na_tv": pub.get("na_tv"),
                         "previa": previa, "status": pub.get("status") or ("" if previa else "final"),
                         "validado": bool(pub.get("validado")), "gostei": bool(pub.get("gostei")),
                         "categoria": categoria(d), "tags": [str(t) for t in d.get("tags") or []],
@@ -275,6 +279,17 @@ def videos() -> list:
                         "mb": round(f.stat().st_size / 1e6, 1),
                         "views": (pub.get("metricas") or {}).get("views") or (pub.get("metricas") or {}).get("alcance")})
     return sorted(out, key=lambda x: -x["quando"])
+
+
+def canal_tv() -> list:
+    """Programação da TV da clínica: vídeos 16:9 finais (e os que você marcar 📺 Na TV), sem uso interno de consulta."""
+    out = []
+    for i in videos():
+        if i.get("na_tv") is False:
+            continue
+        if i.get("na_tv") or (i["categoria"] == "tv" and not i["previa"]):
+            out.append({"projeto": i["projeto"], "titulo": i["titulo"], "arquivo": i["arquivo"], "versao": i["versao"]})
+    return sorted(out, key=lambda x: x["titulo"])
 
 
 def galeria() -> list:
@@ -388,6 +403,10 @@ def detalhe(nome: str) -> dict:
             "templates": list(TEMPLATES), "job": _job_do_projeto(nome),
             "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
             "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video"),
+            "corte": d.get("corte"),
+            "react": {"layout": d.get("layout", "auto"), "credito": d.get("credito", ""),
+                      "referencias": [c.get("arquivo") for c in d.get("clipes_referencia") or []]}
+            if d.get("template") == "react" else None,
             "subtitulo": d.get("subtitulo", ""), "pares": d.get("pares") or [], "cta": d.get("cta", ""),
             "conta": _conta(d), "conta_definida": d.get("conta"),
             "perfis": _perfis(),
@@ -425,7 +444,8 @@ CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
                     "qualidade", "ritmo", "epico", "validado", "copy_dublagem", "clipes", "cor",
-                    "ritmo_fixo", "dissolve", "musica_licenciada", "conta"}
+                    "ritmo_fixo", "dissolve", "musica_licenciada", "conta",
+                    "clipes_referencia", "layout", "credito", "divisoria"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -674,7 +694,7 @@ ACOES = {
     "revisar": ["revisar"], "transcrever": ["transcrever"], "cortar": ["cortar"], "legenda": ["legenda"],
     "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"], "auto": ["auto", "--previa"],
     "formatos": ["formatos"], "formatos_final": ["formatos", "--final"], "carrossel": ["carrossel", "exportar"],
-    "post": ["post", "exportar"], "antesdepois": ["antesdepois", "exportar"],
+    "post": ["post", "exportar"], "antesdepois": ["antesdepois", "exportar"], "cortes": ["cortes"],
 }
 
 
@@ -728,7 +748,7 @@ def estado(jid: str) -> dict:
     # linhas de progresso do render ("  5.0s / 12.7s") viram só a última
     linhas = [ln for ln in texto.splitlines() if not re.match(r"^\s+[\d.]+s / [\d.]+s$", ln)]
     prog = re.findall(r"^\s+([\d.]+)s / ([\d.]+)s$", texto, re.M)
-    return {"id": jid, "acao": j["acao"], "estado": j["estado"], "log": "\n".join(linhas[-200:]),
+    return {"id": jid, "acao": j["acao"], "estado": j["estado"], "versoes": j.get("versoes") or [], "log": "\n".join(linhas[-200:]),
             "progresso": [float(prog[-1][0]), float(prog[-1][1])] if prog else None,
             "segundos": round(time.time() - j["inicio"])}
 
@@ -925,6 +945,24 @@ class Painel(BaseHTTPRequestHandler):
                                    "codigo": Painel.codigo if self.client_address[0] in LOCAIS else None})
             if u.path == "/api/videos":
                 return self._json(videos())
+            if u.path == "/api/opiniao":
+                from . import aprendizado, feedback
+                pasta = _pasta(q["p"])
+                pub = next((x for x in aprendizado.ler(pasta).get("publicacoes") or [] if x.get("versao") == q["v"]), {})
+                return self._json({"app": feedback.opiniao_app(pasta, q["v"]), "sua": pub.get("feedback") or {},
+                                   "comentario_ia": pub.get("comentario_ia"), "reacoes": feedback.REACOES,
+                                   "ajustes": feedback.explicar(feedback.ajustes())})
+            if u.path == "/api/crescimento":
+                from . import crescimento
+                return self._json(crescimento.resumo())
+            if u.path == "/api/integracoes":
+                from . import integracoes
+                ok, motivo = integracoes.nano_banana_ok()
+                return self._json({"ferramentas": integracoes.catalogo(), "nano_banana": ok, "motivo": motivo})
+            if u.path == "/api/tv":
+                return self._json(canal_tv())
+            if u.path in ("/tv", "/tv/"):
+                return self._arquivo(WEB / "tv.html")
             if u.path == "/api/galeria":
                 return self._json(galeria())
             if u.path == "/miniatura.jpg":
@@ -1067,6 +1105,38 @@ class Painel(BaseHTTPRequestHandler):
                                            bool(dados.get("simular"))))
             if u.path == "/api/fixar_linha":
                 return self._json(fixar_linha(dados["p"], dados.get("versao")))
+            if u.path == "/api/opiniao":
+                from . import feedback
+                return self._json(feedback.registrar(_pasta(dados["p"]), dados["versao"], dados.get("reacoes") or [],
+                                                     dados.get("texto", ""), dados.get("nota")))
+            if u.path == "/api/opiniao/ia":
+                from . import feedback
+                return self._json({"texto": feedback.comentario_ia(_pasta(dados["p"]), dados["versao"])})
+            if u.path == "/api/crescimento/seguidores":
+                from . import crescimento
+                crescimento.registrar_seguidores(dados["conta"], int(dados["n"]))
+                return self._json({"ok": True})
+            if u.path == "/api/crescimento/stories":
+                from . import crescimento
+                crescimento.marcar_stories(dados["conta"], feito=bool(dados.get("feito", True)))
+                return self._json({"ok": True})
+            if u.path == "/api/crescimento/puxar":
+                from . import crescimento
+                return self._json(crescimento.puxar_seguidores())
+            if u.path == "/api/quadro":
+                from . import integracoes
+                pasta = _pasta(dados["p"])
+                video = _arquivo_do_projeto(pasta, dados["arquivo"])
+                nome = integracoes.nome_saida("quadro")
+                integracoes.quadro(video, float(dados.get("t", 0)), pasta / "bruto" / nome)
+                return self._json({"arquivo": f"bruto/{nome}"})
+            if u.path == "/api/nanobanana":
+                from . import integracoes
+                pasta = _pasta(dados["p"])
+                img = _arquivo_do_projeto(pasta, dados["imagem"])
+                nome = integracoes.nome_saida("nanobanana")
+                integracoes.nano_banana(img, dados.get("pedido", ""), pasta / "bruto" / nome)
+                return self._json({"arquivo": f"bruto/{nome}"})
             if u.path == "/api/duplicar":
                 return self._json({"nome": duplicar(dados["p"])})
             if u.path == "/api/arquivar":
@@ -1090,6 +1160,14 @@ class Painel(BaseHTTPRequestHandler):
                 pasta = _pasta(dados["p"])
                 texto = (pasta / "projeto.yaml").read_text(encoding="utf-8")
                 salvar_yaml(dados["p"], trocar_campo(texto, dados["campo"], dados["valor"]))
+                return self._json({"ok": True})
+            if u.path == "/api/clipe" and dados.get("referencia"):
+                pasta = _pasta(dados["p"])
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                refs = [{"arquivo": f"bruto/{Path(dados['arquivo']).name}", "mudo": True}]
+                if dados.get("somar"):
+                    refs = list(d.get("clipes_referencia") or []) + refs
+                salvar_dados(dados["p"], {"clipes_referencia": refs})
                 return self._json({"ok": True})
             if u.path == "/api/clipe":
                 pasta = _pasta(dados["p"])
@@ -1184,7 +1262,7 @@ class Painel(BaseHTTPRequestHandler):
                 from . import aprendizado
                 campos = {k: v for k, v in (dados.get("campos") or {}).items()
                           if k in ("status", "gostei", "nao_gostei", "data_agendada", "data_postagem", "rede", "link",
-                                   "metricas", "obs", "validado")}
+                                   "metricas", "obs", "validado", "na_tv")}
                 if campos.get("status") and campos["status"] not in aprendizado.STATUS:
                     raise ValueError("status inválido")
                 pasta_pub = _pasta(dados["p"])

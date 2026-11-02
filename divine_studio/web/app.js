@@ -117,15 +117,27 @@ async function abrir(nome) {
   }
   $("#carrossel").hidden = true;
   if (window.pedidosHtml) $("#p-pedidos").innerHTML = pedidosHtml(dados.pedidos_imagem);
+  if ((dados.tags || []).includes("vídeo longo")) {
+    $("#p-pedidos").insertAdjacentHTML("afterbegin", `<div class="cartao destaque-longo"><b>✂ Vídeo longo</b>
+      <span>${dados.brutos.length ? "Pronto: gere os cortes curtos, médios, longos, melhores momentos e Stories." : "Solte o vídeo longo em Vídeos brutos (aba Projeto) e depois gere os cortes."}</span>
+      ${dados.brutos.length ? '<button class="dourado" id="b-cortes">Gerar cortes</button>' : ""}</div>`);
+    if ($("#b-cortes")) $("#b-cortes").onclick = () => rodar("cortes");
+  }
   $("#projeto").hidden = false;
   desenharPassos();
   $("#p-titulo").textContent = dados.titulo;
-  $("#p-pasta").textContent = "projetos/" + dados.nome;
+  $("#p-pasta").textContent = "projetos/" + dados.nome + (dados.corte ? ` · trecho ${dados.corte.de} a ${dados.corte.ate} (${Math.round(dados.corte.duracao_s)} s)` : "");
   $("#c-template").innerHTML = dados.templates.map((t) => `<option ${t === dados.template ? "selected" : ""}>${t}</option>`).join("");
   $("#c-formato").value = dados.formato;
   $("#c-autorizacao").value = dados.autorizacao_imagem;
   $("#c-tags").value = (dados.tags || []).join(", ");
   $("#c-objetivo").value = dados.objetivo || "";
+  $("#react-cartao").hidden = !dados.react;
+  if (dados.react) {
+    $("#react-layout").value = dados.react.layout || "auto";
+    $("#react-credito").value = dados.react.credito || "";
+    $("#react-refs").innerHTML = dados.react.referencias.length ? "Vídeo analisado: <b>" + dados.react.referencias.map((r) => esc(r.split("/").pop())).join(", ") + "</b>" : "Ainda sem o vídeo analisado.";
+  }
   $("#c-conta").innerHTML = `<option value="">Automático pelo template (@${esc(dados.conta || "nenhum")})</option>` +
     Object.entries(dados.perfis || {}).map(([u, n]) => `<option value="${esc(u)}" ${dados.conta_definida === u ? "selected" : ""}>@${esc(u)} · ${esc(n)}</option>`).join("");
   $("#c-ritmo").value = dados.epico ? "epico" : (dados.ritmo || "viral");
@@ -246,6 +258,7 @@ function desenharVideos() {
       <div class="nome">${esc(s.nome)} · ${s.mb} MB</div>
       ${ns[s.versao] ? `<div class="nota">${esc(ns[s.versao])}</div>` : ""}
       <div class="pub">
+        <button class="pb conversa ${pub.feedback ? "on" : ""}" data-pub="conversa" title="O que o app acha e o que você acha desta versão">💬 ${pub.feedback ? "Sua opinião" : "Conversar"}</button>
         <button class="pb ${pub.validado ? "on" : ""}" data-pub="validar" title="Validar: entra na Galeria (dá para editar depois)">★ ${pub.validado ? "Na galeria" : "Validar"}</button>
         <button class="pb ${pub.gostei ? "on" : ""}" data-pub="gostei" title="Gostei: o app aprende com isso">♥ Gostei</button>
         <button class="pb ${pub.status === "postado" ? "on" : ""}" data-pub="postei" title="Marcar como postado">✓ Postei</button>
@@ -270,6 +283,7 @@ async function acaoPublicacao(card, acao) {
   const pub = (dados.publicacoes || []).find((p) => p.versao === versao) || {};
   try {
     if (acao === "gostei") await marcarPub(versao, { gostei: !pub.gostei }, arq);
+    else if (acao === "conversa") return abrirConversa(versao);
     else if (acao === "validar") await marcarPub(versao, pub.validado ? { validado: null } : { validado: true, gostei: true }, arq);
     else if (acao === "postei") {
       const link = prompt("Link do post (opcional, ajuda a puxar as métricas depois):", pub.link || "");
@@ -374,7 +388,9 @@ function acompanhar(job, titulo) {
       $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
       if (atual) abrir(atual);
       if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) $('[data-aba="versoes"]').click();
-      if (e.estado === "ok" && e.acao.startsWith("formatos")) carregarLista();
+      if (e.estado === "ok" && (e.acao.startsWith("formatos") || e.acao === "cortes" || e.acao === "pacote")) carregarLista();
+      if (e.estado === "ok" && e.acao === "cortes") alert("Cortes prontos: estão na lista de projetos, logo abaixo deste vídeo.");
+      if (e.estado === "ok" && e.acao === "final") setTimeout(() => abrirConversa((e.versoes && e.versoes[0]) || "V1").catch(() => {}), 1200);
       if (e.estado === "ok" && (e.acao === "cortar" || e.acao === "legenda")) $('[data-aba="relatorio"]').click();
       if (e.estado === "ok" && ["revisar", "legenda", "cortar"].includes(e.acao)) setTimeout(() => { if (!jobAtivo) $("#tarefa").hidden = true; }, 6000);
     }
@@ -449,3 +465,72 @@ $("#b-arquivar").onclick = async () => {
     alert("Guardado em " + r.destino);
   } catch (err) { alert(err.message); }
 };
+
+
+// ---------------------------------------------------------------- conversa sobre a versão: o app x você
+async function abrirConversa(versao) {
+  const d = await api(`/api/opiniao?p=${encodeURIComponent(atual)}&v=${encodeURIComponent(versao)}`);
+  const iaOk = (await estadoIA().catch(() => ({}))).ok;
+  const sel = new Set((d.sua.reacoes || []));
+  const m = document.createElement("div");
+  m.className = "modal";
+  const app = d.app;
+  m.innerHTML = `<div class="cartao conversa-caixa">
+    <div class="linha-titulo"><h2>💬 ${esc(versao)}: o que eu acho e o que você acha</h2><button class="link" data-f>fechar</button></div>
+    <div class="dois-lados">
+      <div class="lado lado-app"><h3>✦ O app</h3>${app.tem ? `
+        <div class="nota-grande ${app.viraliza ? "boa" : ""}">${app.nota}<small>/10</small></div>
+        <p><b>${esc(app.veredito)}</b></p>
+        <div class="barras">${Object.entries(app.notas).map(([k, v]) => `<div><span>${esc(k)}</span><i style="width:${v * 10}%"></i><b>${v}</b></div>`).join("")}</div>
+        ${app.sugestoes.length ? `<p class="dica">O que eu mudaria:</p><ul>${app.sugestoes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        <p class="dica">${esc(app.proximo)}</p>` : '<p class="dica">Gere a prévia desta versão para eu dar a minha nota.</p>'}
+        ${iaOk ? `<button data-ia>${d.comentario_ia ? "✦ Pedir outro comentário da IA" : "✦ Pedir comentário da IA (olha o vídeo)"}</button>` : ""}
+        <div class="ia-texto md">${d.comentario_ia ? md(d.comentario_ia) : ""}</div>
+      </div>
+      <div class="lado voce"><h3>Você</h3>
+        <div class="reacoes">${Object.entries(d.reacoes).map(([k, n]) => `<button class="chip ${sel.has(k) ? "ativo" : ""}" data-r="${k}">${esc(n)}</button>`).join("")}</div>
+        <label>Nota (1 a 5)<div class="estrelas">${[1, 2, 3, 4, 5].map((n) => `<button data-n="${n}" class="${(d.sua.nota_usuario || 0) >= n ? "on" : ""}">★</button>`).join("")}</div></label>
+        <label>Observações (escreva do seu jeito: "achei lento", "faltou som", "texto pequeno"...)
+          <textarea id="cv-texto" rows="3">${esc(d.sua.texto || "")}</textarea></label>
+        <button class="dourado" data-enviar>Enviar minha opinião</button>
+        <div class="resposta" id="cv-resp">${d.ajustes ? `<p class="dica">Nos próximos vídeos: ${d.ajustes.map(esc).join(" · ")}</p>` : ""}</div>
+      </div>
+    </div></div>`;
+  document.body.appendChild(m);
+  let nota = d.sua.nota_usuario || null;
+  const fechar = () => { m.remove(); abrir(atual); };
+  m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) fechar(); };
+  m.querySelectorAll("[data-r]").forEach((b) => b.onclick = () => { b.classList.toggle("ativo"); sel.has(b.dataset.r) ? sel.delete(b.dataset.r) : sel.add(b.dataset.r); });
+  m.querySelectorAll("[data-n]").forEach((b) => b.onclick = () => { nota = +b.dataset.n; m.querySelectorAll("[data-n]").forEach((x) => x.classList.toggle("on", +x.dataset.n <= nota)); });
+  m.querySelector("[data-enviar]").onclick = async () => {
+    try {
+      const r = await api("/api/opiniao", { p: atual, versao, reacoes: [...sel], texto: m.querySelector("#cv-texto").value, nota });
+      const conc = r.concordam === null ? "" : r.concordam ? "<p>🤝 Concordamos sobre viralizar.</p>"
+        : "<p>🤔 Discordamos sobre viralizar: as métricas vão dizer quem acertou, e eu aprendo com isso.</p>";
+      m.querySelector("#cv-resp").innerHTML = `${conc}${r.lidas_do_texto.length ? `<p class="dica">Entendi do seu texto: ${r.lidas_do_texto.map((x) => esc(d.reacoes[x])).join(", ")}</p>` : ""}
+        <p><b>Nos próximos vídeos:</b> ${r.explicacao.map(esc).join(" · ")}</p>`;
+    } catch (err) { alert(err.message); }
+  };
+  const bia = m.querySelector("[data-ia]");
+  if (bia) bia.onclick = async () => {
+    bia.disabled = true; bia.textContent = "Olhando o vídeo… (até 1 min)";
+    try { const r = await api("/api/opiniao/ia", { p: atual, versao }); m.querySelector(".ia-texto").innerHTML = md(r.texto); }
+    catch (err) { alert(err.message); }
+    bia.disabled = false; bia.textContent = "✦ Pedir outro comentário da IA";
+  };
+}
+
+
+// tela dividida: vídeo analisado, layout e crédito
+$("#react-layout").onchange = (e) => api("/api/dados", { p: atual, dados: { layout: e.target.value } }).catch((err) => alert(err.message));
+$("#react-credito").onchange = (e) => api("/api/dados", { p: atual, dados: { credito: e.target.value.trim() || null } }).catch((err) => alert(err.message));
+$("#react-arq").onchange = async () => {
+  const f = $("#react-arq").files[0]; if (!f) return;
+  $("#react-refs").textContent = "Enviando…";
+  const r = await fetch(`/api/upload?p=${encodeURIComponent(atual)}&nome=${encodeURIComponent(f.name)}`, { method: "POST", body: f });
+  const j = await r.json(); if (!r.ok) return alert(j.erro);
+  await api("/api/clipe", { p: atual, arquivo: f.name, referencia: true });
+  abrir(atual);
+};
+
+$("#b-tv").onclick = () => window.open("/tv", "_blank");

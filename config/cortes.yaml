@@ -1,0 +1,18 @@
+# Cortes de vídeo longo: um vídeo bruto longo (podcast, consulta explicada, bastidor) vira várias peças.
+# Os trechos são escolhidos pela fala (frases inteiras, começo forte) quando há transcrição; sem ela, pelas pausas.
+tamanhos:
+  curto:  {nome: "CURTO",  min_s: 12, max_s: 25, quantos: 3, versoes: 3}
+  medio:  {nome: "MÉDIO",  min_s: 28, max_s: 45, quantos: 2, versoes: 3}
+  longo:  {nome: "LONGO",  min_s: 55, max_s: 90, quantos: 1, versoes: 2}
+melhores_momentos: {nome: "MELHORES MOMENTOS", alvo_s: 30, min_frases: 3, distancia_min_s: 8, versoes: 3}
+stories: {nome: "STORIES", max_s: 15, quantos: 2, versoes: 1}
+
+# O que torna uma frase boa para abrir um corte (gancho) e para segurar a atenção
+pontuacao:
+  pergunta: 2.0            # frase com "?"
+  numero: 1.5              # tem número (3 passos, 90 dias...)
+  palavras_forca: 1.0      # cada palavra da lista abaixo
+  abre_com_voce: 1.0       # começa com "você", "sabe", "o que", "por que", "como"
+  curta_demais_s: 1.2      # frase menor que isso perde ponto (muleta)
+palavras_forca: [você, segredo, erro, erros, ninguém, verdade, nunca, sempre, mito, cuidado, atenção, diferença,
+                 importante, problema, solução, motivo, ninguem, maioria, todo mundo, pior, melhor, real, sinal]

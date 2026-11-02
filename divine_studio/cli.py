@@ -335,6 +335,13 @@ def cmd_editar(a):
                 print("  " + x.linha())
             raise SystemExit(f"Revisor bloqueou {nome}.")
         _gravar_linha(trabalho, nome, p, plano)
+        try:                                                   # suas opiniões: sons mais altos ou mais baixos
+            from .feedback import ajustes as _aj
+            off = float(_aj().get("ganho_sons_db", 0.0))
+            if off:
+                plano.eventos_sfx = [(t_, n_, g_ + off) for t_, n_, g_ in plano.eventos_sfx]
+        except Exception:
+            pass
         voz_v = voz
         if voz is not None and aud.get("volume_original_db"):
             voz_v = voz * float(10 ** (float(aud["volume_original_db"]) / 20))
@@ -358,6 +365,11 @@ def cmd_editar(a):
         ex = exportar(master, saida / arq, alta_qualidade=meta["alta_qualidade"], rapido=a.rapido,
                       limite_mb=p.get("limite_mb"), tv=p.get("formato") == "tv")
         nota = nota_viral(p, plano, ach_v, voz is not None)
+        n_ef = len([e for e in (p.get("efeitos") or []) + (getattr(plano, "efeitos_auto", None) or [])])
+        (trabalho / f"nota_{nome}.json").write_text(json.dumps({
+            **nota, "media": round(sum(nota["notas"].values()) / max(1, len(nota["notas"])), 1),
+            "duracao": round(plano.duracao_total, 1), "efeitos": n_ef, "sons": len(plano.eventos_sfx),
+            "arquivo": f"saida/{arq}"}, ensure_ascii=False), encoding="utf-8")
         if not a.rapido and not a.teste and not p.get("uso_interno_sem_entrega"):
             _entregar(p, saida / arq, nome)
         folha = quadros(saida / arq, trabalho / f"{nome}_quadros.jpg")
@@ -569,6 +581,24 @@ def cmd_pacote(a):
             print(f"\n=== {nome}")
             cmd_editar(argparse.Namespace(projeto=str(pasta), versoes=None, refazer_base=False, forcar=False,
                                           teste=a.teste, rapido=a.rapido))
+
+
+def cmd_cortes(a):
+    from .cortes_longos import montar
+    p = ler_projeto(Path(a.projeto))
+    fn = None
+    try:
+        from .transcricao import motor_disponivel
+        if motor_disponivel() or any((p["_pasta"] / "trabalho" / "transcricoes").glob("*.json")):
+            fn = _transcritor(p["_pasta"])
+    except Exception:
+        fn = None
+    if fn is None:
+        print("  sem transcrição: os cortes seguem as pausas do áudio (com faster-whisper eles seguem as frases)")
+    criadas = montar(p, fn)
+    for pasta, nome, c in criadas:
+        print(f"  {nome:22} {c['de']}–{c['ate']} ({c['duracao_s']:.0f}s, nota {c['nota']})  {pasta.relative_to(ROOT)}")
+    print(f"{len(criadas)} cortes criados. Abra cada um no painel e gere as prévias.")
 
 
 def cmd_legenda(a):
@@ -815,6 +845,9 @@ def main(argv=None):
     s.add_argument("--objetivo", choices=["salvar", "enviar", "comentar", "seguir"])
     s.add_argument("--estilo", default="divine", choices=["divine", "claro", "daniel", "george", "pessoal"])
     s.set_defaults(f=cmd_carrossel)
+    s = sub.add_parser("cortes", help="vídeo longo vira cortes curtos, médios, longos, melhores momentos e Stories")
+    s.add_argument("projeto")
+    s.set_defaults(f=cmd_cortes)
     s = sub.add_parser("importar", help="traz os vídeos brutos e editados da pasta Divine Medical Spa Marketing")
     s.add_argument("origem", nargs="?")
     s.add_argument("--copiar", action="store_true", help="copia os arquivos (padrão: atalhos, sem ocupar espaço)")

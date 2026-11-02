@@ -1,0 +1,34 @@
+# O que o Instagram valoriza agora (usado pela tela Crescimento, pela nota viral e pela IA).
+# Atualizado por pesquisa; a tarefa agendada "Atualizar algoritmo do Instagram" revisa este arquivo toda semana.
+# Fontes secundárias (blogs de marketing que citam o Instagram e Adam Mosseri): tratar como direção, não como lei.
+atualizado_em: "2026-11-02"
+fontes:
+  - "https://later.com/blog/instagram-reels-algorithm/"
+  - "https://www.epidemicsound.com/blog/how-the-instagram-algorithm-works/"
+  - "https://smashballoon.com/how-the-instagram-algorithm-works/"
+  - "https://creatorflow.so/blog/instagram-algorithm-2026"
+
+sinais:          # em ordem de peso para Reels (o formato que mais traz seguidor novo)
+  - {nome: "Tempo assistido e conclusão", dica: "Gancho em 1 s, vídeo de 20 a 35 s, nada de apresentação; loop no final."}
+  - {nome: "Envios (DM e compartilhar)", dica: "Conteúdo que dá vontade de mandar para alguém: verdade, erro comum, 'manda pra amiga'."}
+  - {nome: "Salvamentos", dica: "Lista, passo a passo, checklist: quem salva volta e o post sobe."}
+  - {nome: "Replays", dica: "Final que emenda no começo; texto que só dá para ler vendo de novo (com moderação)."}
+  - {nome: "Originalidade", dica: "Vídeo próprio, sem marca d'água de outro app; repost sem mudança perde alcance."}
+  - {nome: "Curtidas e comentários", dica: "Contam menos que envios e salvamentos; pergunta real no fim ajuda."}
+
+# Rotina que costuma fazer conta crescer em seguidor (metas da semana na tela Crescimento)
+metas_semana:
+  reels: 4                 # Reels postados por semana, por perfil
+  carrosseis: 1            # carrossel educativo (salvamentos)
+  stories_dias: 5          # dias com Stories (relacionamento; marque na tela)
+  dias_sem_postar_max: 3   # passou disso, o alcance esfria
+  com_cta_seguir: 0.5      # pelo menos metade dos posts com chamada para seguir na legenda ou no vídeo
+
+referencias_engajamento:   # por alcance (bom / ótimo), para comparar as métricas dos posts
+  envios: [0.01, 0.03]
+  salvamentos: [0.01, 0.03]
+  curtidas: [0.03, 0.06]
+
+meta_seguidores_mes:       # quantos seguidores novos por mês você quer em cada perfil
+  dvmedicalspa: 500
+  drdanielmendess: 800

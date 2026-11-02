@@ -74,7 +74,7 @@ def test_tv_uma_versao_janela_e_paineis():
 
 def test_react_divide_a_tela_e_da_credito():
     p = _proj(template="react", clipes=[{"arquivo": "fala.mov"}], clipes_referencia=[{"arquivo": "ref.mov"}],
-              credito="@perfil", legendas=True)
+              credito="@perfil", legendas=True, layout="dividida", divisoria=0.5)     # 50/50 fixo (o padrão é auto)
     p, pl = _montar("react", p)
     assert TEMPLATES["react"].tamanho_base(p, 1080, 1920) == (1080, 960)
     assert TEMPLATES["react"].extras(p, 1080, 1920)[0]["altura"] == 960

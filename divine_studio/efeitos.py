@@ -773,7 +773,12 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
         return
     for ef in lista:
         ef["tipo"] = resolver_tipo(ef)
-    ordem = espacar(lista, ritmo.espacamento(projeto, versao, float(_cfg().get("intervalo_minimo_s", 1.5))))
+    try:
+        from .feedback import ajustes as _aj
+        k_esp = min(1.0, float(_aj().get("intervalo_efeitos", 1.0)))
+    except Exception:
+        k_esp = 1.0
+    ordem = espacar(lista, ritmo.espacamento(projeto, versao, float(_cfg().get("intervalo_minimo_s", 1.5))) * k_esp)
     for k, ef in enumerate(ordem):
         if ef["inicio"] >= plano.inicio_fechamento:
             print(f"  aviso: efeito {ef['tipo']} começa depois do fim do vídeo; ignorado")

@@ -63,6 +63,11 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         ocupados.append((ini, ini + float(e.get("duracao", DURACAO_PADRAO.get(tipo, 3.0)))))
     folga = 0.3
     espaco = float(cfg.get("espacamento_minimo_s", 1.5)) + 0.05     # o mesmo mínimo do render: nada é empurrado
+    try:
+        from .feedback import ajustes as _aj
+        espaco *= min(1.0, float(_aj().get("intervalo_efeitos", 1.0)))
+    except Exception:
+        pass
     out = []
 
     def por(ef: dict, t: float) -> bool:
@@ -96,6 +101,12 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
             por(ef, max(0.0, c - float(ef.get("duracao", 0.4)) / 2))
     # meio: uma interrupção de padrão a cada intervalo, alternando os efeitos sem repetir em seguida
     a, b = cfg.get("intervalo_s", [2.6, 3.4])
+    try:                                                     # suas opiniões: mais efeitos = intervalo menor
+        from .feedback import ajustes
+        k_int = float(ajustes().get("intervalo_efeitos", 1.0))
+    except Exception:
+        k_int = 1.0
+    a, b = a * k_int, b * k_int
     lista = list(cfg.get("meio") or [])
     rnd.shuffle(lista)
     t, k = (2.2 if m == "viral" else 1.4), 0

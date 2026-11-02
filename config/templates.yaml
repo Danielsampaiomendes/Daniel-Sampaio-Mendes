@@ -36,7 +36,9 @@ george:                               # 5.4
   y_cta: 1230                         # CTA antecipado sobe para não bater na placa
 
 react:                                # 5.5 tela dividida
-  divisoria: 0.5                      # referência em cima, quem fala embaixo
+  divisoria: auto                     # auto: 60/40 (vertical/quadrada), 50% com o vídeo inteiro (deitada)
+  layout: auto                        # auto | dividida | cabecinha (vídeo em tela cheia, você no círculo do canto)
+  cabecinha_tamanho: 0.34             # diâmetro da janela redonda (fração da largura)
   legenda_posicao: 0.565              # logo acima da cabeça de quem fala, nunca sobre a referência
   credito_prefixo: "fonte:"
 

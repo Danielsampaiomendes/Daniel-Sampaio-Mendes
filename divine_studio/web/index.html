@@ -24,10 +24,12 @@
     <button data-tela="nova" class="m-nova"><i>＋</i>Nova edição</button>
     <button data-tela="projetos"><i>▤</i>Projetos</button>
     <button data-tela="galeria"><i>▶</i>Vídeos</button>
+    <button data-tela="crescimento"><i>↗</i>Crescimento</button>
     <button data-tela="programacao"><i>◷</i>Programação</button>
     <button data-tela="ia"><i>✦</i>Ideias e IA</button>
     <button data-tela="referencias"><i>◎</i>Referências</button>
     <button data-tela="biblioteca"><i>▣</i>Imagens</button>
+    <button id="b-tv" title="Divine TV: os vídeos da TV passando em loop (abre em outra aba)"><i>📺</i>TV</button>
     <button id="b-celular" title="Abrir no iPhone"><i>📱</i>iPhone</button>
   </nav>
 </header>
@@ -95,6 +97,14 @@
       <div class="galeria" id="gal-grade"></div>
     </section>
 
+    <section id="crescimento" class="tela" hidden>
+      <div class="cabecalho"><div><h1>Crescimento</h1>
+        <div class="pasta">Todo dia: o plano de hoje, as metas da semana, a projeção de seguidores e o que o algoritmo valoriza agora.</div></div>
+        <div class="acoes"><button id="cr-puxar">↻ Puxar seguidores do Instagram</button></div></div>
+      <div id="cresc-perfis" class="cresc-perfis"></div>
+      <div class="cartao"><h2>O que o Instagram valoriza agora</h2><ol id="cresc-alg" class="alg"></ol><p class="dica" id="cresc-alg-data"></p></div>
+    </section>
+
     <section id="programacao" class="tela" hidden>
       <div class="cabecalho"><div><h1>Programação</h1>
         <div class="pasta">Tudo o que foi aprovado, agendado, postado e o que está na TV. As finais ficam em <code>entregas/AAAA-MM/</code>.</div></div>
@@ -114,6 +124,7 @@
           Quando a ideia ficar boa, crie o projeto com um clique.</div></div>
         <div class="acoes"><button id="ia-desempenho">Analisar desempenho no Instagram</button></div></div>
       <div class="cartao chat" id="chat-geral"></div>
+      <div class="cartao"><h2>Integrações com IAs de imagem e vídeo</h2><div id="integracoes" class="integracoes"></div></div>
     </section>
 
     <section id="referencias" class="tela" hidden>
@@ -222,6 +233,7 @@
             <div class="mais-menu">
               <button data-acao="revisar" title="Compliance CFM/Anvisa e regras do Renato">Revisar textos (CFM/Anvisa)</button>
               <button data-acao="cortar" title="Mostra o que sai e o que fica no corte limpo">Ver o corte limpo</button>
+              <button data-acao="cortes" title="Vídeo longo vira cortes curtos, médios, longos, melhores momentos e Stories">✂ Cortes do vídeo longo</button>
               <button data-acao="pacote" title="Cria as peças por categoria (longo, curto, viral, TV...)">Pacote por categoria</button>
               <button id="b-duplicar" title="Cópia do projeto (mesmos brutos) para testar outra ideia">Duplicar projeto</button>
               <button id="b-arquivar" title="Tira da lista sem apagar (vai para _arquivo/projetos)">Arquivar projeto</button>
@@ -294,6 +306,20 @@
             </div>
           </div>
 
+          <div class="cartao react-cartao" id="react-cartao" hidden>
+            <h2>Tela dividida: o vídeo que você analisa</h2>
+            <p class="dica">Em "Vídeos brutos" vai você falando. Aqui vai o vídeo que aparece junto (o seu Reels, de outro perfil ou um trecho).</p>
+            <div id="react-refs" class="dica"></div>
+            <label class="botao">Enviar o vídeo analisado<input type="file" id="react-arq" accept="video/*,image/*" hidden></label>
+            <label>Como aparece
+              <select id="react-layout">
+                <option value="auto">Automático (o app escolhe pelo formato do vídeo)</option>
+                <option value="dividida">Tela dividida: vídeo em cima, você embaixo</option>
+                <option value="cabecinha">Cabecinha: vídeo em tela cheia, você no círculo do canto</option>
+              </select></label>
+            <label>Crédito (obrigatório se o vídeo for de outra pessoa)<input id="react-credito" placeholder="@perfil"></label>
+          </div>
+
           <div class="cartao">
             <h2>Vídeos brutos</h2>
             <div id="soltar" class="soltar">
@@ -348,6 +374,7 @@
                 <button id="tl-add-som">♪ Som aqui</button>
                 <button id="tl-gravar">🎙 Gravar voz aqui</button>
                 <button id="tl-dividir" title="Divide o clipe no ponto do vídeo (como no CapCut)">✂ Dividir aqui</button>
+                <button id="tl-quadro" title="Tira o quadro deste ponto para Higgsfield, Canva ou Nano Banana">📸 Quadro</button>
               </div>
               <div id="tl-auto-info" class="tl-auto-info" hidden></div>
               <label class="check"><input type="checkbox" id="tl-sfx-auto" checked> sons automáticos (abertura, transições, fechamento)</label>

@@ -1,9 +1,9 @@
 // Telas do topo: Projetos, Programação, IA e ideias, Referências, Biblioteca.
-const TELAS = ["inicio", "nova", "projetos", "galeria", "programacao", "ia", "referencias", "biblioteca"];
+const TELAS = ["inicio", "nova", "projetos", "galeria", "crescimento", "programacao", "ia", "referencias", "biblioteca"];
 
 function mostrarTela(nome) {
   $$(".topo nav button").forEach((b) => b.classList.toggle("ativa", b.dataset.tela === nome));
-  const secoes = { inicio: "#vazio", nova: "#nova", galeria: "#galeria", programacao: "#programacao", ia: "#ia",
+  const secoes = { inicio: "#vazio", nova: "#nova", galeria: "#galeria", crescimento: "#crescimento", programacao: "#programacao", ia: "#ia",
                    referencias: "#referencias", biblioteca: "#biblioteca" };
   ["#escolha", "#projeto", "#carrossel", "#antesdepois", ...Object.values(secoes)].forEach((s) => { const el = $(s); if (el) el.hidden = true; });
   document.body.classList.toggle("com-lista", nome === "projetos");
@@ -14,7 +14,7 @@ function mostrarTela(nome) {
   }
   window.scrollTo(0, 0);
   const el = $(secoes[nome]); if (el) el.hidden = false;
-  const carregar = { inicio: carregarInicio, nova: montarNovaEdicao, galeria: window.carregarGaleria, programacao: carregarProgramacao, ia: window.carregarIA, referencias: window.carregarReferencias,
+  const carregar = { inicio: carregarInicio, nova: montarNovaEdicao, crescimento: () => window.carregarCrescimento(), galeria: window.carregarGaleria, programacao: carregarProgramacao, ia: window.carregarIA, referencias: window.carregarReferencias,
                      biblioteca: window.carregarBiblioteca }[nome];
   if (carregar) carregar();
 }
@@ -110,6 +110,8 @@ $("#pg-entregas").onclick = () => api("/api/abrir_pasta", { caminho: "entregas" 
 const EDICOES = [
   ["video", "🎬", "Vídeo (Reels)", "Envie os brutos: corte, hook em 3 versões, legenda da fala, efeitos e som no padrão viral luxo.", "ex.: Laser de CO2 no rosto"],
   ["epico", "✦", "Vídeo Épico", "A edição mais intensa: abertura em 3D, vertigem, chicote nos cortes, luz dourada e cor de cinema.", "ex.: Por dentro do Endolaser"],
+  ["longo", "✂", "Cortes de vídeo longo", "Solte um vídeo longo (podcast, explicação, bastidor): ele vira cortes curtos, médios, longos, melhores momentos e Stories.", "ex.: Podcast Dr. Daniel sobre CO2"],
+  ["react", "◧", "Tela dividida (eu analisando)", "Você comentando um vídeo: dividida (vídeo em cima, você embaixo) ou cabecinha no canto. O app escolhe a melhor proporção.", "ex.: Analisando o Reels do CO2"],
   ["stories", "📱", "Stories", "Vídeo vertical para Stories, com área segura, enquete e chamada para o direct.", "ex.: Bastidores da manhã"],
   ["carrossel", "▦", "Carrossel", "Cards no padrão Divine com rascunho por fórmula (lista, mito x verdade, método…).", "ex.: 5 mitos do Laser de CO2"],
   ["post", "▣", "Post (imagem)", "Uma arte só, que sai de uma vez em Feed 4:5, Stories e TV.", "ex.: Endolaser nos braços"],
@@ -212,7 +214,8 @@ function abrirPeca(i, url) {
       <div class="modal-info"><h2>${esc(i.titulo)}</h2><p class="dica">${esc(i.versao)} · ${esc(i.status || "validado")}</p>
         <div class="linha"><button class="dourado" data-a="editar">✎ Editar</button><button data-a="salvar">⤓ Salvar</button>
           ${i.status !== "postado" ? '<button data-a="postei">✓ Postei</button>' : ""}
-          <button data-a="validar">${i.validado ? "★ Tirar dos melhores" : "★ Validar"}</button><button data-a="fechar" class="link">fechar</button></div></div></div>`;
+          <button data-a="validar">${i.validado ? "★ Tirar dos melhores" : "★ Validar"}</button>
+          <button data-a="tv">${i.na_tv || (i.categoria === "tv" && !i.previa && i.na_tv !== false) ? "📺 Tirar da TV" : "📺 Na TV"}</button><button data-a="fechar" class="link">fechar</button></div></div></div>`;
   document.body.appendChild(m);
   const fechar = () => m.remove();
   m.onclick = (e) => { if (e.target === m) fechar(); };
@@ -223,6 +226,12 @@ function abrirPeca(i, url) {
   if (pb) pb.onclick = async () => {
     const link = prompt("Link do post (opcional):", ""); if (link === null) return;
     await api("/api/publicacao", { p: i.projeto, versao: i.versao, campos: { status: "postado", link: link || undefined } });
+    fechar(); window.carregarGaleria();
+  };
+  m.querySelector('[data-a="tv"]').onclick = async () => {
+    const naTv = i.na_tv || (i.categoria === "tv" && !i.previa && i.na_tv !== false);
+    await api("/api/publicacao", { p: i.projeto, versao: i.versao, arquivo: i.arquivo, campos: { na_tv: !naTv } });
+    alert(naTv ? "Saiu da Divine TV." : "Entrou na Divine TV (endereço /tv).");
     fechar(); window.carregarGaleria();
   };
   m.querySelector('[data-a="validar"]').onclick = async () => {
@@ -367,3 +376,45 @@ $("#pg-insta").onclick = async () => {
 };
 const _carregarProg = carregarProgramacao;
 carregarProgramacao = async function () { estadoInstagram(); return _carregarProg(); };
+
+
+// ---------------------------------------------------------------- Crescimento (por perfil)
+function sparkline(serie) {
+  if (!serie || serie.length < 2) return "";
+  const ys = serie.map((x) => x[1]), mn = Math.min(...ys), mx = Math.max(...ys), w = 220, h = 50;
+  const pts = ys.map((y, k) => `${(k / (ys.length - 1)) * w},${h - ((y - mn) / Math.max(1, mx - mn)) * (h - 6) - 3}`).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" class="spark"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+}
+window.carregarCrescimento = async () => {
+  const r = await api("/api/crescimento");
+  $("#cresc-perfis").innerHTML = r.perfis.map((p) => {
+    const pr = p.projecao;
+    return `<div class="cartao cresc" data-c="${esc(p.conta)}"><div class="linha-titulo"><h2>@${esc(p.conta)}</h2><span class="dica">${esc(p.nome)}</span></div>
+      ${pr.tem ? `<div class="cresc-num"><b>${Number(pr.atual).toLocaleString("pt-BR")}</b><span>seguidores</span>${sparkline(pr.serie)}</div>
+        <p>Ritmo: <b>${pr.por_mes >= 0 ? "+" : ""}${pr.por_mes}</b>/mês · em 30 dias: <b>${Number(pr.em_30).toLocaleString("pt-BR")}</b> · em 90: <b>${Number(pr.em_90).toLocaleString("pt-BR")}</b></p>
+        ${pr.meta_mes ? `<p class="${pr.no_ritmo ? "ok-txt" : "erro-txt"}">${pr.no_ritmo ? "✓ No ritmo da meta" : "Abaixo da meta"} de +${pr.meta_mes}/mês</p>` : ""}`
+        : '<p class="dica">Sem histórico ainda: anote os seguidores de hoje.</p>'}
+      <div class="linha"><input type="number" min="0" placeholder="seguidores hoje" class="cr-n"><button class="cr-ok">Anotar</button></div>
+      <h3>Hoje</h3><ul class="plano">${p.plano.map((x) => `<li ${x.projeto ? `data-p="${esc(x.projeto)}"` : x.ir ? `data-ir="${x.ir}"` : ""}>${esc(x.acao)}
+        ${x.stories ? '<button class="pb st-ok">✓ Fiz Stories</button>' : ""}</li>`).join("")}</ul>
+      <h3>Metas da semana</h3><ul class="req">${p.requisitos.map((x) => `<li class="${x.ok ? "ok" : "nao"}">${x.ok ? "✓" : "○"} ${esc(x.item)}</li>`).join("")}</ul>
+    </div>`;
+  }).join("");
+  $("#cresc-alg").innerHTML = r.algoritmo.sinais.map((x) => `<li><b>${esc(x.nome)}</b>: ${esc(x.dica)}</li>`).join("");
+  $("#cresc-alg-data").innerHTML = `Atualizado em ${esc((r.algoritmo.atualizado_em || "").split("-").reverse().join("/"))} (revisado toda semana). Fontes: ` +
+    r.algoritmo.fontes.map((f, k) => `<a href="${esc(f)}" target="_blank">${k + 1}</a>`).join(" · ");
+  $$(".cresc").forEach((el) => {
+    const conta = el.dataset.c;
+    el.querySelector(".cr-ok").onclick = async () => {
+      const n = el.querySelector(".cr-n").value; if (!n) return;
+      await api("/api/crescimento/seguidores", { conta, n: Number(n) }); window.carregarCrescimento();
+    };
+    const st = el.querySelector(".st-ok");
+    if (st) st.onclick = async (e) => { e.stopPropagation(); await api("/api/crescimento/stories", { conta }); window.carregarCrescimento(); };
+    el.querySelectorAll(".plano li[data-p]").forEach((li) => li.onclick = () => { mostrarTela("projetos"); abrir(li.dataset.p); });
+  });
+};
+$("#cr-puxar").onclick = async () => {
+  try { const r = await api("/api/crescimento/puxar", {}); alert(Object.keys(r).length ? Object.entries(r).map(([u, n]) => `@${u}: ${n}`).join("\n") : "Conecte o Instagram em Programação para puxar sozinho."); window.carregarCrescimento(); }
+  catch (err) { alert(err.message); }
+};

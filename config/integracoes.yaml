@@ -1,0 +1,36 @@
+# Ferramentas externas que combinam com o Divine Studio (tela Ideias e IA > Integrações e botão 📸 na Edição).
+nano_banana:
+  modelo: gemini-2.5-flash-image      # modelo de imagem do Gemini ("Nano Banana"); troque aqui se o Google mudar o nome
+  estilo: "Mantenha o padrão de luxo da Divine Medical Spa: luz quente, tons preto, dourado e off-white, aspecto fotográfico real, sem texto, sem logos de terceiros."
+
+ferramentas:
+  - nome: "Nano Banana (Google Gemini)"
+    para: "Editar foto ou quadro: trocar fundo, melhorar luz, criar capa e foto de tecnologia no padrão Divine."
+    como: "Direto do app com GEMINI_API_KEY (botão 📸 Quadro na Edição). Resultado entra em bruto/."
+    link: "https://aistudio.google.com/"
+    status: integrado
+  - nome: "Higgsfield"
+    para: "Movimentos de câmera de cinema (dolly, crash zoom, órbita) e b-roll a partir de uma foto ou quadro; mudar a perspectiva de uma cena."
+    como: "Tire o quadro com 📸, gere no Higgsfield e solte o vídeo de volta em Vídeos brutos."
+    link: "https://higgsfield.ai/"
+    status: manual
+  - nome: "vidIQ (conector do Claude, já conectado)"
+    para: "Vídeos acima da média de outros perfis (outliers), tendências e métricas do Instagram; publica Reels."
+    como: "Peça no chat do Claude: 'ache outliers de estética no Instagram' ou conecte o Instagram em app.vidiq.com."
+    link: "https://app.vidiq.com/"
+    status: conector
+  - nome: "Canva (conector do Claude)"
+    para: "Tirar fundo de foto, gerar imagem, montar peça estática no Canva com a marca."
+    como: "Peça no chat do Claude; o resultado pode ir para a Biblioteca do app."
+    link: "https://www.canva.com/"
+    status: conector
+  - nome: "ElevenLabs"
+    para: "Voz de estúdio e limpeza de voz (o app já tem limpeza e dublagem com a sua voz)."
+    como: "audio.limpeza: elevenlabs no projeto, com ELEVENLABS_API_KEY."
+    link: "https://elevenlabs.io/"
+    status: parcial
+  - nome: "Real-ESRGAN"
+    para: "Aumentar a resolução com IA (upscale)."
+    como: "Instale o realesrgan-ncnn-vulkan; o app usa sozinho em Qualidade máxima."
+    link: "https://github.com/xinntao/Real-ESRGAN"
+    status: integrado

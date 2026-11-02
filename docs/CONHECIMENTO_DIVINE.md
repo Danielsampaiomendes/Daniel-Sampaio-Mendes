@@ -184,3 +184,5 @@ Composição: palavra pesada grande + script fino dourado cruzando a base; ou pa
 - 01/11/2026: antes e depois padronizado sai em TV, Stories e Feed, mas continua só de uso interno (consulta). Arquivos NAO-POSTAR, só com autorização de imagem; o painel não deixa marcar como postado.
 - 01/11/2026: imagens de marca, pessoas, tecnologias, clínica e produtos ficam na Biblioteca (`assets/`); o app pede as que faltam e usa sozinho (foto da tecnologia do tema na capa de carrossel e post).
 - 01/11/2026: padrão de edição é VIRAL com layout HIGH TICKET (mercado de luxo e glamour): toda ferramenta de retenção vale (gancho visual no 1º quadro, interrupção de padrão a cada 2 a 3 s, loop aberto, som em cada mudança, final em loop), sempre com paleta preto/dourado/off-white, serifas, espaço negativo e movimento lento. Regras em `config/viral.yaml`. "Vídeo Épico" é a versão intensa, opcional.
+- 02/11/2026: (opinião do Renato sobre 2026-11-02_teste-sintetico-react-vertical V1) achei lento e o som baixo
+- 02/11/2026: (opinião do Renato sobre 2026-11-02_teste-sintetico-react-vertical V1) achei lento e o som baixo

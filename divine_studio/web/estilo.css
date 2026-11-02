@@ -447,3 +447,44 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .toast.erro { border-color: var(--erro); } .toast.sai { opacity: 0; transform: translateY(-6px); }
 .atalhos-tec { display: block; color: var(--apagado); font-size: 12px; margin-top: 2px; }
 @media (max-width: 700px) { .semana { grid-template-columns: repeat(7, 120px); } .atalhos-tec { display: none; } }
+.destaque-longo { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-color: var(--dourado); } .destaque-longo span { flex: 1; color: var(--apagado); }
+
+/* ---------- conversa sobre a versão ---------- */
+.conversa-caixa { width: min(980px, 96vw); max-height: 92vh; overflow: auto; }
+.dois-lados { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lado { border: 1px solid var(--linha); border-radius: 14px; padding: 14px; }
+.lado h3 { margin: 0 0 8px; color: var(--dourado); font-weight: 500; }
+.nota-grande { font-size: 46px; color: var(--branco); font-family: "Cormorant Garamond", Georgia, serif; }
+.nota-grande small { font-size: 18px; color: var(--apagado); } .nota-grande.boa { color: var(--dourado); }
+.barras div { display: grid; grid-template-columns: 90px 1fr 26px; gap: 8px; align-items: center; font-size: 12px; margin: 3px 0; }
+.barras i { display: block; height: 6px; border-radius: 3px; background: var(--dourado2); }
+.reacoes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.reacoes .chip { font-size: 13px; padding: 5px 10px; }
+.estrelas { display: flex; gap: 4px; } .estrelas button { background: none; border: 0; font-size: 24px; color: var(--linha); padding: 0 2px; }
+.estrelas button.on { color: var(--dourado); }
+.resposta { margin-top: 10px; }
+.pb.conversa { border-color: var(--dourado2); }
+@media (max-width: 760px) { .dois-lados { grid-template-columns: 1fr; } }
+
+/* ---------- crescimento ---------- */
+.cresc-perfis { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.cresc h3 { font-size: 13px; color: var(--dourado); margin: 14px 0 6px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+.cresc-num { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cresc-num b { font-size: 34px; color: var(--branco); font-family: "Cormorant Garamond", Georgia, serif; }
+.cresc-num span { color: var(--apagado); font-size: 13px; }
+.spark { width: 160px; height: 40px; color: var(--dourado); }
+.plano, .req { list-style: none; padding: 0; margin: 0; } .plano li, .req li { padding: 6px 0; border-bottom: 1px solid var(--linha); font-size: 14px; }
+.plano li[data-p], .plano li[data-ir] { cursor: pointer; } .plano li[data-p]:hover { color: var(--branco); }
+.req li.ok { color: var(--ok); } .req li.nao { color: var(--texto); }
+.ok-txt { color: var(--ok); } .erro-txt { color: var(--erro); }
+.alg li { margin: 6px 0; }
+
+/* ---------- integrações e quadro ---------- */
+.integracoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.integ { border: 1px solid var(--linha); border-radius: 12px; padding: 12px; font-size: 14px; }
+.integ p { margin: 6px 0; }
+.quadro-caixa { width: min(900px, 96vw); max-height: 92vh; overflow: auto; }
+.quadro-grade { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; }
+.quadro-grade img { width: 100%; border-radius: 12px; }
+.quadro-grade h3 { color: var(--dourado); font-weight: 500; margin: 14px 0 6px; }
+@media (max-width: 700px) { .quadro-grade { grid-template-columns: 1fr; } }

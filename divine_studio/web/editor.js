@@ -700,3 +700,44 @@ document.addEventListener("keydown", (e) => {
     l.splice(ed.sel.i, 1); ed.sel = null; sujar(); desenharMsgs(); desenharTimeline(); desenharForm();
   }
 });
+
+
+// 📸 quadro do vídeo para ferramentas externas (Higgsfield, Canva) e Nano Banana direto do app
+$("#tl-quadro").onclick = async () => {
+  const v = $("#tl-video");
+  if (!v.src) return alert("Gere uma prévia primeiro para tirar o quadro.");
+  const ref = decodeURIComponent((v.src.match(/[?&]f=([^&]+)/) || [])[1] || "");
+  let q;
+  try { q = await api("/api/quadro", { p: atual, arquivo: ref, t: v.currentTime }); } catch (err) { return alert(err.message); }
+  const integ = await api("/api/integracoes").catch(() => ({}));
+  const url = (f) => `/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(f)}&v=${Date.now()}`;
+  const m = document.createElement("div");
+  m.className = "modal";
+  m.innerHTML = `<div class="cartao quadro-caixa"><div class="linha-titulo"><h2>📸 Quadro em ${v.currentTime.toFixed(1)}s</h2><button class="link" data-f>fechar</button></div>
+    <div class="quadro-grade"><img id="qd-img" src="${url(q.arquivo)}" alt="">
+    <div><p class="dica">Salvo em <code>${esc(q.arquivo)}</code>.</p>
+      <button data-baixar>⤓ Baixar (para o Higgsfield ou o Canva)</button>
+      <p class="dica">No Higgsfield: suba o quadro, escolha um movimento de câmera (dolly, crash zoom, órbita) e solte o vídeo gerado em Vídeos brutos.</p>
+      <h3>✦ Nano Banana</h3>
+      ${integ.nano_banana ? `<div class="chips">${["Trocar o fundo por uma sala de clínica de luxo", "Melhorar a luz, pele natural, sem exagero",
+        "Capa elegante com espaço vazio em cima para o título", "Deixar o aparelho com aparência de produto premium"].map((x) =>
+        `<button class="chip" data-pre="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+        <textarea id="qd-pedido" rows="3" placeholder="O que fazer com a imagem?"></textarea>
+        <button class="dourado" data-nb>Gerar com Nano Banana</button><p class="dica" id="qd-msg"></p>`
+      : `<p class="dica">${esc(integ.motivo || "")}</p>`}
+    </div></div></div>`;
+  document.body.appendChild(m);
+  m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) m.remove(); };
+  m.querySelector("[data-baixar]").onclick = () => salvarNaGaleria(url(q.arquivo), q.arquivo.split("/").pop());
+  m.querySelectorAll("[data-pre]").forEach((b) => b.onclick = () => { m.querySelector("#qd-pedido").value = b.dataset.pre; });
+  const nb = m.querySelector("[data-nb]");
+  if (nb) nb.onclick = async () => {
+    nb.disabled = true; m.querySelector("#qd-msg").textContent = "Gerando… (até 1 min)";
+    try {
+      const r = await api("/api/nanobanana", { p: atual, imagem: q.arquivo, pedido: m.querySelector("#qd-pedido").value });
+      m.querySelector("#qd-img").src = url(r.arquivo);
+      m.querySelector("#qd-msg").innerHTML = `Pronto: <code>${esc(r.arquivo)}</code> (em Vídeos brutos/fotos do projeto; use na capa, carrossel ou post).`;
+    } catch (err) { m.querySelector("#qd-msg").textContent = err.message; }
+    nb.disabled = false;
+  };
+};

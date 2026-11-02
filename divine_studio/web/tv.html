@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Divine TV</title>
+<link rel="icon" type="image/png" href="/icone-64.png">
+<style>
+  :root { --dourado: #CCBD91; --fundo: #000; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: var(--fundo); overflow: hidden; cursor: none; font-family: system-ui, sans-serif; }
+  video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; transition: opacity .8s; }
+  video.esconde { opacity: 0; }
+  .marca { position: fixed; right: 2.2vw; bottom: 2.2vw; width: 4.2vw; opacity: .55; }
+  .aviso { position: fixed; inset: 0; display: grid; place-items: center; color: var(--dourado); font-size: 2vw; text-align: center; letter-spacing: .1em; cursor: pointer; }
+  .som { position: fixed; left: 2vw; bottom: 2vw; color: #fff8; font-size: 1.1vw; background: #0008; padding: .5vw 1vw; border-radius: 99px; cursor: pointer; }
+  .som.some { display: none; }
+</style>
+</head>
+<body>
+<video id="a" muted playsinline autoplay></video>
+<video id="b" muted playsinline class="esconde"></video>
+<img class="marca" src="/biblioteca.img?cat=marca&f=divine-simbolo.png&w=200" onerror="this.remove()" alt="">
+<div class="som" id="som">🔇 toque para ligar o som</div>
+<div class="aviso" id="aviso" hidden></div>
+<script>
+// Divine TV: passa em loop infinito todos os vídeos selecionados para a TV (16:9 finais e os marcados 📺 Na TV).
+// Atualiza a lista sozinha a cada 10 minutos. Tela cheia: toque duas vezes. Som: toque no aviso do canto.
+let lista = [], i = 0, ativo = document.getElementById("a"), reserva = document.getElementById("b"), comSom = false;
+const url = (v) => `/arquivo?p=${encodeURIComponent(v.projeto)}&f=${encodeURIComponent(v.arquivo)}`;
+async function carregar() {
+  try { lista = await (await fetch("/api/tv")).json(); } catch (e) { lista = lista || []; }
+  const aviso = document.getElementById("aviso");
+  aviso.hidden = lista.length > 0;
+  aviso.textContent = "DIVINE TV · nenhum vídeo selecionado ainda. No app: Vídeos > toque no vídeo > 📺 Na TV";
+}
+function tocar() {
+  if (!lista.length) return setTimeout(async () => { await carregar(); tocar(); }, 15000);
+  const v = lista[i % lista.length]; i++;
+  reserva.src = url(v); reserva.muted = !comSom; reserva.load();
+  reserva.oncanplay = () => {
+    reserva.oncanplay = null;
+    reserva.play().catch(() => {});
+    const antigo = ativo;
+    reserva.classList.remove("esconde"); antigo.classList.add("esconde");
+    setTimeout(() => antigo.pause(), 900);
+    [ativo, reserva] = [reserva, antigo];
+    ativo.onended = tocar;
+    ativo.onerror = tocar;
+  };
+  reserva.onerror = () => setTimeout(tocar, 500);
+}
+document.getElementById("som").onclick = () => { comSom = true; ativo.muted = false; document.getElementById("som").classList.add("some"); };
+document.body.ondblclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}));
+setInterval(carregar, 10 * 60 * 1000);
+carregar().then(tocar);
+</script>
+</body>
+</html>

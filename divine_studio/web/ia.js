@@ -89,7 +89,16 @@ async function aplicarSugestao(s, opts) {
 document.querySelector('[data-aba="ia"]').addEventListener("click", () => montarChat($("#chat-projeto"), { p: atual }));
 
 // tela IA e ideias
-window.carregarIA = () => montarChat($("#chat-geral"), { c: "geral" });
+window.carregarIA = () => { montarChat($("#chat-geral"), { c: "geral" }); carregarIntegracoes(); };
+async function carregarIntegracoes() {
+  const r = await api("/api/integracoes").catch(() => null);
+  if (!r) return;
+  const selo = { integrado: "no app", conector: "conector do Claude", manual: "pelo quadro 📸", parcial: "parcial" };
+  $("#integracoes").innerHTML = r.ferramentas.map((f) => `<div class="integ"><div class="linha-titulo"><b>${esc(f.nome)}</b>
+      <span class="tag">${esc(selo[f.status] || f.status)}</span></div><p>${esc(f.para)}</p><p class="dica">${esc(f.como)}</p>
+      <a href="${esc(f.link)}" target="_blank">abrir</a></div>`).join("") +
+    (r.nano_banana ? "" : `<p class="dica">${esc(r.motivo)}</p>`);
+}
 $("#ia-desempenho").onclick = async () => {
   const b = $("#ia-desempenho"); b.disabled = true; b.textContent = "Analisando…";
   try {

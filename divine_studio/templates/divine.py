@@ -58,9 +58,19 @@ def zona(posicao: str, H: int) -> float:
     return {"topo": H * 0.30, "centro": H * 0.47, "base": H * 0.66}.get(posicao, H * 0.30)
 
 
+def _escala_texto() -> float:
+    """'Texto maior' nas suas opiniões aumenta os títulos dos próximos vídeos (divine_studio/feedback.py)."""
+    try:
+        from ..feedback import ajustes
+        return float(ajustes().get("escala_texto", 1.0))
+    except Exception:
+        return 1.0
+
+
 def bloco(titulo: str, apoio: str | None, combo: dict, tam: float, largura_max: float,
           cor_titulo: str = "off_white", cor_apoio: str = "texto"):
     """Título (+ apoio) renderizados com a combinação de fontes; devolve (img_titulo, img_apoio|None)."""
+    tam = tam * _escala_texto()
     dourado = cor("dourado")
     et = Estilo.de_config(combo["titulo"], tam, cor(cor_titulo))
     ed = Estilo.de_config(combo["destaque"], tam, dourado)
