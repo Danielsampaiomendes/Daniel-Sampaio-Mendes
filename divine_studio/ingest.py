@@ -116,7 +116,8 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         hq = forcar_hq if forcar_hq is not None else (min(p["largura"], p["altura"]) < hqcfg["altura_minima"] or c.get("alta_qualidade", False))
         hq_geral = hq_geral or hq
         entradas += ["-ss", f"{ini:.3f}", "-t", f"{fim - ini:.3f}", "-i", str(arq)]
-        if dissolve <= 0:
+        trans_cfg = (load("edicao").get("transicoes") or {}).get(c.get("transicao") or "dissolver", {})
+        if dissolve <= 0 or (c.get("transicao") and trans_cfg.get("xfade") is None):
             c = {**c, "_corte_seco": True}
 
         v = []
@@ -125,6 +126,8 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
                      "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
         if hq:
             v.append(hqcfg["denoise"])
+        if c.get("reverso"):
+            v.append("reverse")                      # de trás para frente (clipes curtos)
         v.append(f"setpts=(PTS-STARTPTS)/{vel}")
         if vel < 1.0:
             from .qualidade import filtro_camera_lenta
@@ -138,7 +141,9 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
 
         if p["audio"] and not c.get("mudo", False):
             # micro fade nas pontas: corte seco no meio da fala sem estalo
-            filtros.append(f"[{i}:a:0]asetpts=PTS-STARTPTS,{_atempo(vel)},aresample=48000,"
+            extra_a = ("areverse," if c.get("reverso") else "") + \
+                (f"volume={float(c['volume']):.3f}," if c.get("volume") not in (None, "", 1, 1.0) else "")
+            filtros.append(f"[{i}:a:0]{extra_a}asetpts=PTS-STARTPTS,{_atempo(vel)},aresample=48000,"
                            f"aformat=sample_fmts=fltp:channel_layouts=stereo,afade=t=in:d=0.012,"
                            f"afade=t=out:st={max(0.0, dur_out - 0.012):.3f}:d=0.012[a{i}]")
         else:
@@ -146,7 +151,8 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         info_clipes.append({"arquivo": c["arquivo"], "caminho": str(arq), "inicio": ini, "velocidade": vel,
                             "duracao": round(dur_out, 3), "hdr": p["hdr"], "hq": hq,
                             "resolucao": f"{p['largura']}x{p['altura']}",
-                            "transicao": 0.0 if (i == 0 or c.get("_corte_seco") or c.get("corte_seco")) else dissolve})
+                            "transicao": 0.0 if (i == 0 or c.get("_corte_seco") or c.get("corte_seco")) else dissolve,
+                            "tipo_transicao": trans_cfg.get("xfade") or "fade"})
 
     # dissolve entre clipes diferentes; corte seco entre trechos do mesmo take (corte limpo)
     pv, pa = "v0", "a0"
@@ -155,7 +161,7 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
     for k in range(1, len(clipes)):
         d = info_clipes[k]["transicao"]
         if d > 0:
-            filtros.append(f"[{pv}][v{k}]xfade=transition=fade:duration={d}:offset={L - d:.3f}[vx{k}]")
+            filtros.append(f"[{pv}][v{k}]xfade=transition={info_clipes[k]['tipo_transicao']}:duration={d}:offset={L - d:.3f}[vx{k}]")
             filtros.append(f"[{pa}][a{k}]acrossfade=d={d}[ax{k}]")
         else:
             filtros.append(f"[{pv}][v{k}]concat=n=2:v=1:a=0,settb=AVTB[vx{k}]")
@@ -177,6 +183,17 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         pos.append("eq=contrast=1.03:saturation=1.04,colorbalance=rs=0.02:bs=-0.02")
     else:
         pos.append("eq=contrast=1.02:saturation=1.02")
+    cor = projeto.get("cor") or {}
+    filtro = ((load("edicao").get("filtros") or {}).get(cor.get("filtro") or "natural") or {}).get("ffmpeg")
+    if filtro:
+        pos.append(filtro)
+    ajustes = {k: float(cor.get(k) or 0) for k in ("brilho", "contraste", "saturacao", "temperatura")}
+    if any(ajustes.values()):
+        pos.append(f"eq=brightness={ajustes['brilho'] * 0.12:.3f}:contrast={1 + ajustes['contraste'] * 0.3:.3f}"
+                   f":saturation={1 + ajustes['saturacao'] * 0.5:.3f}")
+        if ajustes["temperatura"]:
+            t = ajustes["temperatura"] * 0.08
+            pos.append(f"colorbalance=rs={t:.3f}:bs={-t:.3f}:rm={t / 2:.3f}:bm={-t / 2:.3f}")
     pos.append("vignette=angle=PI/5")
     grao = int((pref.get("acabamento") or {}).get("grao", 0))
     if grao > 0:

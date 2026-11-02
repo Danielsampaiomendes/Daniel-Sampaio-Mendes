@@ -25,6 +25,12 @@ async function carregarEditor() {
   ed.versoes = JSON.parse(JSON.stringify(d.projeto.versoes || []));
   ed.sons = JSON.parse(JSON.stringify(d.projeto.sons || []));
   ed.dubs = JSON.parse(JSON.stringify((d.projeto.audio || {}).dublagem || []));
+  ed.clipes = JSON.parse(JSON.stringify(d.projeto.clipes || []));
+  ed.clipesInfo = d.clipes_info || []; ed.linhas = d.linhas || {}; ed.corteLimpo = d.corte_limpo;
+  ed.cfg = { filtros: d.filtros || {}, transicoes: d.transicoes || {}, velocidades: d.velocidades || [1] };
+  ed.cor = { ...(d.projeto.cor || {}) };
+  ed.audio = { ...(d.projeto.audio || {}) }; ed.licenca = !!d.projeto.musica_licenciada;
+  desenharCorAudio();
   $("#tl-sfx-auto").checked = d.projeto.sfx_automaticos !== false;
   if (!ed.kit) ed.kit = await api("/api/sons");
   ed.sel = null;
@@ -61,7 +67,59 @@ function hookFim() {
   return h.reduce((s, b) => s + (Number(b.duracao) || Math.max(1.6, (b.titulo || "").split(/\s+/).length / 3.2 + 0.7)), 0);
 }
 
+// ---------------------------------------------------------------- automáticos (ritmo e sons) visíveis na linha
+function autos() {
+  if (ed.proj.ritmo_fixo && ed.proj.sfx_automaticos === false) return null;
+  const chaves = Object.keys(ed.linhas || {}).sort((a, b) => (a !== "V1") - (b !== "V1") || (a === "IA") - (b === "IA") || a.localeCompare(b));
+  if (!chaves.length) return null;
+  const l = ed.linhas[chaves[0]];
+  return { versao: chaves[0], efeitos: ed.proj.ritmo_fixo ? [] : (l.efeitos || []), sons: ed.proj.sfx_automaticos === false ? [] : (l.sons || []) };
+}
+
+// ---------------------------------------------------------------- clipes (aparar, dividir, velocidade, reverso, transição)
+function duracaoClipe(c, i) {
+  const info = ed.clipesInfo[i] || {};
+  const fim = c.fim !== undefined && c.fim !== null && c.fim !== "" ? Number(c.fim) : (info.duracao_arquivo || 3);
+  return Math.max(0.1, (fim - (Number(c.inicio) || 0)) / (Number(c.velocidade) || 1));
+}
+function posicoesClipes() {
+  let t = 0;
+  return ed.clipes.map((c, i) => { const a = t, d = duracaoClipe(c, i); t += d; return [a, d]; });
+}
+function desenharClipes() {
+  const caixa = $("#tl-clipes");
+  if (!caixa) return;
+  if (ed.corteLimpo) { caixa.innerHTML = '<div class="dica">Corte limpo ligado: os clipes são cortados pela fala. Para aparar à mão, desligue o corte limpo na aba Projeto.</div>'; return; }
+  const pos = posicoesClipes(), total = pos.length ? pos[pos.length - 1][0] + pos[pos.length - 1][1] : 1;
+  const k = $("#tl-barra").clientWidth / Math.max(total, ed.base || total);
+  caixa.innerHTML = ed.clipes.map((c, i) => {
+    const [a, d] = pos[i], nomeArq = String(c.arquivo || "").split("/").pop();
+    const tags = [Number(c.velocidade || 1) !== 1 ? c.velocidade + "x" : "", c.reverso ? "⟲" : "", c.mudo ? "🔇" : "",
+                  c.transicao && c.transicao !== "dissolver" ? "⇢ " + (ed.cfg.transicoes[c.transicao] || c.transicao) : ""].filter(Boolean).join(" ");
+    return `<div class="tl-clipe ${ed.sel && ed.sel.tipo === "clip" && ed.sel.i === i ? "sel" : ""} ${(ed.clipesInfo[i] || {}).existe === false ? "falta" : ""}"
+      data-i="${i}" style="left:${a * k}px;width:${Math.max(24, d * k - 2)}px" title="${esc(nomeArq)} · ${d.toFixed(1)}s">${esc(nomeArq)}<small>${esc(tags)}</small></div>`;
+  }).join("") || '<div class="dica">Sem clipes: solte os vídeos na aba Projeto.</div>';
+  caixa.querySelectorAll(".tl-clipe").forEach((el) => el.onclick = () => {
+    ed.sel = { tipo: "clip", i: +el.dataset.i }; desenharTimeline(); desenharForm();
+    const v = $("#tl-video"); if (v.src) v.currentTime = posicoesClipes()[+el.dataset.i][0] + 0.05;
+  });
+}
+
+$("#tl-dividir").onclick = () => {
+  if (ed.corteLimpo) return alert("Com o corte limpo ligado, os clipes são cortados pela fala. Desligue na aba Projeto para dividir à mão.");
+  const t = agora(), pos = posicoesClipes();
+  const i = pos.findIndex(([a, d]) => t > a + 0.15 && t < a + d - 0.15);
+  if (i < 0) return alert("Pare o vídeo no meio de um clipe para dividir.");
+  const c = ed.clipes[i], vel = Number(c.velocidade) || 1;
+  const corte = Math.round(((Number(c.inicio) || 0) + (t - pos[i][0]) * vel) * 100) / 100;
+  const a = { ...c, fim: corte }, b = { ...c, inicio: corte, transicao: "corte" };
+  ed.clipes.splice(i, 1, a, b);
+  ed.clipesInfo.splice(i + 1, 0, ed.clipesInfo[i]);
+  ed.sel = { tipo: "clip", i: i + 1 }; sujar(); desenharTimeline(); desenharForm();
+};
+
 function desenharTimeline() {
+  desenharClipes();
   const barra = $("#tl-barra");
   barra.querySelectorAll(".tl-marca, .tl-zona").forEach((x) => x.remove());
   const k = px();
@@ -78,6 +136,15 @@ function desenharTimeline() {
   const efs = ed.efeitos.filter((e) => e.tipo && !QUADRO_SO.has(e.tipo)).map((e) => [Number(e.inicio) || 0, (Number(e.inicio) || 0) + duracaoEf(e)]);
   ed.sons.forEach((s, i) => marca("som", i, Number(s.inicio) || 0, 0.6, "♪", false));
   ed.dubs.forEach((d, i) => marca("voz", i, Number(d.inicio) || 0, Number(d.dur) || 3, "🎙 voz", false));
+  const au = autos();
+  $("#tl-auto-info").hidden = !au || !(au.efeitos.length + au.sons.length);
+  if (au) {
+    au.efeitos.forEach((e, i) => marca("ef auto", i, Number(e.inicio) || 0, duracaoEf(e), "✦ " + ((TIPOS_NOME()[e.tipo] || {}).nome || e.tipo), false));
+    au.sons.forEach((x, i) => marca("som auto", i, Number(x.inicio) || 0, 0.6, "♪", false));
+    $("#tl-auto-info").innerHTML = `${au.efeitos.length} efeito(s) e ${au.sons.length} som(ns) automáticos da ${esc(au.versao)} estão tracejados na linha.
+      <button class="link" id="tl-fixar">Trazer para a linha do tempo e editar</button>`;
+    $("#tl-fixar").onclick = fixarAutos;
+  }
   ed.mensagens.forEach((m, i) => { if (m.inicio !== undefined && m.inicio !== null && m.inicio !== "") {
     const a = Number(m.inicio), d = Math.max(1.6, (m.titulo || "").split(/\s+/).length / 3.2 + 0.7);
     const bate = efs.some(([x, y]) => a < y && a + d > x);
@@ -96,6 +163,7 @@ function marca(tipo, i, t, dur, rotulo, perto) {
     : " · em cima de um efeito: mude o momento") : "");
   el.onpointerdown = (ev) => {
     ev.stopPropagation(); ev.preventDefault();
+    if (tipo.endsWith(" auto")) { ed.sel = { tipo, i }; desenharForm(); return; }
     ed.sel = { tipo, i }; desenharTimeline(); desenharForm();
     const lista = { ef: ed.efeitos, msg: ed.mensagens, som: ed.sons, voz: ed.dubs }[tipo];
     const x0 = ev.clientX, t0 = Number(lista[i].inicio) || 0;
@@ -321,7 +389,8 @@ function lerCampo(c) {
 
 function desenharForm() {
   const box = $("#tl-form");
-  if (!ed.sel) { box.innerHTML = '<p class="dica">Clique numa marca da linha do tempo para editar, ou adicione um efeito no ponto do vídeo.</p>'; return; }
+  if (!ed.sel) { box.innerHTML = '<p class="dica">Toque num clipe ou numa marca da linha do tempo para editar, ou adicione um efeito no ponto do vídeo.</p>'; return; }
+  if (formExtra(box)) return;
   if (ed.sel.tipo === "som") {
     const s = ed.sons[ed.sel.i];
     const grupos = {};
@@ -492,16 +561,116 @@ async function salvarEditor(depois) {
     const o = { ...m }; if (o.inicio === undefined || o.inicio === null || o.inicio === "") delete o.inicio; return o;
   });
   try {
-    const audio = { ...(ed.proj.audio || {}), dublagem: ed.dubs };
+    const audio = { ...(ed.proj.audio || {}), ...ed.audio, dublagem: ed.dubs };
     if (!ed.dubs.length) delete audio.dublagem;
+    if (!audio.volume_original_db) delete audio.volume_original_db;
+    const extra = ed.corteLimpo || !ed.clipes.length ? {} : { clipes: ed.clipes };
     await api("/api/dados", { p: atual, dados: { efeitos, mensagens, versoes, selo: $("#ed-selo").value,
       cta_antecipado: $("#ed-cta").value, fechamento: fech, sons: ed.sons.filter((x) => x.nome),
-      sfx_automaticos: $("#tl-sfx-auto").checked, audio } });
+      sfx_automaticos: $("#tl-sfx-auto").checked, audio, cor: Object.keys(ed.cor).length ? ed.cor : null,
+      musica_licenciada: ed.licenca || null, ...extra } });
     ed.efeitos = efeitos;
     sujar(false);
     if (pendentes) $("#ed-status").textContent = "Salvo (efeito sem tipo escolhido ficou de fora).";
-    if (depois) rodar("previa"); else abrir(atual);
+    if (depois === true) rodar("previa"); else if (depois !== null) abrir(atual);
   } catch (err) { alert(err.message); }
 }
 $("#ed-salvar").onclick = () => salvarEditor(false);
 $("#ed-salvar-previa").onclick = () => salvarEditor(true);
+
+
+async function fixarAutos() {
+  if (ed.sujo) { await salvarEditor(null); }
+  try {
+    const r = await api("/api/fixar_linha", { p: atual });
+    $("#ed-status").textContent = `Na linha do tempo: ${r.efeitos} efeito(s) e ${r.sons} som(ns) da ${r.versao}. Agora tudo é editável.`;
+    await carregarEditor();
+  } catch (err) { alert(err.message); }
+}
+
+// formulários de clipe e de automático (chamado por desenharForm)
+function formExtra(box) {
+  if (!ed.sel) return false;
+  if (ed.sel.tipo.endsWith(" auto")) {
+    const au = autos() || { efeitos: [], sons: [] };
+    const item = ed.sel.tipo.startsWith("ef") ? au.efeitos[ed.sel.i] : au.sons[ed.sel.i];
+    const nome = ed.sel.tipo.startsWith("ef") ? ((TIPOS_NOME()[item.tipo] || {}).nome || item.tipo) : item.nome;
+    box.innerHTML = `<h2>Automático</h2><p><b>${esc(nome)}</b> em ${Number(item.inicio).toFixed(1)}s, colocado pelo ritmo viral (ou pelos sons automáticos).</p>
+      <p class="dica">Para mudar o momento, trocar ou tirar, traga os automáticos para a linha do tempo: eles viram itens normais,
+        editáveis, e o app para de colocar outros sozinho neste projeto.</p>
+      <button class="dourado" id="tl-fixar2">Trazer todos para a linha do tempo</button>`;
+    $("#tl-fixar2").onclick = fixarAutos;
+    return true;
+  }
+  if (ed.sel.tipo !== "clip") return false;
+  const c = ed.clipes[ed.sel.i], info = ed.clipesInfo[ed.sel.i] || {};
+  if (!c) return false;
+  const vel = ed.cfg.velocidades.map((x) => `<option value="${x}" ${Number(c.velocidade || 1) === x ? "selected" : ""}>${x}x${x < 1 ? " (câmera lenta)" : ""}</option>`).join("");
+  const trans = Object.entries(ed.cfg.transicoes).map(([k, n]) => `<option value="${k}" ${(c.transicao || "dissolver") === k ? "selected" : ""}>${esc(n)}</option>`).join("");
+  box.innerHTML = `<h2>Clipe ${ed.sel.i + 1}</h2><p class="dica">${esc(String(c.arquivo).split("/").pop())}${info.duracao_arquivo ? ` · arquivo de ${info.duracao_arquivo.toFixed(1)}s` : ""}</p>
+    <div class="grade2"><label>Começa em (s)<input id="c-ini" type="number" step="0.1" min="0" value="${c.inicio ?? 0}"></label>
+      <label>Termina em (s)<input id="c-fim" type="number" step="0.1" min="0" value="${c.fim ?? ""}" placeholder="fim do arquivo"></label></div>
+    <label>Velocidade<select id="c-vel">${vel}</select></label>
+    <label>Transição na entrada<select id="c-trans" ${ed.sel.i === 0 ? "disabled" : ""}>${trans}</select></label>
+    <label>Volume do som <span id="c-vol-v">${Math.round((c.volume ?? 1) * 100)}%</span><input id="c-vol" type="range" min="0" max="2" step="0.05" value="${c.volume ?? 1}"></label>
+    <label>Zoom <input id="c-zoom" type="range" min="1" max="1.6" step="0.05" value="${c.zoom ?? 1}"></label>
+    <label class="check"><input type="checkbox" id="c-rev" ${c.reverso ? "checked" : ""}> de trás para frente (reverso)</label>
+    <label class="check"><input type="checkbox" id="c-mudo" ${c.mudo ? "checked" : ""}> sem som (b-roll)</label>
+    <div class="linha"><button id="c-esq" ${ed.sel.i === 0 ? "disabled" : ""}>◀</button><button id="c-dir" ${ed.sel.i === ed.clipes.length - 1 ? "disabled" : ""}>▶</button>
+      <button id="c-dup">Duplicar</button><button id="c-del" class="link">remover</button></div>`;
+  const num = (v) => v === "" ? undefined : Math.max(0, Number(v));
+  const aplicar = () => {
+    c.inicio = num($("#c-ini").value) ?? 0;
+    const f = num($("#c-fim").value); if (f === undefined || f <= c.inicio) delete c.fim; else c.fim = f;
+    const v = Number($("#c-vel").value); if (v === 1) delete c.velocidade; else c.velocidade = v;
+    const t = $("#c-trans").value; if (t === "dissolver" || ed.sel.i === 0) delete c.transicao; else c.transicao = t;
+    const vol = Number($("#c-vol").value); if (vol === 1) delete c.volume; else c.volume = vol;
+    const z = Number($("#c-zoom").value); if (z === 1) delete c.zoom; else c.zoom = z;
+    if ($("#c-rev").checked) c.reverso = true; else delete c.reverso;
+    if ($("#c-mudo").checked) c.mudo = true; else delete c.mudo;
+    $("#c-vol-v").textContent = Math.round(vol * 100) + "%";
+    sujar(); desenharClipes();
+  };
+  box.querySelectorAll("input, select").forEach((el) => el.addEventListener(el.type === "range" ? "input" : "change", aplicar));
+  const mover = (d) => { const i = ed.sel.i, j = i + d; [ed.clipes[i], ed.clipes[j]] = [ed.clipes[j], ed.clipes[i]];
+    [ed.clipesInfo[i], ed.clipesInfo[j]] = [ed.clipesInfo[j], ed.clipesInfo[i]]; ed.sel.i = j; sujar(); desenharTimeline(); desenharForm(); };
+  $("#c-esq").onclick = () => mover(-1); $("#c-dir").onclick = () => mover(1);
+  $("#c-dup").onclick = () => { ed.clipes.splice(ed.sel.i + 1, 0, { ...c }); ed.clipesInfo.splice(ed.sel.i + 1, 0, info); ed.sel.i++; sujar(); desenharTimeline(); desenharForm(); };
+  $("#c-del").onclick = () => { if (ed.clipes.length < 2) return alert("O vídeo precisa de pelo menos um clipe.");
+    ed.clipes.splice(ed.sel.i, 1); ed.clipesInfo.splice(ed.sel.i, 1); ed.sel = null; sujar(); desenharTimeline(); desenharForm(); };
+  return true;
+}
+
+// ---------------------------------------------------------------- cor e áudio
+function desenharCorAudio() {
+  $("#ed-filtro").innerHTML = Object.entries(ed.cfg.filtros).map(([k, n]) => `<option value="${k}" ${(ed.cor.filtro || "natural") === k ? "selected" : ""}>${esc(n)}</option>`).join("");
+  ["brilho", "contraste", "saturacao", "temperatura"].forEach((k) => { $("#ed-" + k).value = ed.cor[k] || 0; });
+  $("#ed-vol-orig").value = ed.audio.volume_original_db || 0;
+  $("#ed-vol-trilha").value = ed.audio.volume_trilha_db ?? -24;
+  $("#ed-trilha").checked = ed.audio.trilha !== false;
+  $("#ed-licenca").checked = ed.licenca;
+  $("#ed-vol-orig-v").textContent = `${ed.audio.volume_original_db || 0} dB`;
+  $("#ed-vol-trilha-v").textContent = `${ed.audio.volume_trilha_db ?? -24} dB`;
+  $("#ed-musica-atual").textContent = ed.audio.musica ? `Música: ${String(ed.audio.musica).split("/").pop()}` : "Trilha: lounge original Divine (sem direitos autorais).";
+  $("#ed-musica-tirar").hidden = !ed.audio.musica;
+}
+$("#ed-filtro").onchange = (e) => { ed.cor.filtro = e.target.value; sujar(); };
+["brilho", "contraste", "saturacao", "temperatura"].forEach((k) => $("#ed-" + k).oninput = (e) => { ed.cor[k] = Number(e.target.value); sujar(); });
+$("#ed-cor-zerar").onclick = () => { ed.cor = {}; desenharCorAudio(); sujar(); };
+$("#ed-vol-orig").oninput = (e) => { ed.audio.volume_original_db = Number(e.target.value); $("#ed-vol-orig-v").textContent = e.target.value + " dB"; sujar(); };
+$("#ed-vol-trilha").oninput = (e) => { ed.audio.volume_trilha_db = Number(e.target.value); $("#ed-vol-trilha-v").textContent = e.target.value + " dB"; sujar(); };
+$("#ed-trilha").onchange = (e) => { ed.audio.trilha = e.target.checked; sujar(); };
+$("#ed-licenca").onchange = (e) => { ed.licenca = e.target.checked; sujar(); };
+$("#ed-musica-tirar").onclick = () => { delete ed.audio.musica; desenharCorAudio(); sujar(); };
+$("#ed-musica").onchange = async () => {
+  const f = $("#ed-musica").files[0]; if (!f) return;
+  if (ed.sujo) await salvarEditor(null);
+  $("#ed-status").textContent = "Enviando a música…";
+  const r = await fetch(`/api/musica?p=${encodeURIComponent(atual)}&nome=${encodeURIComponent(f.name)}`, { method: "POST", body: f });
+  const j = await r.json(); if (!r.ok) return alert(j.erro);
+  await carregarEditor();
+  $("#ed-status").textContent = "Música no projeto. Marque a licença comercial para poder postar.";
+};
+
+// a linha do tempo é desenhada pela largura: redesenha quando a aba aparece ou a tela muda de tamanho
+if (window.ResizeObserver) new ResizeObserver(() => { if (ed.proj && $("#tl-barra").clientWidth) desenharTimeline(); }).observe($("#tl-barra"));

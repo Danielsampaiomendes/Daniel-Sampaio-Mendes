@@ -173,3 +173,37 @@ def test_conectar_instagram_guarda_fora_do_repositorio(tmp_path, monkeypatch):
     assert not instagram.configurado()
     with pytest.raises(SystemExit):
         instagram.conectar("curto")
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="sem ffmpeg")
+def test_clipes_estilo_capcut_reverso_velocidade_transicao_e_cor(tmp_path):
+    from divine_studio.ingest import construir_base, probe
+    for nome, cor in (("a.mp4", "red"), ("b.mp4", "blue")):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"color=c={cor}:s=108x192:r=30:d=2",
+                        "-f", "lavfi", "-i", "sine=f=300:d=2", "-shortest", "-c:v", "libx264", "-c:a", "aac",
+                        str(tmp_path / nome)], check=True)
+    p = {"_pasta": tmp_path, "clipes": [{"arquivo": "a.mp4", "fim": 1.0},
+                                        {"arquivo": "b.mp4", "fim": 1.0, "velocidade": 0.5, "reverso": True,
+                                         "transicao": "deslizar", "volume": 1.5},
+                                        {"arquivo": "a.mp4", "inicio": 1.0, "transicao": "corte"}],
+         "cor": {"filtro": "cinema", "temperatura": 0.5, "contraste": 0.2}}
+    meta = construir_base(p, 108, 192, tmp_path / "base.mp4")
+    assert [c["tipo_transicao"] for c in meta["clipes"]] == ["fade", "smoothleft", "fade"]
+    assert meta["clipes"][2]["transicao"] == 0.0                                 # corte seco
+    assert abs(meta["clipes"][1]["duracao"] - 2.0) < 0.05                       # 1 s a 0,5x = 2 s
+    assert probe(tmp_path / "base.mp4")["duracao"] > 3.5
+
+
+def test_fixar_linha_traz_automaticos_e_trava_o_ritmo(projetos):
+    import json
+    pasta = _projeto(projetos, "p3", {"efeitos": [{"tipo": "contador", "inicio": 6}], "sons": [{"nome": "pop_suave_a", "inicio": 2}]})
+    (pasta / "trabalho" / "linha_V1.json").write_text(json.dumps({"versao": "V1",
+        "efeitos": [{"tipo": "luz_dourada", "inicio": 0.25, "duracao": 1.4, "som": "brilho_dourado_a"}],
+        "sons": [{"nome": "whoosh_suave_a", "inicio": 4.5, "ganho_db": -30}, {"nome": "pop_suave_a", "inicio": 2}]}))
+    (pasta / "trabalho" / "linha_IA.json").write_text(json.dumps({"versao": "IA", "efeitos": [], "sons": []}))
+    r = painel.fixar_linha("p3")
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8"))
+    assert r["versao"] == "V1" and [e["tipo"] for e in d["efeitos"]] == ["luz_dourada", "contador"]
+    assert [s["nome"] for s in d["sons"]] == ["pop_suave_a", "whoosh_suave_a"]           # sem duplicar
+    assert d["sfx_automaticos"] is False and d["ritmo_fixo"] is True
+    assert ritmo.planejar(d, {"nome": "V1"}, 20.0) == []

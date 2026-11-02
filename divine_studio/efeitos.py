@@ -791,6 +791,7 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
             raise SystemExit(f"Tipo de efeito desconhecido: {tipo}. Opções: {', '.join(sorted(TIPOS) + sorted(QUADRO))}")
         if ef.get("som"):
             plano.eventos_sfx.append((ef["inicio"], ef["som"], float(load("sfx").get("ganho_db", -24))))
+    plano.efeitos_auto = [e for e in ordem if e.get("_auto") and e["inicio"] < plano.inicio_fechamento]
     if grade > 0:
         plano.efeitos_quadro.append(ritmo.grade_epica(grade))
 

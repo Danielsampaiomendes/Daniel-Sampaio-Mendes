@@ -77,7 +77,7 @@ def _digital_base(p, tamanho=None) -> str:
         except (SystemExit, OSError, KeyError):
             arquivos[c.get("arquivo", "?")] = None
     cfg = {"exportacao": load("exportacao"), "animacao": load("preferencias").get("animacao")}
-    return json.dumps({**{k: p.get(k) for k in ("clipes", "dissolve", "zoom_respiro", "formato", "template", "qualidade")},
+    return json.dumps({**{k: p.get(k) for k in ("clipes", "dissolve", "zoom_respiro", "formato", "template", "qualidade", "cor")},
                        "tamanho": tamanho, "arquivos": arquivos, "cfg": cfg}, sort_keys=True, default=str)
 
 
@@ -328,8 +328,12 @@ def cmd_editar(a):
             for x in ach_v:
                 print("  " + x.linha())
             raise SystemExit(f"Revisor bloqueou {nome}.")
-        mix = mixar(plano.duracao_total, voz, plano.eventos_sfx, aud.get("trilha", True), semente=7 + i,
-                    musica=_musica(p))
+        _gravar_linha(trabalho, nome, p, plano)
+        voz_v = voz
+        if voz is not None and aud.get("volume_original_db"):
+            voz_v = voz * float(10 ** (float(aud["volume_original_db"]) / 20))
+        mix = mixar(plano.duracao_total, voz_v, plano.eventos_sfx, aud.get("trilha", True), semente=7 + i,
+                    musica=_musica(p), volume_trilha_db=aud.get("volume_trilha_db"))
         wav = trabalho / f"{nome}_mix.wav"
         salvar_wav(mix, wav)
         master = trabalho / f"{nome}_master.mov"
@@ -375,6 +379,18 @@ def cmd_editar(a):
             registro.registrar(p, resultado, linha_checklist(p, ach), escolher_fontes(3))
         print("• Registrado em docs/INDICE_VIDEOS_EDITADOS.md, no histórico do banco de hooks e no mapa")
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
+
+
+def _gravar_linha(trabalho, nome, p, plano):
+    """O que entrou sozinho nesta versão (efeitos do ritmo e sons automáticos), para a linha do tempo mostrar e editar."""
+    manuais = {(s.get("nome"), round(float(s.get("inicio", 0)), 2)) for s in p.get("sons") or []}
+    auto_ef = getattr(plano, "efeitos_auto", []) or []
+    sons_ef = {(e.get("som"), round(float(e["inicio"]), 2)) for e in (p.get("efeitos") or []) + auto_ef if e.get("som")}
+    sfx = [{"nome": n, "inicio": round(float(t), 2), "ganho_db": round(float(g), 1)} for t, n, g in plano.eventos_sfx
+           if (n, round(float(t), 2)) not in manuais and (n, round(float(t), 2)) not in sons_ef]
+    efs = [{k: v for k, v in e.items() if not k.startswith("_")} for e in auto_ef]
+    (trabalho / f"linha_{nome}.json").write_text(json.dumps({"versao": nome, "efeitos": efs, "sons": sfx},
+                                                            ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def _musica(p):

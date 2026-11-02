@@ -412,7 +412,8 @@ CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
-                    "qualidade", "ritmo", "epico", "validado", "copy_dublagem"}
+                    "qualidade", "ritmo", "epico", "validado", "copy_dublagem", "clipes", "cor",
+                    "ritmo_fixo", "dissolve", "musica_licenciada"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -424,9 +425,70 @@ def dados_projeto(nome: str) -> dict:
     base = pasta / "trabalho" / "base.json"
     dur = json.loads(base.read_text(encoding="utf-8")).get("duracao") if base.exists() else None
     from .config import load
+    # clipes com a duração do arquivo (para a trilha de clipes: aparar, dividir, velocidade)
+    from .ingest import probe, resolver
+    clipes = []
+    for c in d.get("clipes") or []:
+        info = {"arquivo": c.get("arquivo"), "existe": False, "duracao_arquivo": None}
+        try:
+            arq = resolver({**d, "_pasta": pasta}, c["arquivo"])
+            info.update(existe=True, duracao_arquivo=_duracao_arquivo(arq))
+        except (SystemExit, Exception):
+            pass
+        clipes.append(info)
+    linhas = {}
+    for f in (pasta / "trabalho").glob("linha_*.json") if (pasta / "trabalho").exists() else []:
+        try:
+            linhas[f.stem[6:]] = json.loads(f.read_text(encoding="utf-8"))
+        except ValueError:
+            pass
+    ed = load("edicao")
     return {"projeto": d, "referencia": f"saida/{previas[0].name}" if previas else None, "duracao_base": dur,
+            "clipes_info": clipes, "linhas": linhas,
+            "filtros": {k: v["nome"] for k, v in (ed.get("filtros") or {}).items()},
+            "transicoes": {k: v["nome"] for k, v in (ed.get("transicoes") or {}).items()},
+            "velocidades": ed.get("velocidades") or [0.5, 1, 2],
+            "corte_limpo": bool(d.get("corte_limpo")),
             "fechamento_s": float(load("preferencias")["fechamento"]["duracao_s"]),
             "intervalo_efeitos": float(load("efeitos").get("intervalo_minimo_s", 1.5))}
+
+
+_DURACOES: dict = {}
+
+
+def _duracao_arquivo(arq: Path) -> float:
+    from .ingest import probe
+    chave = (str(arq), arq.stat().st_mtime)
+    if chave not in _DURACOES:
+        _DURACOES[chave] = probe(arq)["duracao"]
+    return _DURACOES[chave]
+
+
+def fixar_linha(nome: str, versao: str | None = None) -> dict:
+    """Traz os efeitos do ritmo e os sons automáticos da última prévia para a linha do tempo (editáveis).
+    Depois disso o ritmo não acrescenta mais nada sozinho (ritmo_fixo) e os sons automáticos ficam desligados."""
+    pasta = _pasta(nome)
+    trab = pasta / "trabalho"
+    arqs = sorted(trab.glob("linha_*.json"), key=lambda f: (f.stem != "linha_V1", f.stem == "linha_IA", f.stem)) \
+        if trab.exists() else []
+    if versao:
+        arqs = [a for a in arqs if a.stem == f"linha_{versao}"]
+    if not arqs:
+        raise ValueError("gere as prévias uma vez para o app saber quais efeitos e sons automáticos entraram")
+    linha = json.loads(arqs[0].read_text(encoding="utf-8"))
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    efeitos = list(d.get("efeitos") or [])
+    for e in linha.get("efeitos") or []:
+        efeitos.append({k: v for k, v in e.items() if not k.startswith("_")})
+    sons = list(d.get("sons") or [])
+    ja = {(s.get("nome"), round(float(s.get("inicio", 0)), 2)) for s in sons}
+    for s_ in linha.get("sons") or []:
+        if (s_["nome"], round(float(s_["inicio"]), 2)) not in ja:
+            sons.append({"nome": s_["nome"], "inicio": s_["inicio"], "ganho_db": s_.get("ganho_db", -24)})
+    salvar_dados(nome, {"efeitos": sorted(efeitos, key=lambda e: float(e.get("inicio", 0))),
+                        "sons": sorted(sons, key=lambda x: float(x.get("inicio", 0))),
+                        "sfx_automaticos": False, "ritmo_fixo": True})
+    return {"efeitos": len(linha.get("efeitos") or []), "sons": len(linha.get("sons") or []), "versao": linha.get("versao")}
 
 
 def salvar_dados(nome: str, novos: dict) -> None:
@@ -436,7 +498,8 @@ def salvar_dados(nome: str, novos: dict) -> None:
     for k, v in novos.items():
         if k not in CAMPOS_EDITAVEIS:
             raise ValueError(f"campo não editável: {k}")
-        if v in (None, "", []) and k in ("efeitos", "legenda", "selo", "camera_elegante", "qualidade", "epico", "copy_dublagem"):
+        if v in (None, "", []) and k in ("efeitos", "legenda", "selo", "camera_elegante", "qualidade", "epico", "copy_dublagem",
+                                                  "cor", "ritmo_fixo", "musica_licenciada"):
             d.pop(k, None)      # vazio = sem efeito/selo; a legenda vazia volta a ser gerada sozinha
         else:
             d[k] = v
@@ -886,6 +949,21 @@ class Painel(BaseHTTPRequestHandler):
         if self._barrar(u.path):
             return
         try:
+            if u.path == "/api/musica":
+                pasta = _pasta(q["p"])
+                nome = Path(unquote(q.get("nome", "musica.mp3"))).name
+                if Path(nome).suffix.lower() not in (".mp3", ".m4a", ".wav", ".aac", ".aiff", ".flac"):
+                    return self._erro("só áudio (.mp3, .m4a, .wav)")
+                destino = pasta / "bruto" / f"musica_{slug(Path(nome).stem, 30)}{Path(nome).suffix.lower()}"
+                destino.parent.mkdir(exist_ok=True)
+                n = int(self.headers.get("Content-Length") or 0)
+                destino.write_bytes(self.rfile.read(n))
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                aud = dict(d.get("audio") or {})
+                aud["musica"] = f"bruto/{destino.name}"
+                aud["trilha"] = True
+                salvar_dados(q["p"], {"audio": aud})
+                return self._json({"ok": True, "arquivo": aud["musica"]})
             if u.path == "/api/dublagem":
                 pasta = _pasta(q["p"])
                 if _job_do_projeto(q["p"]):
@@ -975,6 +1053,8 @@ class Painel(BaseHTTPRequestHandler):
                 from .importar import importar
                 return self._json(importar(dados.get("origem") or None, bool(dados.get("copiar")),
                                            bool(dados.get("simular"))))
+            if u.path == "/api/fixar_linha":
+                return self._json(fixar_linha(dados["p"], dados.get("versao")))
             if u.path == "/api/duplicar":
                 return self._json({"nome": duplicar(dados["p"])})
             if u.path == "/api/arquivar":

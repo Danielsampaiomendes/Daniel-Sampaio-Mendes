@@ -1,0 +1,26 @@
+# Recursos de edição no estilo CapCut / Edits, no padrão Divine (aba Edição do painel).
+# Filtros de cor: aplicados no vídeo inteiro (projeto.yaml: cor: {filtro, brilho, contraste, saturacao, temperatura}).
+# Cada filtro é uma cadeia do FFmpeg; brilho/contraste/saturação/temperatura somam por cima (-1 a 1, 0 = neutro).
+filtros:
+  natural:   {nome: "Natural Divine (padrão)", ffmpeg: ""}
+  dourado:   {nome: "Dourado quente", ffmpeg: "colorbalance=rs=0.05:gs=0.02:bs=-0.05:rh=0.04:bh=-0.04,eq=saturation=1.05"}
+  cinema:    {nome: "Cinema (sombras frias, pele quente)", ffmpeg: "colorbalance=rs=-0.04:bs=0.05:rh=0.05:bh=-0.05,eq=contrast=1.08:saturation=0.95"}
+  suave:     {nome: "Suave luxo (contraste baixo)", ffmpeg: "eq=contrast=0.92:brightness=0.02:saturation=0.92"}
+  limpo:     {nome: "Clínico limpo (claro e frio)", ffmpeg: "colorbalance=bs=0.04:bh=0.03,eq=brightness=0.03:saturation=0.95"}
+  vintage:   {nome: "Filme antigo", ffmpeg: "curves=preset=vintage,eq=saturation=0.85"}
+  pb:        {nome: "Preto e branco elegante", ffmpeg: "hue=s=0,eq=contrast=1.1"}
+
+# Transição na entrada de cada clipe (clipes: - {arquivo, transicao: deslizar})
+transicoes:
+  dissolver: {nome: "Dissolver (padrão)", xfade: fade}
+  corte:     {nome: "Corte seco", xfade: null}
+  preto:     {nome: "Passa pelo preto", xfade: fadeblack}
+  flash:     {nome: "Flash branco", xfade: fadewhite}
+  deslizar:  {nome: "Deslizar", xfade: smoothleft}
+  subir:     {nome: "Subir", xfade: smoothup}
+  zoom:      {nome: "Zoom", xfade: zoomin}
+  circulo:   {nome: "Círculo abrindo", xfade: circleopen}
+  desfoque:  {nome: "Desfoque", xfade: hblur}
+  radial:    {nome: "Radial", xfade: radial}
+
+velocidades: [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0]

@@ -44,7 +44,7 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
     from .efeitos import DURACAO_PADRAO, resolver_tipo
     from .efeitos3d import EXEMPLOS
     m = modo(projeto, versao)
-    if m == "calmo" or fim < 3:
+    if m == "calmo" or fim < 3 or projeto.get("ritmo_fixo"):     # ritmo_fixo: os automáticos já estão na linha do tempo
         return []
     cfg = _cfg()["modos"][m]
     sons = _cfg().get("sons") or {}
