@@ -324,7 +324,8 @@ def cmd_editar(a):
     voz = ler_audio(base, dur) if aud.get("original", True) else None
     voz = _com_dublagem(p, voz, dur)
     modo_voz = "sem voz"
-    if voz is not None:
+    so_storyboard = bool(getattr(a, "storyboard", False))
+    if voz is not None and not so_storyboard:
         voz, modo_voz = _voz_limpa(p, voz, base, trabalho)
     pendente = str(p.get("autorizacao_imagem", "pendente")).lower() not in ("sim", "nao_aparece", "proprio")
     resultado = []
@@ -340,6 +341,13 @@ def cmd_editar(a):
                 print("  " + x.linha())
             raise SystemExit(f"Revisor bloqueou {nome}.")
         _gravar_linha(trabalho, nome, p, plano)
+        if so_storyboard:                                      # só os quadros da edição, sem render
+            from . import storyboard
+            sb = storyboard.gerar(pasta, nome, plano, p, base, W, H, dur, (bw, bh), extras_video, versao_idx=i)
+            print(f"  ✓ storyboard {nome}: {sb['cenas_total']} cenas · {sb['momentos_total']} momentos · "
+                  f"{sb['segundos']:.0f}s (nada renderizado)")
+            resultado.append({"nome": nome, "storyboard": f"trabalho/storyboard_{nome}.json"})
+            continue
         try:                                                   # suas opiniões: sons mais altos ou mais baixos
             from .feedback import ajustes as _aj
             off = float(_aj().get("ganho_sons_db", 0.0))
@@ -389,6 +397,9 @@ def cmd_editar(a):
                           "sfx_transicao": usou_t, "nota": nota,
                           "duracao": round(plano.duracao_total, 1), "quadros": str(folha.relative_to(pasta))})
 
+    if so_storyboard:
+        print(f"Storyboard pronto em {time.time() - t_ini:.0f}s. Responda 'aprovado' ou 'código: o que mudar'.")
+        return
     if p.get("legenda"):
         (saida / "legenda.txt").write_text(p["legenda"].strip() + "\n", encoding="utf-8")
     extras = [f"Voz: limpeza {modo_voz}"]
@@ -407,6 +418,28 @@ def cmd_editar(a):
             registro.registrar(p, resultado, linha_checklist(p, ach), escolher_fontes(3))
         print("• Registrado em docs/INDICE_VIDEOS_EDITADOS.md, no histórico do banco de hooks e no mapa")
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
+
+
+def cmd_storyboard(a):
+    from . import storyboard
+    pasta = ler_projeto(Path(a.projeto))["_pasta"]
+    if a.responder:
+        r = storyboard.responder(pasta, a.responder, a.versao)
+        if r["aprovado"]:
+            print("✓ Storyboard aprovado. Finalizando a edição...")
+            a.storyboard, a.rapido, a.teste = False, False, False
+            return cmd_editar(a)
+        for x in r["aplicados"]:
+            print(f"  ✓ {x}")
+        for x in r["avisos"]:
+            print(f"  ! {x}")
+        for x in r["nao_entendi"]:
+            print(f"  ? não entendi: {x.get('codigo') or ''} {x['pedido']} "
+                  "(ex.: 4B: troca o título por \"...\" · 7: tira · 2A: entra mais cedo · 3: mais longo 1s)")
+        if not r["aplicados"]:
+            return
+        print("• Refazendo o storyboard com as mudanças...")
+    cmd_editar(a)
 
 
 def _gravar_linha(trabalho, nome, p, plano):
@@ -816,6 +849,15 @@ def main(argv=None):
     s.add_argument("--rapido", action="store_true", help="prévia rápida (exportação veryfast, nome com _PREVIA)")
     s.add_argument("--sem-ia", action="store_true", help="não gera a versão IA")
     s.set_defaults(f=cmd_editar)
+    s = sub.add_parser("storyboard", help="a edição em quadros reais, antes de renderizar (aprove ou peça mudanças)")
+    s.add_argument("projeto")
+    s.add_argument("--versoes", help="ex.: V1 (padrão: todas)")
+    s.add_argument("--responder", help='"aprovado" ou "4B: troca o título por ...; 7: tira"')
+    s.add_argument("--versao", default="V1", help="versão a que a resposta se refere")
+    s.add_argument("--refazer-base", action="store_true")
+    s.add_argument("--forcar", action="store_true")
+    s.add_argument("--sem-ia", action="store_true")
+    s.set_defaults(f=cmd_storyboard, rapido=False, teste=True, storyboard=True)
     s = sub.add_parser("transcrever", help="transcreve a fala dos clipes (tempo por palavra)")
     s.add_argument("projeto")
     s.add_argument("--motor", choices=["auto", "assemblyai", "faster_whisper", "whisper"])

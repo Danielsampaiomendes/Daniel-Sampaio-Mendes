@@ -352,7 +352,7 @@ $("#b-copiar").onclick = async () => {
   setTimeout(() => $("#b-copiar").textContent = "Copiar", 1500);
 };
 
-const NOMES = { formatos: "Outros formatos (prévias)", formatos_final: "Outros formatos (final)", auto: "Edição automática (montagem + 3 prévias)", revisar: "Revisão de compliance", cortar: "Corte limpo", previa: "Gerando prévias", final: "Exportando a final",
+const NOMES = { formatos: "Outros formatos (prévias)", formatos_final: "Outros formatos (final)", auto: "Edição automática (montagem + 3 prévias)", revisar: "Revisão de compliance", cortar: "Corte limpo", previa: "Gerando prévias", final: "Exportando a final", storyboard: "Montando o storyboard (nada é renderizado)",
   legenda: "Legenda do post", pacote: "Pacote por categorias", transcrever: "Transcrição" };
 
 async function rodar(acao, versoes) {
@@ -402,6 +402,7 @@ function acompanhar(job, titulo) {
       $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
       if (atual) abrir(atual);
       if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) $('[data-aba="versoes"]').click();
+      if (e.acao === "storyboard" && typeof carregarStoryboard === "function") { $('[data-aba="storyboard"]').click(); carregarStoryboard(); }
       if (e.estado === "ok" && (e.acao.startsWith("formatos") || e.acao === "cortes" || e.acao === "pacote")) carregarLista();
       if (e.estado === "ok" && e.acao === "cortes") alert("Cortes prontos: estão na lista de projetos, logo abaixo deste vídeo.");
       if (e.estado === "ok" && e.acao === "final") setTimeout(() => abrirConversa((e.versoes && e.versoes[0]) || "V1").catch(() => {}), 1200);
@@ -432,7 +433,8 @@ function desenharPassos() {
   const postado = (dados.publicacoes || []).some((p) => p.status === "postado");
   const passos = [
     ["Vídeos brutos", brutos > 0, "config", brutos ? `${brutos} enviado(s)` : "solte os vídeos"],
-    ["Ajustes e textos", previas > 0, "edicao", "hooks, efeitos, sons e voz"],
+    ["Ajustes e textos", previas > 0 || !!dados.storyboard, "edicao", "hooks, efeitos, sons e voz"],
+    ["Storyboard", !!dados.storyboard_aprovado || finais > 0, "storyboard", dados.storyboard ? (dados.storyboard_aprovado ? "aprovado ✓" : "responda ou aprove") : "veja os quadros antes do render"],
     ["Prévias", previas > 0, "versoes", previas ? `${previas} prévia(s)` : "gere as 3 versões"],
     ["Escolher e exportar", finais > 0, "versoes", finais ? `${finais} final(is)` : "aprove a melhor"],
     ["Postar", postado, "programacao", postado ? "postado ✓" : "agende ou marque Postei"],

@@ -229,6 +229,7 @@
         </div>
         <div class="acoes">
           <button data-acao="auto" class="dourado" title="Monta o projeto sozinho a partir dos vídeos e gera as 3 prévias">✦ Edição automática</button>
+          <button id="b-storyboard" class="dourado" title="A edição em quadros reais, sem renderizar: aprove ou peça mudanças por código">▦ Storyboard</button>
           <button data-acao="previa" title="Prévia rápida das versões com os ajustes atuais">▶ Gerar prévias</button>
           <details class="mais"><summary>⋯ Mais</summary>
             <div class="mais-menu">
@@ -248,6 +249,7 @@
         <button data-aba="config" class="ativa">Projeto</button>
         <button data-aba="edicao">Edição</button>
         <button data-aba="ia">IA ✦</button>
+        <button data-aba="storyboard">Storyboard</button>
         <button data-aba="versoes">Versões <span id="n-versoes"></span></button>
         <button data-aba="relatorio">Relatório e legenda</button>
       </nav>
@@ -452,6 +454,29 @@
         <div class="cartao chat" id="chat-projeto"></div>
       </div>
 
+      <div class="aba" id="aba-storyboard" hidden>
+        <div class="sb">
+          <div class="sb-topo">
+            <div><h2>Storyboard · Edição</h2><div class="dica" id="sb-meta">Ainda não gerado.</div></div>
+            <div class="sb-versoes" id="sb-versoes"></div>
+          </div>
+          <div class="sb-aviso"><b>Nada foi renderizado ainda.</b> Cada quadro abaixo é a edição real naquele instante.
+            Responda <code>aprovado</code> ou diga o código e o que mudar: <code>4B: troca o título por "..."</code>,
+            <code>7: tira</code>, <code>2A: entra mais cedo</code>. Toque num quadro para ampliar.</div>
+          <div class="sb-regua" id="sb-regua"></div>
+          <div id="sb-cenas"></div>
+          <div class="sb-resposta">
+            <textarea id="sb-texto" rows="3" placeholder='4B: troca o título por "Pele *renovada*"&#10;7: tira&#10;2A: entra mais cedo'></textarea>
+            <div class="sb-botoes">
+              <button id="sb-aplicar">Aplicar mudanças</button>
+              <button id="sb-aprovar" class="dourado">✓ Aprovado, finaliza</button>
+              <button id="sb-gerar" class="link">refazer storyboard</button>
+            </div>
+            <div id="sb-retorno"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="aba" id="aba-versoes" hidden>
         <div class="linha-titulo">
           <label class="check"><input type="checkbox" id="so-previas" checked> mostrar prévias</label>
@@ -490,5 +515,6 @@
 <script src="/telas.js"></script>
 <script src="/ia.js"></script>
 <script src="/biblioteca.js"></script>
+<script src="/storyboard.js"></script>
 </body>
 </html>

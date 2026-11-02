@@ -112,11 +112,14 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
     except Exception:
         pass
     out = []
+    evitar = [(e.get("tipo"), float(e.get("inicio", 0))) for e in projeto.get("efeitos_evitar") or []]
 
     def por(ef: dict, t: float) -> bool:
         tipo = ef["tipo"]
         dur = float(ef.get("duracao", DURACAO_PADRAO.get(tipo, 2.0)))
         if t < 0 or t + dur > fim - 0.2 or not _livre(t, dur, ocupados, folga, espaco):
+            return False
+        if any(tipo == et and abs(t - ei) < 0.6 for et, ei in evitar):     # você tirou este no storyboard
             return False
         novo = {**EXEMPLOS.get(tipo, {}), **ef, "inicio": round(t, 2), "duracao": dur, "_auto": True}
         if "som" in novo:

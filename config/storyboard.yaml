@@ -1,0 +1,25 @@
+# Storyboard: a edição real em quadros, ANTES do render. Você responde "aprovado" ou "código: o que mudar".
+# Exemplos: 4B: troca o título por "Pele *renovada*"   ·   7: tira   ·   2A: entra mais cedo   ·   3: mais longo 1s
+
+cenas:
+  juntar_menor_que_s: 1.2      # cenas mais curtas que isso se juntam à anterior
+  quebrar_maior_que_s: 6.0     # cena longa sem nada novo ganha um quadro no meio
+largura_quadro: 360            # largura das miniaturas (px); toque amplia para a do vídeo
+amostra_fps: 10                # quadros por segundo usados para passar a base pelos efeitos (igual ao render)
+passo_s: 0.5                   # "mais cedo" / "mais longo" sem número = meio segundo
+
+# Palavras que aprovam tudo e mandam finalizar
+aprovar: ["aprovado", "aprovada", "tudo aprovado", "finaliza", "pode finalizar", "ok finaliza", "manda ver"]
+
+# Pedidos entendidos sem IA (expressão regular -> ação). O texto entre aspas vira o novo texto.
+pedidos:
+  - {acao: efeito,      padrao: '\b(troca|muda)\w*\s+(o\s+)?efeito\s+(por|para|pra)\s+(?P<valor>[\w ]+)$'}
+  - {acao: texto,       padrao: '(troc|mud|substitu|coloc)\w*.*?(por|para|pra)\s*["“”«]?(?P<valor>.+?)["“”»]?\s*$'}
+  - {acao: tirar,       padrao: '^(tira|tirar|remove|remover|apaga|apagar|sem ele|sem ela|sem isso|exclui|corta)\b(?!.*\bsom\b)'}
+  - {acao: sem_som,     padrao: '\b(sem som|tira o som|sem barulho|sem efeito sonoro|mudo)\b'}
+  - {acao: mais_cedo,   padrao: '\b(mais cedo|antes|adianta)\b'}
+  - {acao: mais_tarde,  padrao: '\b(mais tarde|depois|atrasa)\b'}
+  - {acao: mais_longo,  padrao: '\b(mais longo|mais tempo|fica mais|aumenta|estica)\b'}
+  - {acao: mais_curto,  padrao: '\b(mais curto|menos tempo|encurta|mais r[aá]pido)\b'}
+  - {acao: posicao,     padrao: '\b(em cima|no topo|pra cima|para cima|embaixo|em baixo|pra baixo|no meio|no centro)\b'}
+  - {acao: fonte,       padrao: '\b(troca|muda|outra)\w*\s+(a\s+)?fonte\b'}

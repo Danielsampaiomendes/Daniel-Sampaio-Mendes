@@ -494,3 +494,31 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .riscos { padding-left: 0; list-style: none; } .riscos li { font-size: 13px; margin: 6px 0; color: var(--texto); }
 .real { border-left: 3px solid var(--dourado); padding-left: 8px; }
 .tl-zona.risco { background: repeating-linear-gradient(45deg, #E0866F33 0 6px, transparent 6px 12px); border-top: 2px solid var(--erro); } .m-risco::before { background: #E0866F !important; }
+
+/* ---------------------------------------------------------------- storyboard (antes do render) */
+.sb-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.sb-topo h2 { margin: 0; }
+.sb-versoes { display: flex; gap: 6px; }
+.sb-aviso { margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--dourado); background: var(--painel2); border-radius: 8px; }
+.sb-aviso code, .sb-resposta code { color: var(--dourado); background: none; font-family: ui-monospace, Menlo, monospace; }
+.sb-regua { margin: 6px 0 18px; }
+.sb-trilho { position: relative; height: 34px; border-bottom: 1px solid var(--linha); }
+.sb-tique { position: absolute; bottom: 0; width: 2px; height: 12px; background: var(--dourado); cursor: pointer; }
+.sb-tique i { position: absolute; bottom: 14px; left: -10px; font: 10px ui-monospace, Menlo, monospace; color: var(--apagado); font-style: normal; }
+.sb-tique:nth-child(even) i { bottom: 24px; }
+.sb-tique:hover i { color: var(--dourado); }
+.sb-cena { border-top: 1px solid var(--linha); padding: 12px 0; }
+.sb-cena-topo b { color: var(--branco); }
+.sb-fala { margin: 4px 0 8px; font-style: italic; color: var(--apagado); }
+.sb-quadros { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.sb-quadro { margin: 0; width: 150px; flex: 0 0 auto; }
+.sb-quadro img, .sb-vazio { width: 150px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; border: 1px solid var(--linha); cursor: zoom-in; display: block; background: var(--painel2); }
+.sb-quadro.efeito img { border-color: var(--dourado2); }
+.sb-quadro figcaption { font-size: 12px; line-height: 1.35; margin-top: 6px; display: grid; gap: 2px; }
+.sb-cod { color: var(--fundo); background: var(--dourado); border-radius: 6px; padding: 0 6px; width: fit-content; cursor: pointer; font-family: ui-monospace, Menlo, monospace; }
+.sb-resposta { position: sticky; bottom: 0; background: var(--fundo); padding: 12px 0; border-top: 1px solid var(--linha); }
+.sb-botoes { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.sb-ampliado { max-height: 92vh; max-width: 92vw; border-radius: 12px; }
+#sb-retorno p { margin: 4px 0; }
+#sb-retorno .ok, #sb-meta .ok { color: var(--dourado); }
+@media (max-width: 640px) { .sb-quadro, .sb-quadro img, .sb-vazio { width: 120px; } }

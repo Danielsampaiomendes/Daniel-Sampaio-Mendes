@@ -416,6 +416,8 @@ def detalhe(nome: str) -> dict:
             "autorizacao_imagem": d.get("autorizacao_imagem", "pendente"),
             "versoes": [v.get("nome") for v in d.get("versoes") or []],
             "brutos": [{"nome": b, "no_projeto": b in usados} for b in brutos], "saidas": saidas,
+            "storyboard": bool(list((pasta / "trabalho").glob("storyboard_*.json"))) if (pasta / "trabalho").exists() else False,
+            "storyboard_aprovado": (pasta / "trabalho" / "storyboard_aprovado.json").exists(),
             "fotos": sorted(f.name for f in (pasta / "bruto").glob("*") if f.suffix.lower() in
                             {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"} and not f.name.startswith("."))
             if (pasta / "bruto").exists() else [],
@@ -731,6 +733,7 @@ ACOES = {
     "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"], "auto": ["auto", "--previa"],
     "formatos": ["formatos"], "formatos_final": ["formatos", "--final"], "carrossel": ["carrossel", "exportar"],
     "post": ["post", "exportar"], "antesdepois": ["antesdepois", "exportar"], "cortes": ["cortes"],
+    "storyboard": ["storyboard"],
 }
 
 
@@ -757,7 +760,7 @@ def iniciar(nome: str, acao: str, versoes: list | None = None) -> str:
             cmd = [sys.executable, "-u", "-m", "divine_studio", *ACOES[acao], str(pasta)]
         else:
             cmd = [sys.executable, "-u", "-m", "divine_studio", *ACOES[acao][:1], str(pasta), *ACOES[acao][1:]]
-        if versoes and acao in ("previa", "final"):
+        if versoes and acao in ("previa", "final", "storyboard"):
             cmd += ["--versoes", ",".join(versoes)]
         log = pasta / "trabalho" / f"painel_{acao}_{jid}.log"
         log.parent.mkdir(exist_ok=True)
@@ -890,7 +893,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/storyboard.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
@@ -981,6 +984,13 @@ class Painel(BaseHTTPRequestHandler):
                                    "codigo": Painel.codigo if self.client_address[0] in LOCAIS else None})
             if u.path == "/api/videos":
                 return self._json(videos())
+            if u.path == "/api/storyboard":
+                from . import storyboard
+                pasta = _pasta(q["p"])
+                vs = storyboard.versoes_com_storyboard(pasta)
+                v = q.get("v") or (vs[0] if vs else "V1")
+                return self._json({"versoes": vs, "versao": v, "dados": storyboard.ler(pasta, v),
+                                   "aprovado": (pasta / "trabalho" / "storyboard_aprovado.json").exists()})
             if u.path == "/api/opiniao":
                 from . import aprendizado, feedback
                 pasta = _pasta(q["p"])
@@ -1332,6 +1342,18 @@ class Painel(BaseHTTPRequestHandler):
                     raise ValueError("caminho fora do projeto")
                 subprocess.run(["open", "-R", str(alvo)] if alvo.is_file() else ["open", str(alvo)], check=False)
                 return self._json({"ok": True})
+            if u.path == "/api/storyboard":           # resposta: "aprovado" ou "4B: troca o título por ..."
+                from . import storyboard
+                nome = dados["p"]
+                v = dados.get("v") or "V1"
+                if dados.get("gerar"):
+                    return self._json({"job": iniciar(nome, "storyboard", dados.get("versoes"))})
+                r = storyboard.responder(_pasta(nome), dados.get("resposta", ""), v)
+                if r["aprovado"]:
+                    r["job"] = iniciar(nome, "final", dados.get("versoes"))
+                elif r["aplicados"]:
+                    r["job"] = iniciar(nome, "storyboard", dados.get("versoes"))
+                return self._json(r)
             if u.path == "/api/atualizar":           # baixa a versão nova e reinicia este painel
                 from . import atualizar as _at
                 r = _at.atualizar(ROOT)
