@@ -1,18 +1,20 @@
 // Telas do topo: Projetos, Programação, IA e ideias, Referências, Biblioteca.
-const TELAS = ["projetos", "nova", "galeria", "programacao", "ia", "referencias", "biblioteca"];
+const TELAS = ["inicio", "nova", "projetos", "galeria", "programacao", "ia", "referencias", "biblioteca"];
 
 function mostrarTela(nome) {
   $$(".topo nav button").forEach((b) => b.classList.toggle("ativa", b.dataset.tela === nome));
-  const secoes = { nova: "#nova", galeria: "#galeria", programacao: "#programacao", ia: "#ia", referencias: "#referencias",
-                   biblioteca: "#biblioteca" };
-  ["#vazio", "#projeto", "#carrossel", "#antesdepois", ...Object.values(secoes)].forEach((s) => { const el = $(s); if (el) el.hidden = true; });
+  const secoes = { inicio: "#vazio", nova: "#nova", galeria: "#galeria", programacao: "#programacao", ia: "#ia",
+                   referencias: "#referencias", biblioteca: "#biblioteca" };
+  ["#escolha", "#projeto", "#carrossel", "#antesdepois", ...Object.values(secoes)].forEach((s) => { const el = $(s); if (el) el.hidden = true; });
+  document.body.classList.toggle("com-lista", nome === "projetos");
+  if (nome !== "projetos") document.body.classList.remove("projeto-aberto");
   if (nome === "projetos") {
-    if (atual) abrir(atual); else $("#vazio").hidden = false;
+    if (atual) abrir(atual); else { $("#escolha").hidden = false; document.body.classList.remove("projeto-aberto"); }
     return;
   }
+  window.scrollTo(0, 0);
   const el = $(secoes[nome]); if (el) el.hidden = false;
-  if (el && matchMedia("(max-width: 700px)").matches) el.scrollIntoView({ behavior: "smooth" });   // celular: vai direto
-  const carregar = { nova: montarNovaEdicao, galeria: window.carregarGaleria, programacao: carregarProgramacao, ia: window.carregarIA, referencias: window.carregarReferencias,
+  const carregar = { inicio: carregarInicio, nova: montarNovaEdicao, galeria: window.carregarGaleria, programacao: carregarProgramacao, ia: window.carregarIA, referencias: window.carregarReferencias,
                      biblioteca: window.carregarBiblioteca }[nome];
   if (carregar) carregar();
 }
@@ -114,35 +116,68 @@ $("#b-nova").onclick = () => mostrarTela("nova");
 
 // ---------------------------------------------------------------- Galeria (só peças validadas)
 
-let galFiltro = "";
-window.carregarGaleria = async () => {
-  const itens = await api("/api/galeria");
-  const nomes = { video: "Vídeos", stories: "Stories", carrossel: "Carrosséis", post: "Posts", tv: "TV" };
-  const cats = Object.keys(nomes).filter((c) => itens.some((i) => i.categoria === c));
-  $("#gal-filtro").innerHTML = [["", "Tudo"], ...cats.map((c) => [c, nomes[c]])].map(([c, n]) =>
-    `<button class="chip ${c === galFiltro ? "ativo" : ""}" data-c="${c}">${n}</button>`).join("");
-  $$("#gal-filtro .chip").forEach((b) => b.onclick = () => { galFiltro = b.dataset.c; window.carregarGaleria(); });
-  const busca = ($("#gal-busca").value || "").toLowerCase();
-  const lista = itens.filter((i) => !galFiltro || i.categoria === galFiltro)
-    .filter((i) => !busca || (i.titulo + " " + (i.tags || []).join(" ") + " " + i.versao).toLowerCase().includes(busca));
-  if ($("#gal-ordem").value === "views") lista.sort((a, b) => (b.views || 0) - (a.views || 0));
-  const url = (i) => `/arquivo?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}`;
-  const capa = (i) => `/miniatura.jpg?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}`;
-  const selo = { postado: "postado", agendado: "agendado", aprovado: "pronto" };
-  $("#gal-grade").innerHTML = lista.map((i, k) => `<figure class="gal-item ${i.categoria === "tv" ? "deitado" : ""}" data-k="${k}">
-      <div class="gal-capa"><img loading="lazy" src="${capa(i)}" alt="">${i.video ? '<span class="play">▶</span>' : ""}
-        <span class="gal-status">${selo[i.status] || "★ validado"}</span></div>
+let galFiltro = "", vidEstado = null;
+const ESTADOS = [["melhores", "★ Melhores"], ["finais", "Finais"], ["previas", "Prévias"], ["postados", "Postados"], ["todos", "Todos"]];
+const NOMES_CAT = { video: "Vídeos", stories: "Stories", carrossel: "Carrosséis", post: "Posts", tv: "TV" };
+const urlPeca = (i) => `/arquivo?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}`;
+const capaPeca = (i) => `/miniatura.jpg?p=${encodeURIComponent(i.projeto)}&f=${encodeURIComponent(i.arquivo)}`;
+const melhor = (i) => i.validado || ["aprovado", "agendado", "postado"].includes(i.status);
+
+function cartaoVideo(i, k) {
+  const selo = i.status === "postado" ? "postado" : i.validado ? "★ validado" : i.previa ? "prévia" : i.status === "agendado" ? "agendado" : "final";
+  return `<figure class="gal-item ${i.categoria === "tv" ? "deitado" : ""}" data-k="${k}">
+      <div class="gal-capa"><img loading="lazy" src="${capaPeca(i)}" alt=""><span class="play">▶</span>
+        <span class="gal-status ${melhor(i) ? "bom" : ""}">${selo}</span></div>
       <figcaption><b>${esc(i.titulo)}</b><span>${esc(i.versao)}${i.views ? " · " + Number(i.views).toLocaleString("pt-BR") + " views" : ""}</span></figcaption>
-    </figure>`).join("") || '<p class="dica">A galeria mostra só o que chegou a uma boa edição. Nas versões do projeto, clique em ★ Validar (ou exporte a final).</p>';
-  $$(".gal-item").forEach((el) => {
+    </figure>`;
+}
+
+function ligarCartoes(raiz, lista) {
+  raiz.querySelectorAll(".gal-item").forEach((el) => {
     const i = lista[+el.dataset.k];
     const cap = el.querySelector(".gal-capa");
-    if (i.video && matchMedia("(hover: hover)").matches) {       // no Mac: passa o mouse e o vídeo toca
-      el.onmouseenter = () => { if (!cap.querySelector("video")) cap.insertAdjacentHTML("beforeend", `<video src="${url(i)}" muted autoplay loop playsinline></video>`); };
+    if (matchMedia("(hover: hover)").matches) {       // no Mac: passa o mouse e o vídeo toca
+      el.onmouseenter = () => { if (!cap.querySelector("video")) cap.insertAdjacentHTML("beforeend", `<video src="${urlPeca(i)}" muted autoplay loop playsinline></video>`); };
       el.onmouseleave = () => { const v = cap.querySelector("video"); if (v) v.remove(); };
     }
-    el.onclick = () => abrirPeca(i, url(i));
+    el.onclick = () => abrirPeca(i, urlPeca(i));
   });
+}
+
+window.carregarGaleria = async () => {
+  const itens = (await api("/api/videos")).map((i) => ({ ...i, video: true }));
+  if (vidEstado === null) vidEstado = itens.some(melhor) ? "melhores" : "todos";
+  const contar = { melhores: itens.filter(melhor).length, finais: itens.filter((i) => !i.previa).length,
+                   previas: itens.filter((i) => i.previa).length, postados: itens.filter((i) => i.status === "postado").length, todos: itens.length };
+  $("#vid-estado").innerHTML = ESTADOS.map(([k, n]) => `<button class="chip ${k === vidEstado ? "ativo" : ""}" data-e="${k}">${n} <span>${contar[k]}</span></button>`).join("");
+  $$("#vid-estado .chip").forEach((b) => b.onclick = () => { vidEstado = b.dataset.e; window.carregarGaleria(); });
+  const cats = Object.keys(NOMES_CAT).filter((c) => itens.some((i) => i.categoria === c));
+  $("#gal-filtro").innerHTML = cats.length > 1 ? [["", "Todos os tipos"], ...cats.map((c) => [c, NOMES_CAT[c]])].map(([c, n]) =>
+    `<button class="chip ${c === galFiltro ? "ativo" : ""}" data-c="${c}">${n}</button>`).join("") : "";
+  $$("#gal-filtro .chip").forEach((b) => b.onclick = () => { galFiltro = b.dataset.c; window.carregarGaleria(); });
+  const busca = ($("#gal-busca").value || "").toLowerCase();
+  const filtroEstado = { melhores: melhor, finais: (i) => !i.previa, previas: (i) => i.previa, postados: (i) => i.status === "postado", todos: () => true }[vidEstado];
+  const lista = itens.filter(filtroEstado).filter((i) => !galFiltro || i.categoria === galFiltro)
+    .filter((i) => !busca || (i.titulo + " " + (i.tags || []).join(" ") + " " + i.versao).toLowerCase().includes(busca));
+  if ($("#gal-ordem").value === "views") lista.sort((a, b) => (b.views || 0) - (a.views || 0));
+  const vazio = vidEstado === "melhores"
+    ? '<p class="dica">Ainda não há vídeos validados. Nas versões de um projeto, toque em ★ Validar no vídeo que ficou bom.</p>'
+    : '<p class="dica">Nenhum vídeo aqui ainda. Crie uma edição em <b>Nova edição</b> ou importe a pasta antiga.</p>';
+  const grade = $("#gal-grade");
+  if (!lista.length) { grade.className = "galeria"; grade.innerHTML = vazio; return; }
+  if ($("#gal-agrupar").checked) {
+    const grupos = [];
+    lista.forEach((i, k) => { let g = grupos.find((x) => x.projeto === i.projeto); if (!g) grupos.push(g = { projeto: i.projeto, titulo: i.titulo, itens: [] }); g.itens.push([i, k]); });
+    grade.className = "galeria-grupos";
+    grade.innerHTML = grupos.map((g) => `<div class="grupo"><div class="linha-titulo"><h3>${esc(g.titulo)} <span class="dica">${g.itens.length}</span></h3>
+        <button class="link" data-abrir="${esc(g.projeto)}">abrir projeto</button></div>
+        <div class="galeria faixa">${g.itens.map(([i, k]) => cartaoVideo(i, k)).join("")}</div></div>`).join("");
+    $$("[data-abrir]").forEach((b) => b.onclick = () => { mostrarTela("projetos"); abrir(b.dataset.abrir); });
+  } else {
+    grade.className = "galeria";
+    grade.innerHTML = lista.map(cartaoVideo).join("");
+  }
+  ligarCartoes(grade, lista);
 };
 
 function abrirPeca(i, url) {
@@ -154,7 +189,7 @@ function abrirPeca(i, url) {
       <div class="modal-info"><h2>${esc(i.titulo)}</h2><p class="dica">${esc(i.versao)} · ${esc(i.status || "validado")}</p>
         <div class="linha"><button class="dourado" data-a="editar">✎ Editar</button><button data-a="salvar">⤓ Salvar</button>
           ${i.status !== "postado" ? '<button data-a="postei">✓ Postei</button>' : ""}
-          <button data-a="tirar" class="link">tirar da galeria</button><button data-a="fechar" class="link">fechar</button></div></div></div>`;
+          <button data-a="validar">${i.validado ? "★ Tirar dos melhores" : "★ Validar"}</button><button data-a="fechar" class="link">fechar</button></div></div></div>`;
   document.body.appendChild(m);
   const fechar = () => m.remove();
   m.onclick = (e) => { if (e.target === m) fechar(); };
@@ -167,8 +202,9 @@ function abrirPeca(i, url) {
     await api("/api/publicacao", { p: i.projeto, versao: i.versao, campos: { status: "postado", link: link || undefined } });
     fechar(); window.carregarGaleria();
   };
-  m.querySelector('[data-a="tirar"]').onclick = async () => {
-    await api("/api/publicacao", { p: i.projeto, versao: i.versao, campos: { validado: null, ...(i.status === "aprovado" ? { status: "rascunho" } : {}) } });
+  m.querySelector('[data-a="validar"]').onclick = async () => {
+    await api("/api/publicacao", { p: i.projeto, versao: i.versao, arquivo: i.arquivo,
+                                   campos: i.validado ? { validado: null } : { validado: true, gostei: true } });
     fechar(); window.carregarGaleria();
   };
 }
@@ -189,6 +225,38 @@ $("#imp-ok").onclick = () => importar(false);
 
 $("#gal-busca").oninput = () => window.carregarGaleria();
 $("#gal-ordem").onchange = () => window.carregarGaleria();
+$("#gal-agrupar").onchange = () => window.carregarGaleria();
+
+// ---------------------------------------------------------------- Início
+async function carregarInicio() {
+  const h = new Date().getHours();
+  $("#ini-ola").textContent = (h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite") + ", Renato";
+  $("#ini-atalhos").innerHTML = EDICOES.slice(0, 5).map(([k, ic, nome, txt]) =>
+    `<button class="atalho ${k === "epico" ? "epico" : ""}" data-tipo="${k}"><i>${ic}</i><b>${nome}</b><span>${esc(txt.split(":")[0].split(".")[0])}</span></button>`).join("")
+    + '<button class="atalho" data-tipo="mais"><i>⋯</i><b>Mais tipos</b><span>post, TV, antes e depois, importar</span></button>';
+  $$(".atalho").forEach((b) => b.onclick = () => {
+    mostrarTela("nova");
+    const f = $(`.tipo-edicao[data-tipo="${b.dataset.tipo}"]`);
+    if (f) { f.scrollIntoView({ behavior: "smooth", block: "center" }); f.classList.add("destaque"); f.querySelector("input").focus(); setTimeout(() => f.classList.remove("destaque"), 1600); }
+  });
+  const [projs, prog, vids] = await Promise.all([api("/api/projetos"), api("/api/programacao"), api("/api/videos")]);
+  const nomesCat = { video: "Vídeo", stories: "Stories", carrossel: "Carrossel", post: "Post", tv: "TV", antes_depois: "Antes e depois" };
+  const recentes = projs.filter((p) => !p.pacote).sort((a, b) => b.nome.localeCompare(a.nome)).slice(0, 6);
+  $("#ini-recentes").innerHTML = recentes.map((p) => `<button class="recente" data-p="${esc(p.nome)}">
+      <b>${p.epico ? "✦ " : ""}${esc(p.titulo)}</b><span>${nomesCat[p.categoria] || "Vídeo"} · ${p.previas} prévia(s) · ${p.finais} final(is)</span></button>`).join("")
+    || '<p class="dica">Nenhum projeto ainda. Comece por um dos atalhos acima.</p>';
+  $$(".recente").forEach((b) => b.onclick = () => { mostrarTela("projetos"); abrir(b.dataset.p); });
+  const fmt = (d) => d ? d.split("-").reverse().slice(0, 2).join("/") : "";
+  const postar = prog.pecas.filter((p) => ["aprovado", "agendado"].includes(p.status) && !["consulta"].includes(p.rede))
+    .sort((a, b) => (a.data_agendada || "9").localeCompare(b.data_agendada || "9")).slice(0, 6);
+  $("#ini-postar").innerHTML = postar.map((p) => `<div class="mini-peca" data-p="${esc(p.projeto)}"><b>${esc(p.titulo)}</b>
+      <span>${esc(p.versao)} · ${p.status === "agendado" ? "📅 " + fmt(p.data_agendada) : "pronto para postar"}</span></div>`).join("")
+    || '<p class="dica">Nada esperando. Aprove uma versão e ela aparece aqui.</p>';
+  $$(".mini-peca").forEach((el) => el.onclick = () => { mostrarTela("projetos"); abrir(el.dataset.p); });
+  const ultimos = vids.slice(0, 10).map((i) => ({ ...i, video: true }));
+  $("#ini-videos").innerHTML = ultimos.map(cartaoVideo).join("") || '<p class="dica">Os vídeos gerados aparecem aqui.</p>';
+  ligarCartoes($("#ini-videos"), ultimos);
+}
 
 // ---------------------------------------------------------------- saúde do app
 async function carregarSaude() {

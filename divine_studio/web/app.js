@@ -85,8 +85,9 @@ async function abrir(nome) {
   atual = nome;
   history.replaceState(null, "", "#" + encodeURIComponent(nome));
   dados = await api("/api/projeto?p=" + encodeURIComponent(nome));
-  $("#vazio").hidden = true;
+  $("#vazio").hidden = true; $("#escolha").hidden = true;
   $$(".tela").forEach((s) => s.hidden = true);
+  document.body.classList.add("com-lista", "projeto-aberto");
   $$(".topo nav button").forEach((b) => b.classList.toggle("ativa", b.dataset.tela === "projetos"));
   $("#antesdepois").hidden = true;
   if (dados.tipo === "carrossel" || dados.tipo === "post") {   // carrossel e post têm tela própria (carrossel.js)
@@ -102,6 +103,7 @@ async function abrir(nome) {
   $("#carrossel").hidden = true;
   if (window.pedidosHtml) $("#p-pedidos").innerHTML = pedidosHtml(dados.pedidos_imagem);
   $("#projeto").hidden = false;
+  desenharPassos();
   $("#p-titulo").textContent = dados.titulo;
   $("#p-pasta").textContent = "projetos/" + dados.nome;
   $("#c-template").innerHTML = dados.templates.map((t) => `<option ${t === dados.template ? "selected" : ""}>${t}</option>`).join("");
@@ -371,7 +373,40 @@ window.addEventListener("hashchange", () => {
 // ---------------------------------------------------------------- início
 carregarLista().then(() => {
   const h = decodeURIComponent(location.hash.slice(1));
-  if (h) abrir(h).catch(() => {});
+  if (h) abrir(h).catch(() => mostrarTela("inicio"));
+  else mostrarTela("inicio");
+});
+
+// passo a passo do projeto: mostra onde você está e leva para a aba certa
+function desenharPassos() {
+  const brutos = (dados.brutos || []).length, previas = dados.saidas.filter((s) => s.previa).length;
+  const finais = dados.saidas.filter((s) => !s.previa).length;
+  const postado = (dados.publicacoes || []).some((p) => p.status === "postado");
+  const passos = [
+    ["Vídeos brutos", brutos > 0, "config", brutos ? `${brutos} enviado(s)` : "solte os vídeos"],
+    ["Ajustes e textos", previas > 0, "edicao", "hooks, efeitos, sons e voz"],
+    ["Prévias", previas > 0, "versoes", previas ? `${previas} prévia(s)` : "gere as 3 versões"],
+    ["Escolher e exportar", finais > 0, "versoes", finais ? `${finais} final(is)` : "aprove a melhor"],
+    ["Postar", postado, "programacao", postado ? "postado ✓" : "agende ou marque Postei"],
+  ];
+  const atualIdx = passos.findIndex((p) => !p[1]);
+  $("#p-passos").innerHTML = passos.map(([n, ok, aba, sub], i) => `<li class="${ok ? "feito" : ""} ${i === atualIdx ? "agora" : ""}" data-aba-ir="${aba}">
+      <b>${ok ? "✓" : i + 1}</b><span>${n}<small>${esc(sub)}</small></span></li>`).join("");
+  $$("#p-passos li").forEach((li) => li.onclick = () => {
+    if (li.dataset.abaIr === "programacao") return mostrarTela("programacao");
+    $(`[data-aba="${li.dataset.abaIr}"]`).click();
+  });
+}
+
+$$("[data-voltar]").forEach((b) => b.onclick = () => {
+  atual = null; history.replaceState(null, "", "#");
+  document.body.classList.remove("projeto-aberto");
+  mostrarTela("projetos"); carregarLista();
+});
+document.addEventListener("click", (e) => {
+  const ir = e.target.closest("[data-ir]");
+  if (ir) mostrarTela(ir.dataset.ir);
+  if (!e.target.closest("details.mais")) $$("details.mais[open]").forEach((d) => d.removeAttribute("open"));
 });
 
 // aviso de tarefa pronta: título da aba, vibração no iPhone e um "ding" suave
@@ -392,7 +427,7 @@ $("#b-arquivar").onclick = async () => {
   try {
     const r = await api("/api/arquivar", { p: atual });
     atual = null; history.replaceState(null, "", "#"); await carregarLista();
-    $("#projeto").hidden = true; $("#vazio").hidden = false;
+    document.body.classList.remove("projeto-aberto"); mostrarTela("projetos");
     alert("Guardado em " + r.destino);
   } catch (err) { alert(err.message); }
 };

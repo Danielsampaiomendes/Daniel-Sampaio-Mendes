@@ -303,3 +303,109 @@ textarea#yaml { min-height: 420px; font: 13px/1.55 ui-monospace, Menlo, monospac
 #gal-busca { width: 140px; } #gal-ordem { width: auto; }
 .cabecalho .acoes #gal-busca, .cabecalho .acoes #gal-ordem { margin-right: 6px; }
 .saude { margin-top: 18px; }
+
+/* ---------- reorganização 02/11: menu, lista só em Projetos, início, passos, vídeos ---------- */
+.topo nav.menu { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.menu button { background: none; border: 1px solid transparent; border-radius: 12px; padding: 6px 12px; color: var(--apagado);
+  display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.menu button i { font-style: normal; color: var(--dourado2); font-size: 15px; }
+.menu button:hover { color: var(--branco); border-color: var(--linha); }
+.menu button.ativa { color: var(--branco); background: var(--painel2); border-color: var(--dourado2); }
+.menu button.m-nova { color: var(--fundo); background: var(--dourado); }
+.menu button.m-nova i { color: var(--fundo); }
+
+/* a lista de projetos só aparece na tela Projetos */
+.app { grid-template-columns: 1fr; }
+body.com-lista .app { grid-template-columns: 300px 1fr; }
+body:not(.com-lista) .lateral { display: none; }
+.lateral-topo { margin: 0; } .lateral-topo h2 { margin: 0; }
+.voltar { display: none; margin-bottom: 8px; font-size: 14px; text-decoration: none; }
+
+/* início */
+.inicio { max-width: 1100px; }
+.boas-vindas { display: flex; gap: 18px; align-items: center; margin-bottom: 18px; }
+.logo-medio { width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 8px 24px #000a; }
+.atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.atalho { border-radius: 16px; padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 4px; background: var(--painel); }
+.atalho i { font-style: normal; font-size: 24px; color: var(--dourado); }
+.atalho b { color: var(--branco); font-weight: 500; }
+.atalho span { font-size: 12px; color: var(--apagado); }
+.atalho.epico { border-color: var(--dourado); background: linear-gradient(160deg, #2a2418, var(--painel) 60%); }
+.ini-grade { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 16px; }
+.ini-recentes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.recente, .mini-peca { border-radius: 12px; text-align: left; padding: 10px 12px; display: flex; flex-direction: column; background: var(--fundo); border: 1px solid var(--linha); cursor: pointer; }
+.recente b, .mini-peca b { color: var(--branco); font-weight: 500; font-size: 14px; }
+.recente span, .mini-peca span { color: var(--apagado); font-size: 12px; }
+.mini-peca { margin-bottom: 6px; }
+.faixa { display: flex !important; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.faixa .gal-item { flex: 0 0 150px; }
+.faixa .gal-item.deitado { flex-basis: 280px; }
+.tipo-edicao.destaque { outline: 2px solid var(--dourado); }
+.escolha { text-align: center; margin-top: 12vh; }
+
+/* passo a passo do projeto */
+.passos { list-style: none; display: flex; gap: 6px; padding: 0; margin: 16px 0 0; overflow-x: auto; }
+.passos li { flex: 1; min-width: 140px; display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 12px;
+  border: 1px solid var(--linha); cursor: pointer; color: var(--apagado); font-size: 14px; }
+.passos li b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--linha); font-size: 13px; flex: none; }
+.passos li span { display: flex; flex-direction: column; line-height: 1.2; }
+.passos li small { font-size: 11px; color: var(--apagado); }
+.passos li.feito { color: var(--texto); } .passos li.feito b { background: var(--painel2); color: var(--ok); border-color: var(--ok); }
+.passos li.agora { border-color: var(--dourado); color: var(--branco); } .passos li.agora b { background: var(--dourado); color: var(--fundo); border-color: var(--dourado); }
+
+/* menu "Mais" */
+details.mais { position: relative; }
+details.mais summary { list-style: none; cursor: pointer; background: var(--painel2); border: 1px solid var(--linha); border-radius: 999px; padding: 7px 16px; }
+details.mais summary::-webkit-details-marker { display: none; }
+.mais-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; background: var(--painel); border: 1px solid var(--linha);
+  border-radius: 14px; padding: 6px; display: flex; flex-direction: column; min-width: 240px; box-shadow: 0 16px 40px #000c; }
+.mais-menu button { border: 0; background: none; border-radius: 10px; text-align: left; padding: 9px 12px; }
+.mais-menu button:hover { background: var(--painel2); }
+
+/* avançado recolhido */
+details.avancado summary { cursor: pointer; color: var(--dourado); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+details.avancado[open] summary { margin-bottom: 12px; }
+details.avancado .regra { border: 0; padding: 0; margin-top: 16px; background: none; }
+
+/* biblioteca de vídeos */
+.filtros-videos { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.filtros-videos .linha { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.filtros-videos #gal-busca { width: 260px; }
+.chips.seg .chip { font-size: 14px; padding: 6px 14px; }
+.chip span { opacity: .6; font-size: 11px; }
+.galeria-grupos .grupo { margin-bottom: 22px; }
+.galeria-grupos h3 { margin: 0; color: var(--branco); font-weight: 500; font-size: 16px; }
+.gal-status.bom { background: var(--dourado); color: var(--fundo); }
+
+@media (max-width: 1100px) {
+  body.com-lista .app { grid-template-columns: 1fr; }
+  body.projeto-aberto .lateral { display: none; }          /* no celular: ou a lista, ou o projeto */
+  body.projeto-aberto .voltar { display: inline-block; }
+  .ini-grade { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .topo .sub { display: none; }
+  .menu button { padding: 6px 10px; font-size: 13px; }
+  .atalhos { grid-template-columns: 1fr 1fr; }
+  .passos li { min-width: 120px; }
+  .filtros-videos #gal-busca { width: 100%; }
+}
+.topo .sub { display: none; }
+.topo nav.menu { flex-wrap: nowrap; overflow-x: auto; }
+.menu button { white-space: nowrap; flex: 0 0 auto; }
+details.pedidos summary { cursor: pointer; color: var(--dourado); font-size: 14px; }
+details.pedidos[open] summary { margin-bottom: 6px; }
+@media (max-width: 700px) {
+  /* celular: menu vira barra fixa embaixo, como app */
+  .topo nav.menu { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; gap: 0; justify-content: flex-start;
+    background: #12110Ff2; backdrop-filter: blur(10px); border-top: 1px solid var(--linha);
+    padding: 6px 4px calc(env(safe-area-inset-bottom) + 6px); }
+  .menu button { flex-direction: column; gap: 2px; font-size: 11px; padding: 4px 10px; border-radius: 10px; min-width: 64px; }
+  .menu button i { font-size: 18px; }
+  .menu button.ativa { background: none; border-color: transparent; color: var(--dourado); }
+  .menu button.m-nova { background: none; color: var(--dourado); }
+  .menu button.m-nova i { color: var(--fundo); background: var(--dourado); border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; }
+  .principal { padding-bottom: 140px; }
+  .tarefa { bottom: calc(env(safe-area-inset-bottom) + 70px) !important; }
+}
+.abas { overflow-x: auto; flex-wrap: nowrap; } .abas button { white-space: nowrap; flex: 0 0 auto; }

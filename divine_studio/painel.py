@@ -232,6 +232,41 @@ def arquivar(nome: str) -> str:
     return str(destino.relative_to(ROOT))
 
 
+def videos() -> list:
+    """Biblioteca de vídeos: todo vídeo gerado ou importado, de todos os projetos, com o estado de cada um."""
+    out = []
+    for y in sorted(PROJETOS.glob("**/projeto.yaml")):
+        pasta = y.parent
+        if "trabalho" in pasta.parts or not (pasta / "saida").exists():
+            continue
+        try:
+            d = yaml.safe_load(y.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        if d.get("uso_interno") or d.get("tipo") == "antes_depois":
+            continue
+        nome = str(pasta.relative_to(PROJETOS))
+        mapa = json.loads(_ler_md(pasta / "trabalho" / "importados.json") or "{}")
+        pubs = {p.get("arquivo"): p for p in d.get("publicacoes") or [] if p.get("arquivo")}
+        pubs_v = {p.get("versao"): p for p in d.get("publicacoes") or []}
+        for f in sorted((pasta / "saida").glob("*")):
+            if f.suffix.lower() not in (".mp4", ".mov", ".m4v") or f.name.startswith(".") or not f.exists():
+                continue
+            m = re.search(r"_(V\d+|TV|IA)_", f.name + "_")
+            versao = mapa.get(f.name) or (m.group(1) if m else f.stem[:24])
+            rel = f"saida/{f.name}"
+            pub = pubs.get(rel) or pubs_v.get(versao) or {}
+            previa = "_PREVIA" in f.name
+            out.append({"projeto": nome, "titulo": d.get("titulo", nome), "versao": versao, "arquivo": rel,
+                        "previa": previa, "status": pub.get("status") or ("" if previa else "final"),
+                        "validado": bool(pub.get("validado")), "gostei": bool(pub.get("gostei")),
+                        "categoria": categoria(d), "tags": [str(t) for t in d.get("tags") or []],
+                        "importado": bool(d.get("importado")), "quando": f.stat().st_mtime,
+                        "mb": round(f.stat().st_size / 1e6, 1),
+                        "views": (pub.get("metricas") or {}).get("views") or (pub.get("metricas") or {}).get("alcance")})
+    return sorted(out, key=lambda x: -x["quando"])
+
+
 def galeria() -> list:
     """Peças validadas (★), aprovadas na final ou postadas, com arquivo existente. Uso interno não entra."""
     from . import aprendizado
@@ -813,6 +848,8 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/celular":
                 return self._json({"ativo": bool(Painel.codigo), "endereco": f"http://{ip_da_rede()}:{self.server.server_address[1]}",
                                    "codigo": Painel.codigo if self.client_address[0] in LOCAIS else None})
+            if u.path == "/api/videos":
+                return self._json(videos())
             if u.path == "/api/galeria":
                 return self._json(galeria())
             if u.path == "/miniatura.jpg":

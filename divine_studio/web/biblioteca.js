@@ -9,12 +9,12 @@ async function enviarBib(cat, arquivo, item) {
 }
 
 // aviso "me mande esta foto" (projeto, carrossel, post e na própria Biblioteca)
-window.pedidosHtml = (lista) => {
+window.pedidosHtml = (lista, aberto) => {
   if (!lista || !lista.length) return "";
-  return `<div class="cartao pedidos"><h2>📷 Me mande estas imagens para a peça ficar completa</h2><ul>${lista.map((p) =>
+  return `<details class="cartao pedidos" ${aberto ? "open" : ""}><summary>📷 Faltam ${lista.length} imagem(ns) para a peça ficar completa: ${lista.map((p) => esc(p.nome.split(" (")[0])).join(", ")} · toque para enviar</summary><ul>${lista.map((p) =>
     `<li><b>${esc(p.nome)}</b>${p.por_que ? ` · ${esc(p.por_que)}` : ""}
       <label class="botao link">enviar<input type="file" accept="image/*" hidden data-pcat="${p.categoria}" data-pitem="${esc(p.arquivo)}"></label>
-      <div class="dica">${esc(p.dica)}</div></li>`).join("")}</ul></div>`;
+      <div class="dica">${esc(p.dica)}</div></li>`).join("")}</ul></details>`;
 };
 document.addEventListener("change", async (e) => {
   const inp = e.target;
@@ -31,7 +31,7 @@ window.carregarBiblioteca = async () => {
   $("#bib-resumo").textContent = faltam ? `Faltam ${faltam} imagem(ns) essencial(is)` : "Essenciais completos ✓";
   const essenciais = cats.flatMap((c) => c.itens.filter((i) => !i.tem && i.obrigatorio)
     .map((i) => ({ categoria: c.chave, arquivo: i.arquivo, nome: i.nome, por_que: i.uso || "", dica: c.dica })));
-  $("#bib-pedidos").innerHTML = pedidosHtml(essenciais);
+  $("#bib-pedidos").innerHTML = pedidosHtml(essenciais, true);
   const img = (cat, f) => `/biblioteca.img?cat=${cat}&f=${encodeURIComponent(f)}&w=320&v=${Date.now()}`;
   $("#bib-cats").innerHTML = cats.map((c) => `<div class="cartao">
       <div class="linha-titulo"><h2>${esc(c.nome)}</h2><span class="dica">${c.itens.length - c.faltam}/${c.itens.length} · <code>${esc(c.pasta)}</code></span>

@@ -19,20 +19,22 @@
   <img class="logo" src="/icone-180.png" alt="Divine Studio">
   <div class="marca"><span class="divine">DIVINE</span><span class="studio">STUDIO</span></div>
   <div class="sub">edição de vídeo · Divine Medical Spa</div>
-  <nav>
-    <button data-tela="projetos" class="ativa">Projetos</button>
-    <button data-tela="galeria">Galeria</button>
-    <button data-tela="programacao">Programação</button>
-    <button data-tela="ia">IA e ideias</button>
-    <button data-tela="referencias">Referências</button>
-    <button data-tela="biblioteca">Biblioteca</button>
-    <button id="b-celular" title="Abrir no iPhone">📱</button>
+  <nav class="menu">
+    <button data-tela="inicio" class="ativa"><i>⌂</i>Início</button>
+    <button data-tela="nova" class="m-nova"><i>＋</i>Nova edição</button>
+    <button data-tela="projetos"><i>▤</i>Projetos</button>
+    <button data-tela="galeria"><i>▶</i>Vídeos</button>
+    <button data-tela="programacao"><i>◷</i>Programação</button>
+    <button data-tela="ia"><i>✦</i>Ideias e IA</button>
+    <button data-tela="referencias"><i>◎</i>Referências</button>
+    <button data-tela="biblioteca"><i>▣</i>Imagens</button>
+    <button id="b-celular" title="Abrir no iPhone"><i>📱</i>iPhone</button>
   </nav>
 </header>
 
 <div class="app">
   <aside class="lateral">
-    <button id="b-nova" class="dourado nova-edicao">+ Nova edição</button>
+    <div class="linha-titulo lateral-topo"><h2>Projetos</h2><button id="b-nova" class="dourado">+ Nova</button></div>
     <input id="filtro" class="filtro" placeholder="Buscar projeto" autocomplete="off">
     <div id="filtro-tipo" class="chips tipos"></div>
     <div id="filtro-tags" class="chips"></div>
@@ -40,11 +42,27 @@
   </aside>
 
   <main id="principal" class="principal">
-    <div class="vazio" id="vazio">
-      <img class="logo-grande" src="/logo.jpg" alt="Divine Studio">
-      <h1>Escolha um projeto à esquerda</h1>
-      <p>ou crie um novo com o tema do vídeo. Depois é só arrastar os vídeos brutos para cá.</p>
-    </div>
+    <section class="inicio" id="vazio">
+      <div class="boas-vindas">
+        <img class="logo-medio" src="/logo.jpg" alt="">
+        <div><h1 id="ini-ola">Olá, Renato</h1>
+          <p class="pasta">O que vamos criar hoje? Escolha o tipo, solte os vídeos e o app monta as 3 versões.</p></div>
+      </div>
+      <div class="atalhos" id="ini-atalhos"></div>
+      <div class="ini-grade">
+        <div class="cartao"><div class="linha-titulo"><h2>Continuar de onde parou</h2><button class="link" data-ir="projetos">ver todos</button></div>
+          <div id="ini-recentes" class="ini-recentes"></div></div>
+        <div class="cartao"><div class="linha-titulo"><h2>Para postar</h2><button class="link" data-ir="programacao">programação</button></div>
+          <div id="ini-postar"></div></div>
+      </div>
+      <div class="cartao"><div class="linha-titulo"><h2>Últimos vídeos</h2><button class="link" data-ir="galeria">biblioteca de vídeos</button></div>
+        <div id="ini-videos" class="faixa"></div></div>
+    </section>
+
+    <section class="escolha" id="escolha" hidden>
+      <h1>Escolha um projeto na lista</h1>
+      <p class="pasta">ou crie um em <b>+ Nova</b>. Use a busca e os filtros por tipo e tag.</p>
+    </section>
 
     <section id="nova" class="tela" hidden>
       <div class="cabecalho"><div><h1>Nova edição</h1>
@@ -64,11 +82,15 @@
     </section>
 
     <section id="galeria" class="tela" hidden>
-      <div class="cabecalho"><div><h1>Galeria</h1>
-        <div class="pasta">Só as peças validadas: as que você marcou ★ Validar, aprovou na final ou postou. Clique para assistir; "Editar" abre o projeto.</div></div>
-        <div class="acoes"><input id="gal-busca" placeholder="buscar" autocomplete="off">
+      <div class="cabecalho"><div><h1>Biblioteca de vídeos</h1>
+        <div class="pasta">Todos os vídeos criados e importados. Toque para assistir; "Editar" abre o projeto a qualquer momento.</div></div></div>
+      <div class="filtros-videos">
+        <div id="vid-estado" class="chips seg"></div>
+        <div id="gal-filtro" class="chips tipos"></div>
+        <div class="linha"><input id="gal-busca" placeholder="buscar por tema ou tag" autocomplete="off">
           <select id="gal-ordem"><option value="recentes">mais recentes</option><option value="views">mais vistos</option></select>
-          <div id="gal-filtro" class="chips tipos"></div></div></div>
+          <label class="check"><input type="checkbox" id="gal-agrupar" checked> por projeto</label></div>
+      </div>
       <div class="galeria" id="gal-grade"></div>
     </section>
 
@@ -114,6 +136,7 @@
     </section>
 
     <section id="antesdepois" hidden>
+      <button class="voltar link" data-voltar>‹ Projetos</button>
       <div class="cabecalho">
         <div><h1 id="ad-titulo"></h1><div class="pasta" id="ad-pasta"></div></div>
         <div class="acoes"><button id="ad-exportar" class="dourado">Gerar (TV, Stories e Feed)</button></div>
@@ -145,6 +168,7 @@
     </section>
 
     <section id="carrossel" hidden>
+      <button class="voltar link" data-voltar>‹ Projetos</button>
       <div class="cabecalho">
         <div><h1 id="cr-titulo"></h1><div class="pasta" id="cr-pasta"></div></div>
         <div class="acoes">
@@ -180,21 +204,26 @@
     </section>
 
     <section id="projeto" hidden>
+      <button class="voltar link" data-voltar>‹ Projetos</button>
       <div class="cabecalho">
         <div>
           <h1 id="p-titulo"></h1>
           <div class="pasta" id="p-pasta"></div>
         </div>
         <div class="acoes">
-          <button data-acao="auto" class="dourado" title="Monta o projeto sozinho a partir dos vídeos e gera as 3 prévias">✦ Criar edição automática</button>
-          <button data-acao="revisar" title="Compliance CFM/Anvisa e regras do Renato">Revisar</button>
-          <button data-acao="cortar" title="Mostra o que sai e o que fica no corte limpo">Ver corte</button>
-          <button data-acao="previa" title="Prévia rápida das versões com o projeto.yaml atual">Gerar prévias</button>
-          <button data-acao="pacote" title="Cria as peças por categoria (longo, curto, viral, TV...)">Pacote</button>
-          <button id="b-duplicar" title="Cópia do projeto (mesmos brutos) para testar outra ideia">Duplicar</button>
-          <button id="b-arquivar" class="link" title="Tira da lista sem apagar (vai para _arquivo/projetos)">arquivar</button>
+          <button data-acao="auto" class="dourado" title="Monta o projeto sozinho a partir dos vídeos e gera as 3 prévias">✦ Edição automática</button>
+          <button data-acao="previa" title="Prévia rápida das versões com os ajustes atuais">▶ Gerar prévias</button>
+          <details class="mais"><summary>⋯ Mais</summary>
+            <div class="mais-menu">
+              <button data-acao="revisar" title="Compliance CFM/Anvisa e regras do Renato">Revisar textos (CFM/Anvisa)</button>
+              <button data-acao="cortar" title="Mostra o que sai e o que fica no corte limpo">Ver o corte limpo</button>
+              <button data-acao="pacote" title="Cria as peças por categoria (longo, curto, viral, TV...)">Pacote por categoria</button>
+              <button id="b-duplicar" title="Cópia do projeto (mesmos brutos) para testar outra ideia">Duplicar projeto</button>
+              <button id="b-arquivar" title="Tira da lista sem apagar (vai para _arquivo/projetos)">Arquivar projeto</button>
+            </div></details>
         </div>
       </div>
+      <ol class="passos" id="p-passos"></ol>
       <div id="p-pedidos"></div>
 
       <nav class="abas">
@@ -271,7 +300,8 @@
           </div>
         </div>
 
-        <div class="cartao">
+        <details class="cartao avancado"><summary>Avançado: arquivo do projeto e regras novas</summary>
+        <div>
           <div class="linha-titulo">
             <h2>projeto.yaml</h2>
             <span class="dica">*palavra* = dourado · " / " = quebra de linha · hook: auto sorteia do banco</span>
@@ -287,6 +317,7 @@
           <div class="linha"><input id="regra" placeholder="Ex.: CTA antecipado com no máximo duas linhas">
           <button type="submit">Registrar</button></div>
         </form>
+        </details>
       </div>
 
       <div class="aba" id="aba-edicao" hidden>
