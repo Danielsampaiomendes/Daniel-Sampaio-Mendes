@@ -19,6 +19,8 @@ Transcrição na nuvem em vez da local: `export ASSEMBLYAI_API_KEY=...`. Limpeza
 
 `python3 -m divine_studio painel` abre `http://127.0.0.1:8765` (só na sua máquina): criar projeto, arrastar os brutos, escolher template, revisar, ver o corte, gerar prévias, comparar as versões lado a lado, aprovar e exportar a final, copiar a legenda e ensinar regras novas. Usa só a biblioteca padrão do Python.
 
+**Atualizar:** os dois `.command` baixam sozinhos a versão nova do GitHub (ramo `claude/ola-8lmaep`), fecham o painel antigo e abrem o novo. No painel, o botão ⟳ Atualizar faz o mesmo sem sair. Arquivos seus que seriam trocados vão antes para `_arquivo/atualizacao-<data>/`; vídeos e fontes não são tocados. Pasta antiga sem git: `python3 divine_studio/atualizar.py` liga ao GitHub (ou rode o comando de instalação da atualização que o Claude passou).
+
 No iPhone: `Divine Studio iPhone.command` (ou `painel --celular`) libera o painel na rede Wi-Fi com um código de 6 dígitos; no Safari, Compartilhar > Adicionar à Tela de Início.
 
 Aba **Edição** do painel: linha do tempo sobre a prévia (efeitos e mensagens no segundo exato, arrastando; ponto do círculo/zoom com um clique no vídeo; vermelho quando dois itens disputam o mesmo momento), hook e combinação de fontes por versão com amostra visual, e textos (selo, CTA, mensagens, fechamento) sem mexer no YAML. O que tem momento fixo tem prioridade: as mensagens em sequência desviam dele.

@@ -71,3 +71,4 @@ projetos/.importacao.json
 # Conversas com a IA e arquivo morto (ficam só no Mac)
 ideias/conversas/
 _arquivo/conversas_ia/
+.divine_studio_req.sha

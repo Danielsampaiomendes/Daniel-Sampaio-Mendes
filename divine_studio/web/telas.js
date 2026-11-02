@@ -316,6 +316,22 @@ $("#b-celular").onclick = async () => {
   m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) m.remove(); };
 };
 
+// ---------------------------------------------------------------- atualizar e reiniciar
+$("#b-atualizar").onclick = async () => {
+  aviso("Procurando a versão nova...");
+  try {
+    const r = await api("/api/atualizar", {});
+    if (!r.ok) return aviso(r.msg, "erro");
+    if (!r.reiniciando) return aviso(r.msg);
+    aviso(r.msg + " Reiniciando...");
+    const esperar = async (n) => {
+      try { await api("/api/projetos"); location.reload(); }
+      catch (e) { if (n > 0) setTimeout(() => esperar(n - 1), 1000); }
+    };
+    setTimeout(() => esperar(30), 2500);
+  } catch (err) { aviso(err.message, true); }
+};
+
 // ---------------------------------------------------------------- Instagram (várias contas)
 async function estadoInstagram() {
   const c = await api("/api/instagram").catch(() => ({ contas: [] }));

@@ -28,14 +28,18 @@ if [ -z "$(ls Biblioteca_Fontes/ttf/*.ttf 2>/dev/null)" ]; then
   bash Biblioteca_Fontes/baixar_fontes.sh
 fi
 
-# Já aberto? Só mostra no navegador.
-if curl -s -o /dev/null "$URL/api/projetos"; then
-  echo "O painel já está aberto. Para o iPhone, feche a outra janela do Divine Studio e abra esta de novo."
-  open "$URL"
-  exit 0
+# Atualiza pelo GitHub (guarda em _arquivo/ qualquer arquivo seu que fosse trocado).
+python3 divine_studio/atualizar.py --sem-painel || echo "  (seguindo com a versão que já está no Mac)"
+
+# Painel antigo aberto? Fecha e abre o novo, já aceitando o iPhone.
+PIDS=$(lsof -ti tcp:$PORTA -sTCP:LISTEN 2>/dev/null)
+if [ -n "$PIDS" ]; then
+  echo "Fechando o painel antigo para abrir a versão nova..."
+  kill $PIDS 2>/dev/null
+  sleep 1
 fi
 
 echo "Abrindo o painel em $URL"
 echo "Deixe esta janela aberta enquanto usa. Para fechar o app: Ctrl + C (ou feche esta janela)."
 echo
-python3 -m divine_studio painel --porta "$PORTA" --celular
+exec python3 -m divine_studio painel --porta "$PORTA" --celular
