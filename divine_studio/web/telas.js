@@ -110,6 +110,7 @@ $("#pg-entregas").onclick = () => api("/api/abrir_pasta", { caminho: "entregas" 
 const EDICOES = [
   ["video", "🎬", "Vídeo (Reels)", "Envie os brutos: corte, hook em 3 versões, legenda da fala, efeitos e som no padrão viral luxo.", "ex.: Laser de CO2 no rosto"],
   ["epico", "✦", "Vídeo Épico", "A edição mais intensa: abertura em 3D, vertigem, chicote nos cortes, luz dourada e cor de cinema.", "ex.: Por dentro do Endolaser"],
+  ["anuncio", "📣", "Anúncio (conversão)", "Vídeo e copy feitos para a paciente tocar em Saiba mais e agendar: dor, solução, prova e um pedido só. Sai em Reels, Stories e Feed.", "ex.: Endolaser nos braços"],
   ["longo", "✂", "Cortes de vídeo longo", "Solte um vídeo longo (podcast, explicação, bastidor): ele vira cortes curtos, médios, longos, melhores momentos e Stories.", "ex.: Podcast Dr. Daniel sobre CO2"],
   ["react", "◧", "Tela dividida (eu analisando)", "Você comentando um vídeo: dividida (vídeo em cima, você embaixo) ou cabecinha no canto. O app escolhe a melhor proporção.", "ex.: Analisando o Reels do CO2"],
   ["stories", "📱", "Stories", "Vídeo vertical para Stories, com área segura, enquete e chamada para o direct.", "ex.: Bastidores da manhã"],

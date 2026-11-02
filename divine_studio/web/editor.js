@@ -27,6 +27,7 @@ async function carregarEditor() {
   ed.dubs = JSON.parse(JSON.stringify((d.projeto.audio || {}).dublagem || []));
   ed.clipes = JSON.parse(JSON.stringify(d.projeto.clipes || []));
   ed.clipesInfo = d.clipes_info || []; ed.linhas = d.linhas || {}; ed.corteLimpo = d.corte_limpo;
+  ed.atencao = d.atencao || {};
   ed.cfg = { filtros: d.filtros || {}, transicoes: d.transicoes || {}, velocidades: d.velocidades || [1] };
   ed.cor = { ...(d.projeto.cor || {}) };
   ed.audio = { ...(d.projeto.audio || {}) }; ed.licenca = !!d.projeto.musica_licenciada;
@@ -127,6 +128,7 @@ function desenharTimeline() {
   const zona = (cls, a, b) => { const z = document.createElement("div"); z.className = "tl-zona " + cls;
     z.style.left = a * k + "px"; z.style.width = Math.max(0, b - a) * k + "px"; barra.appendChild(z); };
   zona("hook", 0, Math.min(hookFim(), ed.total));
+  ((ed.atencao || {}).zonas || []).forEach((z) => zona("risco", z.ini, z.fim));   // risco de queda (última prévia)
   if (ed.base) zona("fech", ed.base, ed.total);
   const ordem = ed.efeitos.map((e, i) => [Number(e.inicio) || 0, i]).sort((a, b) => a[0] - b[0]);
   const perto = new Set();

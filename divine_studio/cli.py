@@ -233,6 +233,11 @@ def cmd_editar(a):
     tmpl = TEMPLATES[p.get("template", "divine")]
     if hasattr(tmpl, "preparar"):
         tmpl.preparar(p)
+    if p.get("anuncio"):                               # anúncio: texto no topo, cartão final com o botão, copy A/B
+        from . import anuncios
+        anuncios.preparar(p)
+        arq_copy = anuncios.salvar_copy(pasta, p)
+        print(f"• Anúncio: copy com 3 variações em {arq_copy.relative_to(pasta)}")
     W, H = _formato(p)
     fps = load("exportacao")["fps"]
     trabalho, saida = pasta / "trabalho", pasta / "saida"
@@ -366,6 +371,11 @@ def cmd_editar(a):
                       limite_mb=p.get("limite_mb"), tv=p.get("formato") == "tv")
         nota = nota_viral(p, plano, ach_v, voz is not None)
         n_ef = len([e for e in (p.get("efeitos") or []) + (getattr(plano, "efeitos_auto", None) or [])])
+        try:                                               # onde a atenção pode cair (e como resolver)
+            from . import atencao
+            atencao.salvar(trabalho, nome, atencao.analisar(plano, p, voz, base))
+        except Exception as e:
+            print(f"  aviso: análise de atenção indisponível ({e})")
         (trabalho / f"nota_{nome}.json").write_text(json.dumps({
             **nota, "media": round(sum(nota["notas"].values()) / max(1, len(nota["notas"])), 1),
             "duracao": round(plano.duracao_total, 1), "efeitos": n_ef, "sons": len(plano.eventos_sfx),

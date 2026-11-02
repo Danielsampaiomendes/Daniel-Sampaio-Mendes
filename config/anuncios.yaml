@@ -1,0 +1,46 @@
+# Vídeos de anúncio (Meta Ads: Reels, Stories e Feed), feitos para CONVERSÃO: a pessoa toca em "Saiba mais"
+# e chega ao WhatsApp/agendamento. Compliance (CFM 2.336/2023, Anvisa RDC 96/2008) continua valendo em tudo:
+# nada de promessa de resultado, antes e depois de paciente, "garantido", "sem dor", preço como chamariz.
+
+# Estrutura do vídeo, do começo ao fim (cada parte vira texto na tela, no tempo certo)
+estrutura:
+  - {parte: gancho,   seg: 3,  dica: "A dor ou o desejo da paciente em 1 frase (pergunta ou afirmação forte)."}
+  - {parte: problema, seg: 4,  dica: "Por que isso incomoda / o que ela já tentou."}
+  - {parte: solucao,  seg: 6,  dica: "O tratamento e como funciona, em linguagem simples."}
+  - {parte: prova,    seg: 4,  dica: "Autoridade: médico responsável, tecnologia, cuidado, estrutura (sem promessa)."}
+  - {parte: chamada,  seg: 4,  dica: "Um pedido só: 'Toque em Saiba mais e agende sua avaliação'."}
+
+objetivos:
+  mensagens:   {nome: "Conversas no WhatsApp", botao: "Enviar mensagem", chamada: "Toque em *Enviar mensagem* e fale com a nossa equipe"}
+  agendamento: {nome: "Agendar avaliação",      botao: "Saiba mais",      chamada: "Toque em *Saiba mais* e agende sua avaliação"}
+  cadastro:    {nome: "Cadastro (formulário)",  botao: "Cadastre-se",     chamada: "Toque em *Cadastre-se* e receba o contato da equipe"}
+
+# Copy do anúncio: 3 variações para teste A/B (texto principal, título, descrição, botão)
+copy:
+  ganchos:
+    - "Você sente que {dor}?"
+    - "Se {dor}, este vídeo é para você."
+    - "O que ninguém te conta sobre {servico}."
+  provas:
+    - "Avaliação individual com o Dr. Daniel Sampaio Mendes (CRM/SP 186.470) e equipe."
+    - "Tecnologia de ponta, protocolo personalizado e acompanhamento médico do começo ao fim."
+    - "Na Av. Paulista, ao lado do MASP, em um ambiente pensado para o seu conforto."
+  titulos:
+    - "{servico} com acompanhamento médico"
+    - "Agende sua avaliação de {servico}"
+    - "{servico} na Divine Medical Spa"
+  descricao: "Av. Paulista 1636 · Resultados variam de pessoa para pessoa."
+
+# Dor e benefício por tema (o tema vem do título do projeto; mesmas chaves de config/roteiros.yaml)
+temas:
+  co2:          {dor: "manchas, poros e textura da pele te incomodam", beneficio: "estimula a renovação da pele"}
+  endolaser:    {dor: "aquela gordurinha localizada não sai nem com treino", beneficio: "auxilia no contorno com tecnologia a laser"}
+  microagulhamento: {dor: "a pele perdeu o viço e as marcas não somem", beneficio: "estimula o colágeno"}
+  cmslim:       {dor: "falta tempo para fortalecer o corpo", beneficio: "auxilia no fortalecimento muscular"}
+  padrao:       {dor: "você quer se cuidar com segurança", beneficio: "um cuidado individualizado"}
+
+edicao:
+  duracao_alvo_s: [15, 30]         # anúncio curto converte melhor
+  area_livre_embaixo: 0.30         # o botão "Saiba mais" do Instagram cobre a parte de baixo: texto só em cima
+  ritmo: viral
+  formatos: [stories, feed45, feed11]   # sai também em Feed 4:5 e 1:1 para os posicionamentos do Meta

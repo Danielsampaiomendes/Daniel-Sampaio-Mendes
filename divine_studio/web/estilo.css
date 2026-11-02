@@ -488,3 +488,9 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .quadro-grade img { width: 100%; border-radius: 12px; }
 .quadro-grade h3 { color: var(--dourado); font-weight: 500; margin: 14px 0 6px; }
 @media (max-width: 700px) { .quadro-grade { grid-template-columns: 1fr; } }
+.anuncio-cartao h3 { color: var(--dourado); font-weight: 500; margin: 14px 0 6px; } .an-var summary { cursor: pointer; margin: 6px 0; }
+.curva-atencao { width: 100%; height: 70px; background: var(--fundo); border-radius: 8px; }
+.eixo { display: flex; justify-content: space-between; font-size: 11px; color: var(--apagado); }
+.riscos { padding-left: 0; list-style: none; } .riscos li { font-size: 13px; margin: 6px 0; color: var(--texto); }
+.real { border-left: 3px solid var(--dourado); padding-left: 8px; }
+.tl-zona.risco { background: repeating-linear-gradient(45deg, #E0866F33 0 6px, transparent 6px 12px); border-top: 2px solid var(--erro); } .m-risco::before { background: #E0866F !important; }

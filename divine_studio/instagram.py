@@ -18,7 +18,7 @@ from pathlib import Path
 API = "https://graph.facebook.com/v21.0"
 API_IG = "https://graph.instagram.com/v21.0"
 METRICAS = {"views": "views", "reach": "alcance", "likes": "curtidas", "comments": "comentarios",
-            "shares": "compartilhamentos", "saved": "salvamentos"}
+            "shares": "compartilhamentos", "saved": "salvamentos", "ig_reels_avg_watch_time": "tempo_medio_ms"}
 
 
 ARQUIVO = Path("~/.divine_studio/instagram.json").expanduser()

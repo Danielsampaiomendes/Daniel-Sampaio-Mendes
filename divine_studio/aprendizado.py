@@ -183,6 +183,9 @@ def resumo(prefs: dict | None = None) -> list:
         top = max(tab.items(), key=lambda kv: kv[1][0])
         if top[1][0] > 0:
             out.append(f"Melhor {nome}: {top[0]} (nota {top[1][0]}, {top[1][1]} peça(s))")
+        pior = min(tab.items(), key=lambda kv: kv[1][0])
+        if pior[1][0] < 0 and pior[0] != top[0]:
+            out.append(f"Evitar {nome}: {pior[0]} (nota {pior[1][0]}, {pior[1][1]} peça(s))")
     return out
 
 

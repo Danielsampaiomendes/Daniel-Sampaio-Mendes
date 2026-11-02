@@ -25,7 +25,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 import yaml
 
-from .config import ROOT, hoje, slug
+from .config import ROOT, hoje, load, slug
 
 PROJETOS = ROOT / "projetos"
 WEB = Path(__file__).parent / "web"
@@ -165,6 +165,8 @@ def nova_edicao(tipo: str, titulo: str) -> str:
     if tipo == "antes_depois":
         from .antes_depois import novo as novo_ad
         return str(novo_ad(titulo).relative_to(PROJETOS))
+    if tipo == "anuncio":
+        return _novo_anuncio(titulo)
     if tipo not in TIPOS_EDICAO:
         raise ValueError("tipo de edição desconhecido")
     nome = novo(titulo)
@@ -357,6 +359,30 @@ def capa_peca(pasta: Path, rel: str, largura: int = 420) -> bytes:
     return dados
 
 
+def _anuncio_info(pasta: Path, d: dict) -> dict:
+    from . import anuncios
+    a = anuncios.dados_anuncio(d)
+    vs = anuncios.copy(d)
+    return {**a, "copy": vs, "erros": anuncios.revisar_copy(d, vs),
+            "objetivos": {k: v["nome"] for k, v in (load("anuncios").get("objetivos") or {}).items()}}
+
+
+def _novo_anuncio(titulo: str) -> str:
+    """Anúncio: projeto já com o roteiro de conversão (gancho, problema, solução, prova, chamada) e a copy A/B."""
+    from . import anuncios
+    from .config import load as _load
+    nome = novo(titulo)
+    cfg = _load("anuncios")
+    base = {"titulo": titulo, "anuncio": {"objetivo": "agendamento", "servico": titulo}}
+    r = anuncios.roteiro(base)
+    salvar_dados(nome, {"anuncio": base["anuncio"], "versoes": r["versoes"], "mensagens": r["mensagens"],
+                        "cta_antecipado": r["cta_antecipado"], "fechamento": r["fechamento"],
+                        "ritmo": (cfg.get("edicao") or {}).get("ritmo", "viral"), "posicao_texto": "topo",
+                        "formatos": (cfg.get("edicao") or {}).get("formatos", ["stories", "feed45"]),
+                        "objetivo": "seguir", "tags": ["anúncio"]})
+    return nome
+
+
 def _ler_md(p: Path) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
@@ -404,6 +430,7 @@ def detalhe(nome: str) -> dict:
             "tags": [str(t) for t in d.get("tags") or []], "formatos": d.get("formatos") or ["stories", "tv"],
             "objetivo": d.get("objetivo", ""), "tipo": d.get("tipo", "video"),
             "corte": d.get("corte"),
+            "anuncio": _anuncio_info(pasta, d) if d.get("anuncio") else None,
             "react": {"layout": d.get("layout", "auto"), "credito": d.get("credito", ""),
                       "referencias": [c.get("arquivo") for c in d.get("clipes_referencia") or []]}
             if d.get("template") == "react" else None,
@@ -445,7 +472,7 @@ CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
                     "qualidade", "ritmo", "epico", "validado", "copy_dublagem", "clipes", "cor",
                     "ritmo_fixo", "dissolve", "musica_licenciada", "conta",
-                    "clipes_referencia", "layout", "credito", "divisoria"}
+                    "clipes_referencia", "layout", "credito", "divisoria", "anuncio", "posicao_texto"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -476,13 +503,22 @@ def dados_projeto(nome: str) -> dict:
             pass
     ed = load("edicao")
     return {"projeto": d, "referencia": f"saida/{previas[0].name}" if previas else None, "duracao_base": dur,
-            "clipes_info": clipes, "linhas": linhas,
+            "clipes_info": clipes, "linhas": linhas, "atencao": _atencao_v1(pasta),
             "filtros": {k: v["nome"] for k, v in (ed.get("filtros") or {}).items()},
             "transicoes": {k: v["nome"] for k, v in (ed.get("transicoes") or {}).items()},
             "velocidades": ed.get("velocidades") or [0.5, 1, 2],
             "corte_limpo": bool(d.get("corte_limpo")),
             "fechamento_s": float(load("preferencias")["fechamento"]["duracao_s"]),
             "intervalo_efeitos": float(load("efeitos").get("intervalo_minimo_s", 1.5))}
+
+
+def _atencao_v1(pasta: Path) -> dict:
+    from . import atencao
+    for v in ("V1", "TV", "IA"):
+        a = atencao.ler(pasta, v)
+        if a:
+            return {"versao": v, "zonas": a.get("zonas") or []}
+    return {}
 
 
 _DURACOES: dict = {}
@@ -1109,6 +1145,15 @@ class Painel(BaseHTTPRequestHandler):
                 from . import feedback
                 return self._json(feedback.registrar(_pasta(dados["p"]), dados["versao"], dados.get("reacoes") or [],
                                                      dados.get("texto", ""), dados.get("nota")))
+            if u.path == "/api/atencao/aplicar":
+                from . import atencao
+                pasta = _pasta(dados["p"])
+                at = atencao.ler(pasta, dados["versao"])
+                zona = (at.get("zonas") or [])[int(dados["i"])]
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                efeitos = list(d.get("efeitos") or []) + [dict(zona["acao"])]
+                salvar_dados(dados["p"], {"efeitos": sorted(efeitos, key=lambda e: float(e.get("inicio", 0)))})
+                return self._json({"ok": True, "efeito": zona["acao"]})
             if u.path == "/api/opiniao/ia":
                 from . import feedback
                 return self._json({"texto": feedback.comentario_ia(_pasta(dados["p"]), dados["versao"])})
@@ -1137,6 +1182,14 @@ class Painel(BaseHTTPRequestHandler):
                 nome = integracoes.nome_saida("nanobanana")
                 integracoes.nano_banana(img, dados.get("pedido", ""), pasta / "bruto" / nome)
                 return self._json({"arquivo": f"bruto/{nome}"})
+            if u.path == "/api/anuncio/roteiro":
+                from . import anuncios
+                pasta = _pasta(dados["p"])
+                d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                r = anuncios.roteiro(d)
+                salvar_dados(dados["p"], {"versoes": r["versoes"], "mensagens": r["mensagens"],
+                                          "cta_antecipado": r["cta_antecipado"], "fechamento": r["fechamento"]})
+                return self._json({"ok": True})
             if u.path == "/api/duplicar":
                 return self._json({"nome": duplicar(dados["p"])})
             if u.path == "/api/arquivar":

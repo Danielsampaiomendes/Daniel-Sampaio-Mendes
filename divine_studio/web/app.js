@@ -132,6 +132,20 @@ async function abrir(nome) {
   $("#c-autorizacao").value = dados.autorizacao_imagem;
   $("#c-tags").value = (dados.tags || []).join(", ");
   $("#c-objetivo").value = dados.objetivo || "";
+  $("#anuncio-cartao").hidden = !dados.anuncio;
+  if (dados.anuncio) {
+    const an = dados.anuncio;
+    $("#an-objetivo").innerHTML = Object.entries(an.objetivos).map(([k, n]) => `<option value="${k}" ${k === an.objetivo ? "selected" : ""}>${esc(n)}</option>`).join("");
+    $("#an-servico").value = an.servico || ""; $("#an-dor").value = an.dor || ""; $("#an-beneficio").value = an.beneficio || "";
+    $("#an-copy").innerHTML = (an.erros.length ? `<p class="aviso-ia">${an.erros.map(esc).join("<br>")}</p>` : "") +
+      an.copy.map((v, k) => `<details class="an-var" ${k ? "" : "open"}><summary>Variação ${v.variacao} · ${esc(v.titulo)}</summary>
+        <pre class="legenda">${esc(v.texto_principal)}</pre><p><b>Título:</b> ${esc(v.titulo)} · <b>Descrição:</b> ${esc(v.descricao)} · <b>Botão:</b> ${esc(v.botao)}</p>
+        <button data-copiar="${k}">Copiar texto principal</button></details>`).join("");
+    $$("[data-copiar]").forEach((b) => b.onclick = async () => {
+      const t = an.copy[+b.dataset.copiar].texto_principal;
+      try { await navigator.clipboard.writeText(t); b.textContent = "Copiado ✓"; } catch (e) { prompt("Copie:", t); }
+    });
+  }
   $("#react-cartao").hidden = !dados.react;
   if (dados.react) {
     $("#react-layout").value = dados.react.layout || "auto";
@@ -483,7 +497,11 @@ async function abrirConversa(versao) {
         <p><b>${esc(app.veredito)}</b></p>
         <div class="barras">${Object.entries(app.notas).map(([k, v]) => `<div><span>${esc(k)}</span><i style="width:${v * 10}%"></i><b>${v}</b></div>`).join("")}</div>
         ${app.sugestoes.length ? `<p class="dica">O que eu mudaria:</p><ul>${app.sugestoes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-        <p class="dica">${esc(app.proximo)}</p>` : '<p class="dica">Gere a prévia desta versão para eu dar a minha nota.</p>'}
+        <p class="dica">${esc(app.proximo)}</p>
+        ${app.atencao && app.atencao.curva.length ? `<p class="dica">Atenção prevista ao longo do vídeo:</p>${curvaAtencao(app.atencao, app.riscos)}` : ""}
+        ${app.riscos && app.riscos.length ? `<ul class="riscos">${app.riscos.map((r) => `<li>⚠ ${esc(r.texto)}
+          ${r.i !== undefined ? `<button class="pb" data-aplicar-risco="${r.i}">Aplicar</button>` : ""}</li>`).join("")}</ul>` : ""}
+        ${app.real ? `<p class="real">📊 ${esc(app.real)}</p>` : ""}` : '<p class="dica">Gere a prévia desta versão para eu dar a minha nota.</p>'}
         ${iaOk ? `<button data-ia>${d.comentario_ia ? "✦ Pedir outro comentário da IA" : "✦ Pedir comentário da IA (olha o vídeo)"}</button>` : ""}
         <div class="ia-texto md">${d.comentario_ia ? md(d.comentario_ia) : ""}</div>
       </div>
@@ -511,6 +529,13 @@ async function abrirConversa(versao) {
         <p><b>Nos próximos vídeos:</b> ${r.explicacao.map(esc).join(" · ")}</p>`;
     } catch (err) { alert(err.message); }
   };
+  m.querySelectorAll("[data-aplicar-risco]").forEach((b) => b.onclick = async () => {
+    try {
+      const r = await api("/api/atencao/aplicar", { p: atual, versao, i: +b.dataset.aplicarRisco });
+      b.textContent = "Aplicado ✓"; b.disabled = true;
+      alert(`Coloquei ${r.efeito.tipo.replace("_", " ")} em ${r.efeito.inicio}s. Gere a prévia de novo para ver.`);
+    } catch (err) { alert(err.message); }
+  });
   const bia = m.querySelector("[data-ia]");
   if (bia) bia.onclick = async () => {
     bia.disabled = true; bia.textContent = "Olhando o vídeo… (até 1 min)";
@@ -534,3 +559,40 @@ $("#react-arq").onchange = async () => {
 };
 
 $("#b-tv").onclick = () => window.open("/tv", "_blank");
+
+
+// anúncio: objetivo, serviço, dor e benefício viram roteiro e copy
+async function salvarAnuncio() {
+  const anuncio = { objetivo: $("#an-objetivo").value, servico: $("#an-servico").value.trim(), dor: $("#an-dor").value.trim(),
+                    beneficio: $("#an-beneficio").value.trim() };
+  await api("/api/dados", { p: atual, dados: { anuncio } });
+}
+["#an-objetivo", "#an-servico", "#an-dor", "#an-beneficio"].forEach((s) => $(s).onchange = () => salvarAnuncio().then(() => abrir(atual)).catch((err) => alert(err.message)));
+$("#an-roteiro").onclick = async () => {
+  if (!confirm("Refazer os ganchos, as mensagens, a chamada e o final do vídeo com estes dados?")) return;
+  try { await salvarAnuncio(); await api("/api/anuncio/roteiro", { p: atual }); alert("Roteiro do anúncio atualizado. Gere as prévias."); abrir(atual); }
+  catch (err) { alert(err.message); }
+};
+
+
+// curva de atenção prevista (verde = segura, vermelho = risco de queda)
+function curvaAtencao(at, riscos) {
+  const w = 320, h = 60, n = at.curva.length, dur = n * at.passo;
+  const pts = at.curva.map((v, k) => `${(k / Math.max(1, n - 1)) * w},${h - v * (h - 6) - 3}`).join(" ");
+  const zonas = (riscos || []).filter((r) => r.ini !== undefined).map((r) =>
+    `<rect x="${(r.ini / dur) * w}" y="0" width="${((r.fim - r.ini) / dur) * w}" height="${h}" fill="#E0866F33"/>`).join("");
+  return `<svg viewBox="0 0 ${w} ${h}" class="curva-atencao">${zonas}<polyline points="${pts}" fill="none" stroke="#CCBD91" stroke-width="2"/></svg>
+    <div class="eixo"><span>0 s</span><span>${dur.toFixed(0)} s</span></div>`;
+}
+
+$("#react-reusar").onchange = async () => {
+  const f = $("#react-reusar").files[0]; if (!f) return;
+  try {
+    const { nome } = await api("/api/duplicar", { p: atual });
+    const r = await fetch(`/api/upload?p=${encodeURIComponent(nome)}&nome=${encodeURIComponent(f.name)}`, { method: "POST", body: f });
+    const j = await r.json(); if (!r.ok) throw new Error(j.erro);
+    await api("/api/clipe", { p: nome, arquivo: f.name, referencia: true });
+    await carregarLista(); abrir(nome);
+    alert("Pronto: a mesma reação com o vídeo novo. Ajuste o crédito e gere as prévias.");
+  } catch (err) { alert(err.message); }
+};

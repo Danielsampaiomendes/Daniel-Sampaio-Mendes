@@ -15,6 +15,7 @@ Códigos EC/EV aceitos no lugar de tipo (ex.: codigo: EC06); a tabela fica em co
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -689,6 +690,38 @@ def texto_atras(ef, combo, W, H, fps):
     return f, []
 
 
+def insert_foto(ef, combo, W, H, fps):
+    """Foto que entra no momento em que o assunto é falado (ex.: "laser" -> foto do aparelho da Biblioteca), num
+    cartão de cantos arredondados com borda dourada, legenda curta e leve aproximação: o 'b-roll' de editor humano."""
+    from PIL import ImageOps
+    from .config import ROOT
+    escala = W / 1080
+    arq = Path(ef.get("foto", ""))
+    if not arq.is_absolute():
+        pasta = ef.get("_pasta")
+        arq = pasta / arq if pasta and (pasta / arq).exists() else ROOT / arq
+    t0, dur = ef["inicio"], float(ef.get("duracao", 1.8))
+    if not arq.exists():
+        return (lambda q, t: q), []
+    cw, ch = int(W * 0.62), int(H * 0.27)
+    foto = ImageOps.fit(ImageOps.exif_transpose(Image.open(arq)).convert("RGB"), (cw, ch), Image.LANCZOS, centering=(0.5, 0.45))
+    m = Image.new("L", (cw * 2, ch * 2), 0)
+    ImageDraw.Draw(m).rounded_rectangle((0, 0, cw * 2 - 1, ch * 2 - 1), radius=int(44 * escala), fill=255)
+    cartao = Image.new("RGBA", (cw + 16, ch + 16), (0, 0, 0, 0))
+    sombra = Image.new("L", (cw + 16, ch + 16), 0)
+    ImageDraw.Draw(sombra).rounded_rectangle((8, 12, cw + 8, ch + 14), radius=int(22 * escala), fill=150)
+    cartao.paste((0, 0, 0, 255), (0, 0), sombra.filter(ImageFilter.GaussianBlur(10)))
+    cartao.paste(foto, (8, 8), m.resize((cw, ch), Image.LANCZOS))
+    ImageDraw.Draw(cartao).rounded_rectangle((8, 8, cw + 7, ch + 7), radius=int(22 * escala), outline=cor("dourado") + (230,), width=3)
+    if ef.get("texto"):
+        from .text import pill
+        rot = pill(str(ef["texto"]).upper(), marca("rotulo"), 20 * escala, cor("fundo"), cor("dourado"), tracking=0.14)
+        cartao.alpha_composite(rot, (int(28 * escala), ch - rot.height - int(14 * escala)))
+    x0, y0 = (W - cartao.width) // 2, int(H * 0.30)
+    return (lambda q, t: q), [Camada(cartao, x0, y0, t0, t0 + dur, entrada=0.35, saida=0.35, deslize=40 * escala,
+                                     nome="ef_insert", texto=str(ef.get("texto", "")))]
+
+
 TIPOS = {
     "camadas": camadas_cineticas, "queda_letras": lambda *a: letra_a_letra(*a, queda=True),
     "letra_a_letra": letra_a_letra, "riscado": riscado, "digitando": digitando, "checklist": checklist,
@@ -701,6 +734,7 @@ from . import efeitos3d as _e3d                                       # noqa: E4
 from . import efeitos_viral as _ev                                    # noqa: E402  (transições e efeitos virais)
 QUADRO.update(_e3d.EFEITOS)
 QUADRO.update(_ev.EFEITOS)
+QUADRO["insert_foto"] = insert_foto
 _EXTRA_EXEMPLOS = {**_e3d.EXEMPLOS, **_ev.EXEMPLOS}
 _EXTRA_MOMENTO = {**_e3d.MOMENTO_AMOSTRA, **_ev.MOMENTO_AMOSTRA}
 
@@ -739,6 +773,42 @@ def ROOT_SFX():
     return ROOT / load("sfx")["pasta"]
 
 
+def inserts_da_fala(projeto: dict, existentes: list, fim: float) -> list:
+    """Quando a fala cita algo que tem foto na Biblioteca (tecnologia, sala, produto), a foto entra naquele segundo."""
+    from . import ritmo
+    fala = projeto.get("_fala") or []
+    if not fala or projeto.get("inserts_auto") is False or ritmo.modo(projeto) == "calmo":
+        return []
+    import re
+    import unicodedata
+    from .biblioteca import _cfg as _bib, achar
+    norm = lambda t: re.sub(r"[^a-z0-9 ]", "", unicodedata.normalize("NFKD", str(t)).encode("ascii", "ignore").decode().lower())  # noqa: E731
+    palavras = [(norm(w["texto"]), float(w["inicio"])) for w in fala]
+    out, usados = [], set()
+    for cat, c in (_bib().get("categorias") or {}).items():
+        if cat in ("marca", "pessoas"):
+            continue
+        for it in c.get("itens") or []:
+            foto = achar(cat, it["arquivo"])
+            if not foto or not it.get("temas"):
+                continue
+            for tema in it["temas"]:
+                alvo = norm(tema).split()
+                for k in range(len(palavras) - len(alvo) + 1):
+                    if [p for p, _ in palavras[k:k + len(alvo)]] == alvo:
+                        t = palavras[k][1]
+                        livre = all(abs(t - float(e.get("inicio", 0))) > 1.6 for e in existentes + out)
+                        if livre and 1.0 < t < fim - 2 and it["arquivo"] not in usados:
+                            from .config import ROOT
+                            out.append({"tipo": "insert_foto", "inicio": round(t, 2), "duracao": 1.8, "_auto": True,
+                                        "foto": str(foto.relative_to(ROOT)), "texto": it["nome"].split(" (")[0]})
+                            usados.add(it["arquivo"])
+                        break
+    if out:
+        print(f"  inserts da fala: {', '.join(e['texto'] + ' em ' + str(e['inicio']) + 's' for e in out)}")
+    return out
+
+
 def _cortes(projeto: dict) -> list:
     """Instantes dos cortes entre clipes (trabalho/base.json), para a câmera mudar de direção a cada take."""
     import json
@@ -765,6 +835,7 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
         print(f"  ritmo {ritmo.modo(projeto, versao)}: {len(automaticos)} efeito(s) automático(s) "
               f"({', '.join(e['tipo'] for e in automaticos)})")
     lista += automaticos
+    lista += inserts_da_fala(projeto, lista, plano.inicio_fechamento)
     m = ritmo.modo(projeto, versao)
     grade = float(load("viral")["modos"].get(m, {}).get("grade", 0)) if m != "calmo" else 0.0
     if not lista:
@@ -794,6 +865,8 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
             plano.textos_tela += [c.texto for c in cam if c.texto]
         elif tipo in QUADRO:
             ef["duracao"] = min(float(ef.get("duracao", 3.0)), limite - ef["inicio"])
+            if tipo == "insert_foto":
+                ef = {**ef, "_pasta": projeto.get("_pasta")}
             r = QUADRO[tipo](ef, combo, W, H, fps)
             f, cams = r if isinstance(r, tuple) else (r, [])
             plano.efeitos_quadro.append(f)
@@ -878,7 +951,7 @@ NOMES = {
     "pergunta": "Card de pergunta", "chat": "Conversa de chat", "grafico": "Gráfico em expansão",
     "zoom_digital": "Zoom digital", "fundo_pip": "Vídeo em janela (PiP)", "cortina": "Cortina",
     "filme": "Visual de filme", "vidro": "Texto em vidro dourado", "texto_atras": "Título atrás da pessoa",
-    **_e3d.NOMES, **_ev.NOMES,
+    **_e3d.NOMES, **_ev.NOMES, "insert_foto": "Foto que entra na fala (b-roll)",
 }
 _POS = ("posicao", "escolha:topo|centro|base", "Posição")
 CAMPOS = {
@@ -905,12 +978,13 @@ CAMPOS = {
     "vidro": [("texto", "texto", "Frase"), _POS],
     "texto_atras": [("texto", "texto", "Título (fica atrás da pessoa)")],
     **_e3d.CAMPOS, **_ev.CAMPOS,
+    "insert_foto": [("foto", "texto", "Foto (ex.: assets/tecnologias/endolaser.jpg ou bruto/foto.jpg)"), ("texto", "texto", "Rótulo")],
 }
 DURACAO_PADRAO = {"camadas": 3.0, "queda_letras": 3.0, "letra_a_letra": 3.0, "riscado": 3.6, "digitando": 3.5,
                   "checklist": 4.5, "contador": 3.2, "linha_tempo": 3.6, "circulo": 3.0, "notificacao": 3.4,
                   "artigo": 3.6, "tweet": 4.0, "pergunta": 3.6, "chat": 4.0, "grafico": 3.6, "zoom_digital": 2.5,
                   "fundo_pip": 3.0, "cortina": 1.4, "filme": 4.0, "vidro": 3.0, "texto_atras": 3.5,
-                  **_e3d.DURACAO, **_ev.DURACAO}
+                  **_e3d.DURACAO, **_ev.DURACAO, "insert_foto": 1.8}
 
 
 def catalogo() -> list:

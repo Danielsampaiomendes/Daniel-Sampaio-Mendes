@@ -35,6 +35,49 @@ def _som(familia: str, semente: int) -> str | None:
     return opcoes[semente % len(opcoes)] if opcoes else None
 
 
+_BPM_CACHE: dict = {}
+
+
+def batida(projeto: dict) -> float | None:
+    """Segundos por batida da música do vídeo (trilha Divine pelo bpm do config; música própria pela análise)."""
+    aud = projeto.get("audio") or {}
+    if aud.get("trilha") is False:
+        return None
+    if aud.get("musica"):
+        try:
+            from .ingest import resolver
+            arq = resolver(projeto, aud["musica"])
+            if str(arq) not in _BPM_CACHE:
+                _BPM_CACHE[str(arq)] = estimar_bpm(arq)
+            bpm = _BPM_CACHE[str(arq)]
+            return 60.0 / bpm if bpm else None
+        except Exception:
+            return None
+    bpm = float((load("preferencias").get("trilha") or {}).get("bpm", 84))
+    return 60.0 / bpm
+
+
+def estimar_bpm(arq) -> float | None:
+    """Andamento da música (autocorrelação da energia), entre 70 e 160 bpm."""
+    from .audio import ler_audio
+    x = ler_audio(arq, 60)
+    if x is None or not len(x):
+        return None
+    mono = np.abs(x.mean(axis=1) if x.ndim == 2 else x)
+    sr = 48000
+    hop = sr // 100                                            # envelope a 100 Hz
+    env = mono[: len(mono) // hop * hop].reshape(-1, hop).mean(axis=1)
+    env = np.maximum(0, np.diff(env))
+    env -= env.mean()
+    ac = np.correlate(env, env, "full")[len(env) - 1:]
+    lags = np.arange(len(ac))
+    ok = (lags >= 100 * 60 / 160) & (lags <= 100 * 60 / 70)
+    if not ok.any():
+        return None
+    lag = lags[ok][np.argmax(ac[ok])]
+    return round(6000 / lag, 1)
+
+
 def _som_viral(tipo: str) -> str | None:
     from .efeitos_viral import SONS
     return SONS.get(tipo)
@@ -108,7 +151,21 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         k_int = 1.0
     a, b = a * k_int, b * k_int
     lista = list(cfg.get("meio") or [])
+    try:                                    # aprende: efeito que foi mal nas suas peças (nota negativa) sai do sorteio
+        from .aprendizado import preferencias
+        from .instagram import conta_do_projeto
+        tab = (preferencias(conta_do_projeto(projeto)).get("efeitos") or {})
+        ruins = {e for e, (nota, n) in tab.items() if nota < -0.3 and n >= 2}
+        bons = {e for e, (nota, n) in tab.items() if nota > 0.8 and n >= 2}
+        if len([x for x in lista if x not in ruins]) >= 3:
+            lista = [x for x in lista if x not in ruins]
+        lista += [x for x in lista if x in bons]           # os que funcionam aparecem mais
+    except Exception:
+        pass
     rnd.shuffle(lista)
+    bt = batida(projeto)
+    if bt and bt < 0.45:                                       # música muito rápida: a cada 2 batidas
+        bt *= 2
     t, k = (2.2 if m == "viral" else 1.4), 0
     anterior = ((cfg.get("abertura") or [{}])[-1]).get("tipo")
     while t < fim - 2.0 and lista:
@@ -126,7 +183,8 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
                 ef["zoom"] = 1.18 if m == "epico" else 1.1
             if m == "epico":                               # épico: tudo mais curto e mais seguido
                 ef["duracao"] = min(float(ef.get("duracao", DURACAO_PADRAO.get(tipo, 2.0))), 1.8)
-            if por(ef, t):
+            t_ef = round(round(t / bt) * bt, 3) if bt else t           # efeito cai na batida da música
+            if por(ef, t_ef):
                 anterior, k, colocou = tipo, k + j + 1, True
                 break
         t += rnd.uniform(a, b) if colocou else 0.5

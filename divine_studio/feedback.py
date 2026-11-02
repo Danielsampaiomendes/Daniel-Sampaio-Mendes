@@ -61,8 +61,35 @@ def opiniao_app(pasta: Path, versao: str) -> dict:
         proximo = "Para o próximo: grave mais perto do microfone (ou com lapela) e longe do ar-condicionado."
     elif pior and pior[0] == "leitura":
         proximo = "Para o próximo: frases curtas na tela (até 7 palavras) e uma ideia por vez."
+    from . import atencao
+    at = atencao.ler(pasta, versao)
+    riscos = [{**z, "i": k, "texto": f"Risco de queda entre {z['ini']:.0f} e {z['fim']:.0f} s ({z['causa']}): {z['proposta']}"}
+              for k, z in enumerate(at.get("zonas") or [])]
+    if at.get("inicio_fraco"):
+        riscos.insert(0, {"texto": "O primeiro segundo não tem texto nem corte: o gancho precisa estar no 1º quadro"})
+    real = _real(pasta, versao, n, riscos)
     return {"tem": True, "nota": round(media, 1), "notas": n.get("notas") or {}, "veredito": veredito,
-            "viraliza": media >= 7.5, "sugestoes": sugestoes[:5], "proximo": proximo}
+            "viraliza": media >= 7.5, "sugestoes": sugestoes[:5], "proximo": proximo,
+            "atencao": {"curva": at.get("curva") or [], "passo": at.get("passo", 0.5)}, "riscos": riscos, "real": real}
+
+
+def _real(pasta: Path, versao: str, n: dict, riscos: list) -> str | None:
+    """Depois de postar: quanto as pessoas assistem de fato, e se a saída bate com um risco previsto."""
+    from . import aprendizado
+    pub = next((x for x in aprendizado.ler(pasta).get("publicacoes") or [] if x.get("versao") == versao), {})
+    m = pub.get("metricas") or {}
+    ms = m.get("tempo_medio_ms")
+    dur = float(n.get("duracao") or 0)
+    if not ms or not dur:
+        return None
+    seg = ms / 1000
+    txt = f"No Instagram, as pessoas assistiram em média {seg:.1f} s de {dur:.0f} s ({seg / dur * 100:.0f}%)."
+    bate = next((r for r in riscos if r.get("ini") is not None and r["ini"] - 1.5 <= seg <= r["fim"] + 1.5), None)
+    if bate:
+        txt += f" A saída bate com o trecho de risco {bate['ini']:.0f} a {bate['fim']:.0f} s: corrija nele."
+    elif seg < dur * 0.3:
+        txt += " A maioria sai cedo: o gancho não segurou. Teste outro gancho no próximo."
+    return txt
 
 
 def _cfg() -> dict:

@@ -128,3 +128,57 @@ def test_quadro_para_ferramenta_externa(tmp_path, monkeypatch):
     with pytest.raises(SystemExit):
         integracoes.nano_banana(q, "trocar fundo", tmp_path / "r.png")
     assert any(f["nome"].startswith("Higgsfield") for f in integracoes.catalogo())
+
+
+def test_anuncio_roteiro_copy_e_compliance():
+    from divine_studio import anuncios
+    p = {"titulo": "Endolaser nos braços", "anuncio": {"objetivo": "mensagens"}}
+    r = anuncios.roteiro(p)
+    assert len(r["versoes"]) == 3 and all(len(v["hook"]) in (1, 2) for v in r["versoes"])
+    assert r["fechamento"]["cta"].startswith("Enviar mensagem")
+    vs = anuncios.copy(p)
+    assert [v["variacao"] for v in vs] == ["A", "B", "C"] and all(len(v["titulo"]) <= 40 for v in vs)
+    assert all("CRM/SP 186.470" in v["texto_principal"] and "variam" in v["texto_principal"] for v in vs)
+    assert anuncios.revisar_copy(p, vs) == []
+    q = {"anuncio": {"servico": "CO2"}}
+    anuncios.preparar(q)
+    assert q["posicao_texto"] == "topo" and q["fechamento"]["cta"] == "Saiba mais ›"
+
+
+def test_atencao_acha_trecho_parado_e_propoe_efeito(tmp_path):
+    import numpy as np
+    from divine_studio import atencao
+
+    class C:
+        def __init__(self, t0, nome="msg"):
+            self.t0, self.nome = t0, nome
+
+    class Plano:
+        inicio_fechamento = 14.0
+        camadas = [C(0.1, "hook_titulo"), C(2.0), C(4.0)]          # nada novo de 4 a 14 s
+        efeitos_auto = []
+    v = tmp_path / "v.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=gray:s=64x112:r=10:d=14",
+                    "-c:v", "libx264", str(v)], check=True)
+    voz = np.zeros((48000 * 14, 2), np.float32)
+    voz[: 48000 * 6] = 0.3
+    r = atencao.analisar(Plano(), {}, voz, v)
+    assert r["zonas"] and r["zonas"][0]["ini"] >= 5 and r["zonas"][0]["acao"]["tipo"] in ("zoom_batida", "luz_dourada")
+    assert not r["inicio_fraco"]
+
+
+def test_efeitos_caem_na_batida_e_inserts_da_fala(monkeypatch, tmp_path):
+    from divine_studio import efeitos, biblioteca
+    bt = ritmo.batida({})
+    assert abs(bt - 60 / 84) < 1e-6
+    for e in ritmo.planejar({"ritmo": "viral"}, {"nome": "V1"}, 24.0)[1:-1]:
+        assert abs(e["inicio"] / bt - round(e["inicio"] / bt)) < 0.02
+    foto = tmp_path / "assets" / "tecnologias" / "endolaser.jpg"
+    foto.parent.mkdir(parents=True)
+    from PIL import Image
+    Image.new("RGB", (40, 30)).save(foto)
+    monkeypatch.setattr(biblioteca, "ROOT", tmp_path)
+    monkeypatch.setattr("divine_studio.config.ROOT", tmp_path)
+    fala = [{"texto": "o", "inicio": 1.0}, {"texto": "Endolaser,", "inicio": 3.2}, {"texto": "funciona", "inicio": 3.8}]
+    ins = efeitos.inserts_da_fala({"_fala": fala, "ritmo": "viral"}, [], 20.0)
+    assert len(ins) == 1 and ins[0]["inicio"] == 3.2 and ins[0]["tipo"] == "insert_foto"

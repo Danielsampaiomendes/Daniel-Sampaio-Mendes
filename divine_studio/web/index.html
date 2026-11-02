@@ -306,6 +306,20 @@
             </div>
           </div>
 
+          <div class="cartao anuncio-cartao" id="anuncio-cartao" hidden>
+            <h2>📣 Anúncio (conversão)</h2>
+            <p class="dica">Do começo ao fim para a paciente querer agendar: gancho com a dor, problema, solução, prova e um pedido só.
+              O texto fica no topo (o botão do anúncio cobre a parte de baixo) e o vídeo termina no cartão com o botão.</p>
+            <div class="grade2">
+              <label>Objetivo<select id="an-objetivo"></select></label>
+              <label>Serviço<input id="an-servico"></label></div>
+            <label>A dor ou o desejo da paciente<input id="an-dor"></label>
+            <label>O benefício (sem promessa)<input id="an-beneficio"></label>
+            <div class="linha"><button id="an-roteiro">Refazer o roteiro do vídeo com isso</button></div>
+            <h3>Copy do anúncio (3 variações para teste A/B)</h3>
+            <div id="an-copy"></div>
+          </div>
+
           <div class="cartao react-cartao" id="react-cartao" hidden>
             <h2>Tela dividida: o vídeo que você analisa</h2>
             <p class="dica">Em "Vídeos brutos" vai você falando. Aqui vai o vídeo que aparece junto (o seu Reels, de outro perfil ou um trecho).</p>
@@ -318,6 +332,9 @@
                 <option value="cabecinha">Cabecinha: vídeo em tela cheia, você no círculo do canto</option>
               </select></label>
             <label>Crédito (obrigatório se o vídeo for de outra pessoa)<input id="react-credito" placeholder="@perfil"></label>
+            <div class="linha"><label class="botao">♻ Usar esta mesma reação com outro vídeo<input type="file" id="react-reusar" accept="video/*,image/*" hidden></label></div>
+            <p class="dica">Cria uma cópia deste projeto com a sua gravação e troca só o vídeo analisado. Funciona melhor quando a sua fala
+              é genérica ("olha isso", "presta atenção nesse detalhe") ou quando você só assiste reagindo.</p>
           </div>
 
           <div class="cartao">
@@ -385,7 +402,7 @@
           <div id="tl-clipes" class="tl-clipes"></div>
           <div class="tl-rotulo">Efeitos, textos e sons</div>
           <div id="tl-barra" class="tl-barra"><div id="tl-cursor" class="tl-cursor"></div></div>
-          <div class="tl-legenda"><span class="m-clip">clipe</span><span class="m-auto">automático (toque para editar)</span><span class="m-ef">efeito</span><span class="m-msg">mensagem</span><span class="m-som">som</span><span class="m-voz">sua voz</span>
+          <div class="tl-legenda"><span class="m-clip">clipe</span><span class="m-auto">automático (toque para editar)</span><span class="m-risco">risco de queda</span><span class="m-ef">efeito</span><span class="m-msg">mensagem</span><span class="m-som">som</span><span class="m-voz">sua voz</span>
             <span class="m-hook">hook</span><span class="m-fech">fechamento</span></div>
         </div>
 
