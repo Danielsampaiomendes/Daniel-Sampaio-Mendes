@@ -152,3 +152,24 @@ def test_reparo_de_projeto_quebrado(tmp_path):
     assert [c["arquivo"] for c in yaml.safe_load((pasta / "projeto.yaml").read_text())["clipes"]] == ["bruto/a.mov"]
     assert (pasta / "trabalho" / "projeto.yaml.antes-do-reparo").exists()
     assert not painel.reparar_projeto(pasta)                                   # já está bom: não mexe
+
+
+def test_conectar_instagram_guarda_fora_do_repositorio(tmp_path, monkeypatch):
+    from divine_studio import instagram
+    monkeypatch.delenv("INSTAGRAM_TOKEN", raising=False)
+    monkeypatch.delenv("INSTAGRAM_USER_ID", raising=False)
+    monkeypatch.setattr(instagram, "ARQUIVO", tmp_path / "instagram.json")
+    chamadas = []
+
+    def falso(caminho, token=None, **params):
+        chamadas.append(caminho)
+        return {"data": [{"name": "Divine", "instagram_business_account": {"id": "1784", "username": "dvmedicalspa"}}]}
+    monkeypatch.setattr(instagram, "_get", falso)
+    assert not instagram.configurado()
+    r = instagram.conectar("EAA" + "x" * 40)
+    assert r == {"conectado": True, "usuario": "dvmedicalspa", "user_id": "1784"} and chamadas == ["me/accounts"]
+    assert oct((tmp_path / "instagram.json").stat().st_mode)[-3:] == "600"
+    instagram.desconectar()
+    assert not instagram.configurado()
+    with pytest.raises(SystemExit):
+        instagram.conectar("curto")

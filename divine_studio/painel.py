@@ -184,7 +184,7 @@ def diagnostico() -> list:
          "dica": "pip3 install mediapipe"},
         {"item": "Estabilização vid.stab", "ok": q["vidstab"], "dica": "ffmpeg com libvidstab (brew install ffmpeg)"},
         {"item": "Upscale com IA (Real-ESRGAN)", "ok": q["realesrgan"], "dica": "realesrgan-ncnn-vulkan no PATH"},
-        {"item": "Instagram conectado", "ok": instagram.configurado(), "dica": "INSTAGRAM_TOKEN e INSTAGRAM_USER_ID"},
+        {"item": "Instagram conectado", "ok": instagram.configurado(), "dica": "Programação > Conectar Instagram"},
     ]
 
 
@@ -854,6 +854,9 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json(galeria())
             if u.path == "/miniatura.jpg":
                 return self._bytes(capa_peca(_pasta(q["p"]), q["f"]), "image/jpeg")
+            if u.path == "/api/instagram":
+                from . import instagram
+                return self._json(instagram.conta())
             if u.path == "/api/programacao":
                 from . import aprendizado
                 return self._json({"pecas": aprendizado.todas_publicacoes(), "aprendi": aprendizado.resumo()})
@@ -1058,6 +1061,20 @@ class Painel(BaseHTTPRequestHandler):
                        "fontes, efeitos, duração, objetivo). Seja específico.\n\n"
                        + json.dumps(pecas, ensure_ascii=False)[:20000])
                 return self._json(assistente.conversar(None, msg, "desempenho"))
+            if u.path == "/api/instagram/conectar":
+                from . import instagram
+                if self.client_address[0] not in LOCAIS and not Painel.codigo:
+                    raise ValueError("conecte pelo próprio Mac")
+                r = instagram.conectar(dados.get("token", ""))
+                try:
+                    r["sincronizado"] = instagram.sincronizar()
+                except SystemExit as e:
+                    r["aviso"] = str(e)
+                return self._json(r)
+            if u.path == "/api/instagram/desconectar":
+                from . import instagram
+                instagram.desconectar()
+                return self._json({"ok": True})
             if u.path == "/api/instagram/sincronizar":
                 from . import instagram
                 return self._json(instagram.sincronizar())

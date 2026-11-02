@@ -282,3 +282,59 @@ $("#b-celular").onclick = async () => {
   document.body.appendChild(m);
   m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) m.remove(); };
 };
+
+// ---------------------------------------------------------------- Instagram
+async function estadoInstagram() {
+  const c = await api("/api/instagram").catch(() => ({}));
+  $("#pg-insta").textContent = c.conectado ? `📷 @${c.usuario || "conectado"}` : "Conectar Instagram";
+  $("#pg-insta").classList.toggle("dourado", !c.conectado);
+  $("#pg-sinc").hidden = !c.conectado;
+  return c;
+}
+$("#pg-sinc").onclick = async () => {
+  const b = $("#pg-sinc"); b.disabled = true; b.textContent = "Puxando…";
+  try { const r = await api("/api/instagram/sincronizar", {}); alert(`${r.atualizadas} post(s) atualizado(s) com as métricas do Instagram.`); carregarProgramacao(); }
+  catch (err) { alert(err.message); }
+  b.disabled = false; b.textContent = "↻ Puxar métricas";
+};
+$("#pg-insta").onclick = async () => {
+  const c = await estadoInstagram();
+  const m = document.createElement("div");
+  m.className = "modal";
+  m.innerHTML = `<div class="cartao insta" style="max-width:560px">${c.conectado
+    ? `<h2>📷 Instagram conectado</h2><p>Conta <b>@${esc(c.usuario)}</b>. O app puxa views, alcance, curtidas, comentários, envios e
+       salvamentos dos posts marcados como ✓ Postei (com o link) e aprende com eles.</p>
+       <div class="linha"><button class="dourado" data-sinc>↻ Puxar métricas agora</button><button data-sair class="link">desconectar</button>
+       <button data-f class="link">fechar</button></div>`
+    : `<h2>📷 Conectar o Instagram</h2>
+       <ol class="passo-a-passo">
+         <li>A conta <b>@dvmedicalspa</b> precisa ser <b>profissional</b> (Empresa ou Criador) e estar ligada a uma <b>Página do Facebook</b>.</li>
+         <li>No computador, abra <b>developers.facebook.com</b> > Meus apps > Criar app (tipo "Empresa").</li>
+         <li>No app, adicione o produto <b>"Instagram"</b> e, em <b>Ferramentas > Explorador da API do Graph</b>, gere um token com:
+           <code>instagram_basic</code>, <code>instagram_manage_insights</code>, <code>pages_show_list</code>, <code>pages_read_engagement</code>.</li>
+         <li>Troque por um token de <b>longa duração</b> (60 dias): no Explorador, ícone "i" > Abrir no Depurador de token > Estender.</li>
+         <li>Cole o token aqui embaixo. O app acha a conta sozinho.</li>
+       </ol>
+       <textarea id="insta-token" placeholder="EAA..." rows="3"></textarea>
+       <p class="dica">O token fica só no seu Mac (~/.divine_studio/instagram.json), nunca vai para o GitHub.</p>
+       <div class="linha"><button class="dourado" data-ok>Conectar</button><button data-f class="link">fechar</button></div>
+       <p id="insta-msg" class="dica"></p>`}</div>`;
+  document.body.appendChild(m);
+  const fechar = () => { m.remove(); estadoInstagram(); };
+  m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) fechar(); };
+  const ok = m.querySelector("[data-ok]");
+  if (ok) ok.onclick = async () => {
+    ok.disabled = true; m.querySelector("#insta-msg").textContent = "Testando o token…";
+    try {
+      const r = await api("/api/instagram/conectar", { token: m.querySelector("#insta-token").value });
+      m.querySelector("#insta-msg").textContent = `Conectado: @${r.usuario}. ` + (r.sincronizado ? `${r.sincronizado.atualizadas} post(s) com métricas.` : (r.aviso || ""));
+      setTimeout(fechar, 2500); carregarProgramacao();
+    } catch (err) { m.querySelector("#insta-msg").textContent = err.message; ok.disabled = false; }
+  };
+  const sinc = m.querySelector("[data-sinc]");
+  if (sinc) sinc.onclick = () => { fechar(); $("#pg-sinc").click(); };
+  const sair = m.querySelector("[data-sair]");
+  if (sair) sair.onclick = async () => { if (confirm("Desconectar o Instagram deste Mac?")) { await api("/api/instagram/desconectar", {}); fechar(); } };
+};
+const _carregarProg = carregarProgramacao;
+carregarProgramacao = async function () { estadoInstagram(); return _carregarProg(); };
