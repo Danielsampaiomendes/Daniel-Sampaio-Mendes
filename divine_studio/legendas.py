@@ -141,7 +141,7 @@ def camadas(projeto: dict, palavras: list, W: int, H: int, ate: float) -> tuple:
                     return f"~{p}~"
                 return f"*{p}*" if k == j else p
             txt = " ".join(marcar(j, p) for j, p in enumerate(palavras_txt))
-            img = render(txt, normal, dest, largura_max=larg, terceiro=chave)
+            img = _acabamento(render(txt, normal, dest, largura_max=larg, terceiro=chave), cfg, escala)
             a = t0 if k in (None, 0) else g[k]["inicio"]
             b = t1 if k is None or k == len(g) - 1 else g[k + 1]["inicio"] - 1e-3
             if b <= a:
@@ -151,6 +151,32 @@ def camadas(projeto: dict, palavras: list, W: int, H: int, ate: float) -> tuple:
                               entrada=ent if primeiro else 0, saida=sai if ultimo else 0,
                               deslize=desl if primeiro else 0, nome=f"legenda{g_i}_{k}"))
     return out, textos
+
+
+def _acabamento(img, cfg: dict, escala: float):
+    """Estilos de legenda: caixa escura translúcida (editorial) e/ou brilho (glow) em volta das letras."""
+    from PIL import Image, ImageDraw, ImageFilter
+    glow = cfg.get("glow")
+    caixa = cfg.get("caixa")
+    if not glow and not caixa:
+        return img
+    m = int(26 * escala) if glow else 0
+    pad_x, pad_y = (int(22 * escala), int(10 * escala)) if caixa else (0, 0)
+    out = Image.new("RGBA", (img.width + 2 * (m + pad_x), img.height + 2 * (m + pad_y)), (0, 0, 0, 0))
+    if caixa:
+        tom = cor(caixa if isinstance(caixa, str) else "fundo")
+        ImageDraw.Draw(out).rounded_rectangle((m, m, out.width - m - 1, out.height - m - 1), int(8 * escala),
+                                              fill=tom + (int(255 * float(cfg.get("caixa_opacidade", 0.72))),))
+    if glow:
+        brilho = Image.new("RGBA", img.size, cor(glow if isinstance(glow, str) else "dourado") + (0,))
+        brilho.putalpha(img.getchannel("A"))
+        halo = Image.new("RGBA", out.size, (0, 0, 0, 0))
+        halo.alpha_composite(brilho, (m + pad_x, m + pad_y))
+        halo = halo.filter(ImageFilter.GaussianBlur(int(14 * escala)))
+        out.alpha_composite(halo)
+        out.alpha_composite(halo)
+    out.alpha_composite(img, (m + pad_x, m + pad_y))
+    return out
 
 
 def achar_fala(palavras: list, frase: str) -> float | None:

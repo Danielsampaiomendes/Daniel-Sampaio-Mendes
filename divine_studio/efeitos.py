@@ -823,7 +823,15 @@ def _cortes(projeto: dict) -> list:
 
 def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps: int = 30) -> None:
     from . import ritmo
-    lista = list(projeto.get("efeitos") or []) + list(versao.get("efeitos") or [])
+    k_man = 0                                   # de onde veio cada efeito (o storyboard muda o lugar certo)
+    lista = []
+    for e in projeto.get("efeitos") or []:
+        if e.get("_estilo"):
+            lista.append({**e, "_origem": "estilo"})
+        else:
+            lista.append({**e, "_origem": ("efeitos", k_man)})
+            k_man += 1
+    lista += [{**e, "_origem": ("versao_efeitos", j)} for j, e in enumerate(versao.get("efeitos") or [])]
     cortes = [c for c in _cortes(projeto) if c > 0.5]
     cam = versao.get("camera_elegante", projeto.get("camera_elegante"))
     if cam is None or cam is True:
@@ -887,6 +895,7 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
         if som:
             plano.eventos_sfx.append((ef["inicio"], som, float(load("sfx").get("ganho_db", -24))))
     plano.efeitos_auto = [e for e in ordem if e.get("_auto") and e["inicio"] < plano.inicio_fechamento]
+    plano.efeitos_ordem = [e for e in ordem if e["inicio"] < plano.inicio_fechamento]   # tempos reais (storyboard)
     if grade > 0:
         plano.efeitos_quadro.append(ritmo.grade_epica(grade))
 

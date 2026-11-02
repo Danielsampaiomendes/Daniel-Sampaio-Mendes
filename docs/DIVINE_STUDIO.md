@@ -129,6 +129,23 @@ Saída de cada projeto:
 - `relatorio.md`: hook, código do banco, fontes, SFX, duração, tamanho e a linha de compliance de cada versão
 - `trabalho/V1_quadros.jpg`: folha de contato para conferir rápido
 
+## Storyboard (antes do render)
+
+`python3 -m divine_studio storyboard <pasta>` (ou o botão **▦ Storyboard** no projeto) monta a edição em quadros reais, por cena e momento, sem renderizar nada (segundos). Cada quadro é exatamente o que vai sair naquele instante. Responda na aba Storyboard ou com `--responder`:
+
+- `aprovado` (ou "tudo aprovado, finaliza"): exporta a final.
+- `4B: troca o título por "Pele *renovada*"` · `7: tira` · `2A: entra mais cedo` (ou `mais tarde 1s`) · `3: mais longo` · `5B: troca o efeito por flash` · `2: em cima` · `1B: sem som` · `3: troca a fonte`.
+
+Cada mudança guarda o projeto anterior em `trabalho/` e refaz o storyboard. Efeito automático ou do estilo que você tira não volta (`efeitos_evitar`).
+
+## Estilos de edição (`estilo_edicao:` no projeto.yaml)
+
+`divine` (padrão), `editorial`, `glow`, `papel`, `prova`, `telao`, `garrafal`, `revista`, `dividida` (tecnologia em cena), `neon`, `viral16`. Cada um muda a legenda (caixa escura, brilho, fonte), o ritmo, a lista de efeitos automáticos e coloca as peças do estilo. Tudo em `config/estilos.yaml`. Por versão: `versoes: [{nome: V1, estilo_edicao: papel}, ...]`. Seletor "Estilo de edição" na aba Projeto do painel.
+
+Truques novos na linha do tempo: `manchetes`, `zoom_atravessa`, `vertigem`, `tela_verde`, `celular`, `visor`, `recorte_papel`, `interface`, `orbita`, `quebra_moldura`, `rabisco`, `adesivo`, `antes_depois` (só da edição), `profundidade`, `recuo_revela`, `balao`, `mural`, `saiba_mais`, `ticket`, `seta_mao`, `cartela_tempo`. Para recortar a pessoa (tela verde, órbita, recorte de papel), instale `pip3 install mediapipe`; sem ele o app usa uma elipse no centro.
+
+Carrossel: método 3C automático (capa até 12 palavras, "toca 2x na tela" no 4º card, convite para o link da bio no último).
+
 ## Templates (`template:` no projeto.yaml)
 
 | Template | Para quê | O que muda |

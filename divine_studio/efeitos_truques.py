@@ -177,7 +177,7 @@ def manchetes(ef, combo, W, H, fps):
     e = W / 1080
     textos = ef.get("textos") or [ef.get("texto") or "A Divine *agora* faz isso", "Tecnologia e cuidado médico",
                                   "Av. Paulista, ao lado do MASP"]
-    lugares = [(0.73, 0.70), (0.24, 0.27), (0.78, 0.30), (0.25, 0.68), (0.5, 0.82)]
+    lugares = [(0.78, 0.56), (0.22, 0.50), (0.24, 0.76), (0.77, 0.80), (0.5, 0.90)]   # fora da faixa dos títulos
     cartoes = [(_manchete(tx, k, e), lugares[k % len(lugares)], (-7, 5, -4, 6, -3)[k % 5]) for k, tx in enumerate(textos[:5])]
 
     def f(q, t):
@@ -775,7 +775,7 @@ def ticket(ef, combo, W, H, fps):
             return q
         u = ease_out(clamp((t - t0) / 0.7))
         out = q.astype(np.float32)
-        _colar(out, img, W / 2, -img.height / 2 + (img.height * 0.62 + H * 0.02) * u, _env(t, t0, dur, 0.05, 0.3))
+        _colar(out, img, W / 2, -img.height / 2 + (img.height + H * 0.55) * u, _env(t, t0, dur, 0.05, 0.3))
         return out.astype(np.uint8)
     return f
 

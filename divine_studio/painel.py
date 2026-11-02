@@ -441,6 +441,7 @@ def detalhe(nome: str) -> dict:
             "perfis": _perfis(),
             "video": d.get("video", True), "camera_elegante": d.get("camera_elegante"), "qualidade": d.get("qualidade"),
             "ritmo": d.get("ritmo"), "epico": d.get("epico"),
+            "estilo_edicao": d.get("estilo_edicao") or "divine", "estilos_edicao": _estilos_edicao(),
             "qualidade_info": _qualidade_info() if d.get("qualidade") else "",
             "imagens": sorted(f"saida/{x.name}" for x in (pasta / "saida").glob("*") if x.suffix.lower() in (".png", ".mp4")
                               and not x.name.startswith(".")) if (pasta / "saida").exists() else [],
@@ -468,7 +469,12 @@ def _pedidos(d: dict) -> list:
 
 # ---------------------------------------------------------------- editor por campos (sem YAML)
 
-CAMPOS_EDITAVEIS = {"titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
+def _estilos_edicao() -> list:
+    from . import estilos
+    return estilos.lista()
+
+
+CAMPOS_EDITAVEIS = {"estilo_edicao", "efeitos_evitar", "titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",

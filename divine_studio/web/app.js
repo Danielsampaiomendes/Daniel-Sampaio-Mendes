@@ -155,6 +155,19 @@ async function abrir(nome) {
   $("#c-conta").innerHTML = `<option value="">Automático pelo template (@${esc(dados.conta || "nenhum")})</option>` +
     Object.entries(dados.perfis || {}).map(([u, n]) => `<option value="${esc(u)}" ${dados.conta_definida === u ? "selected" : ""}>@${esc(u)} · ${esc(n)}</option>`).join("");
   $("#c-ritmo").value = dados.epico ? "epico" : (dados.ritmo || "viral");
+  $("#c-estilo-edicao").innerHTML = (dados.estilos_edicao || []).map((e) =>
+    `<option value="${esc(e.chave)}" ${e.chave === dados.estilo_edicao ? "selected" : ""}>${esc(e.nome)}</option>`).join("");
+  const infoEstilo = () => {
+    const e = (dados.estilos_edicao || []).find((x) => x.chave === $("#c-estilo-edicao").value);
+    $("#c-estilo-info").textContent = e ? e.descricao : "";
+  };
+  infoEstilo();
+  $("#c-estilo-edicao").onchange = (ev) => {
+    infoEstilo();
+    api("/api/dados", { p: atual, dados: { estilo_edicao: ev.target.value } })
+      .then(() => aviso("Estilo trocado. Gere o storyboard para ver os quadros."))
+      .catch((err) => alert(err.message));
+  };
   $("#c-qualidade").checked = !!dados.qualidade;
   $("#c-qualidade-info").textContent = dados.qualidade_info || "";
   $$(".formatos input").forEach((c) => c.checked = (dados.formatos || []).includes(c.value) && c.value !== dados.formato);

@@ -1,5 +1,6 @@
-titulo: "Teste storyboard"
-data: "2026-11-02"
+# Editado pelo painel do Divine Studio.
+titulo: Teste storyboard
+data: '2026-11-02'
 template: divine
 formato: reels
 conteudo_medico: false
@@ -7,24 +8,31 @@ autorizacao_imagem: nao_aparece
 posicao_texto: topo
 audio: {original: true, trilha: true}
 clipes:
-  - {arquivo: bruto/a.mp4}
-  - {arquivo: bruto/b.mp4}
-cta_antecipado: "Manda pra amiga que vive *adiando.*"
+- {arquivo: bruto/a.mp4}
+- {arquivo: bruto/b.mp4}
+cta_antecipado: Manda pra amiga que vive *adiando.*
 mensagens:
-  - {titulo: "Pele com / *viço.*"}
-  - {titulo: "Cuidado / *individual.*", apoio: "começa na avaliação"}
-fechamento:
-  frase: "Cada pele tem o *seu tempo.*"
+- {titulo: Pele com / *viço.*}
+- {titulo: Cuidado / *individual.*, apoio: começa na avaliação}
+fechamento: {frase: Cada pele tem o *seu tempo.*}
 versoes:
-  - nome: V1
-    hook:
-      - {titulo: "Essa luz / é só a *mira.*", duracao: 2.0}
-      - {titulo: "O resto / é *invisível.*", duracao: 2.0}
-legenda: |
-  Teste.
+- nome: V1
+  hook:
+  - {titulo: Essa luz / é só a *mira.*, duracao: 2.0}
+  - {titulo: O resto / é *invisível.*, duracao: 2.0}
+legenda: 'Teste.
+
 
   Resultados variam de pessoa para pessoa.
+
   Resp. técnico: Dr. Daniel Sampaio Mendes · CRM/SP 186.470
+
+  '
 efeitos:
-  - {tipo: zoom_digital, inicio: 4.6, duracao: 2.0, ponto: [0.5, 0.4]}
-  - {tipo: contador, inicio: 7.0, de: 0, ate: 12, sufixo: " MIN", posicao: 0.47}
+- tipo: zoom_digital
+  inicio: 4.6
+  duracao: 2.0
+  ponto: [0.5, 0.4]
+- {tipo: contador, inicio: 7.0, de: 0, ate: 12, sufixo: ' MIN', posicao: 0.47}
+selo: LASER DE CO2
+estilo_edicao: papel

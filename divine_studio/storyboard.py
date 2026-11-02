@@ -43,14 +43,22 @@ def momentos(plano, projeto: dict, versao_idx: int = 0) -> list:
                         "texto": (c.texto or "").strip(), "origem": origem})
         elif c.nome == "cta_antecipado":
             out.append({"t": c.t0, "fim": c.t1, "tipo": "chamada", "texto": c.texto, "origem": {"campo": "cta_antecipado"}})
-    for j, e in enumerate(projeto.get("efeitos") or []):
-        out.append(_mom_efeito(e, {"campo": "efeitos", "k": j}))
-    v = (projeto.get("versoes") or [{}])[versao_idx] if projeto.get("versoes") else {}
-    for j, e in enumerate(v.get("efeitos") or []):
-        out.append(_mom_efeito(e, {"campo": "versao_efeitos", "versao": versao_idx, "k": j}))
-    for e in getattr(plano, "efeitos_auto", None) or []:
-        out.append(_mom_efeito(e, {"campo": "auto", "tipo": e.get("tipo"), "inicio": round(float(e.get("inicio", 0)), 2)},
-                               auto=True))
+    ordem = getattr(plano, "efeitos_ordem", None)
+    if ordem is not None:                                       # tempos reais, depois do espaçamento do render
+        for e in ordem:
+            o = e.get("_origem")
+            if isinstance(o, (list, tuple)):
+                origem = {"campo": o[0], "k": o[1], **({"versao": versao_idx} if o[0] == "versao_efeitos" else {})}
+                out.append(_mom_efeito(e, origem))
+            else:
+                out.append(_mom_efeito(e, {"campo": "auto", "tipo": e.get("tipo"),
+                                           "inicio": round(float(e.get("inicio", 0)), 2), "dados": _limpar(e)}, auto=True))
+    else:
+        for j, e in enumerate(projeto.get("efeitos") or []):
+            out.append(_mom_efeito(e, {"campo": "efeitos", "k": j}))
+        for e in getattr(plano, "efeitos_auto", None) or []:
+            out.append(_mom_efeito(e, {"campo": "auto", "tipo": e.get("tipo"),
+                                       "inicio": round(float(e.get("inicio", 0)), 2), "dados": _limpar(e)}, auto=True))
     for k, c in enumerate((projeto.get("_base_meta") or {}).get("clipes") or []):
         ini = float(c.get("inicio_base", 0))
         if k and ini < fim_total - 0.5:
@@ -65,6 +73,10 @@ def momentos(plano, projeto: dict, versao_idx: int = 0) -> list:
         m["fim"] = round(float(m["fim"]), 2)
         m["t_quadro"] = _instante(m, float(plano.duracao_total))
     return out
+
+
+def _limpar(e: dict) -> dict:
+    return {k: v for k, v in e.items() if not str(k).startswith("_")}
 
 
 def _mom_efeito(e: dict, origem: dict, auto: bool = False) -> dict:
@@ -308,10 +320,12 @@ def _alvo(d: dict, sb: dict, origem: dict, versao: str, pasta: Path):
         v = next((x for x in d.get("versoes") or [] if x.get("nome") == versao), None)
         return (v or {}).setdefault("efeitos", []), int(origem["k"])
     if campo == "auto":                                         # automático: entra na linha do tempo para mudar
-        linha = pasta / "trabalho" / f"linha_{versao}.json"
-        auto = json.loads(linha.read_text(encoding="utf-8")).get("efeitos", []) if linha.exists() else []
-        ef = next((e for e in auto if e.get("tipo") == origem["tipo"]
-                   and abs(float(e.get("inicio", 0)) - float(origem["inicio"])) < 0.05), None)
+        ef = origem.get("dados")
+        if not ef:
+            linha = pasta / "trabalho" / f"linha_{versao}.json"
+            auto = json.loads(linha.read_text(encoding="utf-8")).get("efeitos", []) if linha.exists() else []
+            ef = next((e for e in auto if e.get("tipo") == origem["tipo"]
+                       and abs(float(e.get("inicio", 0)) - float(origem["inicio"])) < 0.05), None)
         if ef is None:
             raise ValueError("efeito automático não encontrado; gere o storyboard de novo")
         evitar = d.setdefault("efeitos_evitar", [])            # o original automático não volta

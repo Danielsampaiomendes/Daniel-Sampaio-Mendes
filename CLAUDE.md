@@ -18,7 +18,7 @@ Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 
 1. `python3 -m divine_studio novo "<tema>"` cria `projetos/AAAA-MM-DD_<tema>/`.
 2. Brutos em `bruto/`; preencha `projeto.yaml` com clipes, 3 hooks do banco (`hook_id`, ou `hook: auto` para sortear), mensagens, fechamento e legenda.
 3. Vídeo falado: `corte_limpo: true` e `legendas: true`; confira com `python3 -m divine_studio cortar <pasta>` (precisa de faster-whisper ou ASSEMBLYAI_API_KEY).
-4. `python3 -m divine_studio editar <pasta> --rapido` para prévia; sem `--rapido` para a final.
+4. `python3 -m divine_studio storyboard <pasta>`: a edição em quadros reais, sem render. Responda `--responder "aprovado"` (exporta a final) ou `--responder "4B: troca o título por ..."`. Prévia em vídeo: `editar <pasta> --rapido`.
 5. Toda regra nova vai para `config/` (YAML) ou `python3 -m divine_studio regra "..."`, nunca escondida no código.
 
 ## Onde está cada coisa (mapeado em 27/10/2026)
@@ -37,6 +37,8 @@ Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 
 - **Templates do Divine Studio**: `divine` (suave), `daniel`, `george`, `tv`, `react`, `pessoal` (ver `docs/DIVINE_STUDIO.md`); fotos oficiais de perfil em `assets/pessoas/` (só no Mac).
 - **Carrosséis**: projetos com `tipo: carrossel` (painel: "Novo carrossel"); regras e textos em `config/carrossel.yaml`.
 - **Post estático e antes e depois**: `tipo: post` (Feed, Stories e TV de uma vez) e `tipo: antes_depois` (uso interno, TV de consulta, NAO-POSTAR); regras em `config/biblioteca.yaml`.
+- **Storyboard e estilos de edição**: `config/storyboard.yaml`, `config/estilos.yaml` (`estilo_edicao:` no projeto), truques dos vídeos de referência em `divine_studio/efeitos_truques.py`; carrossel com método 3C. Prompt em `docs/PROMPT_App_Divine_storyboard_e_estilos.md`.
+- **Atualizar o app no Mac**: dois cliques no `Divine Studio.command` (baixa do GitHub e reinicia) ou botão ⟳ Atualizar no painel.
 - **Ritmo viral luxo / Vídeo Épico**: `config/viral.yaml` (`ritmo: viral | epico | calmo` no projeto). **Galeria** de peças validadas e **Nova edição** por tipo no painel.
 - **Cortes de vídeo longo** (`cortes`), **conversa por edição** (`feedback.py`), **tela dividida/cabecinha** (template react, layout auto), **Divine TV** (`/tv`), **Crescimento** (`config/algoritmo.yaml`, metas e projeção) e **integrações** (`config/integracoes.yaml`).
 - **Importar a pasta antiga**: `python3 -m divine_studio importar` cria projetos com atalhos para `Videos/...` e pacotes soltos (não move nada).

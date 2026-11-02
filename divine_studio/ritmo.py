@@ -89,8 +89,9 @@ def _livre(t: float, dur: float, ocupados: list, folga: float, espaco: float = 0
 
 def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None) -> list:
     """Lista de efeitos automáticos para esta versão (com '_auto': True), sem bater nos seus efeitos."""
-    from .efeitos import DURACAO_PADRAO, resolver_tipo
-    from .efeitos3d import EXEMPLOS
+    from .efeitos import _EXTRA_EXEMPLOS, DURACAO_PADRAO, resolver_tipo
+    from .efeitos import EXEMPLOS as _EX
+    EXEMPLOS = {**_EX, **_EXTRA_EXEMPLOS}
     m = modo(projeto, versao)
     if m == "calmo" or fim < 3 or projeto.get("ritmo_fixo"):     # ritmo_fixo: os automáticos já estão na linha do tempo
         return []
@@ -153,7 +154,7 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
     except Exception:
         k_int = 1.0
     a, b = a * k_int, b * k_int
-    lista = list(cfg.get("meio") or [])
+    lista = list(projeto.get("_estilo_meio") or cfg.get("meio") or [])      # o estilo de edição troca a lista
     try:                                    # aprende: efeito que foi mal nas suas peças (nota negativa) sai do sorteio
         from .aprendizado import preferencias
         from .instagram import conta_do_projeto

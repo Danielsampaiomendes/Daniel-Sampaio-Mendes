@@ -1,0 +1,102 @@
+# Estilos de edição: um clique e a edição inteira muda de cara (legenda, ritmo, efeitos e peças).
+# No projeto.yaml: estilo_edicao: papel   (ou, por versão: versoes: [{nome: V1, estilo_edicao: glow}, ...])
+# O que você ajustar à mão no projeto sempre vale mais que o estilo. Nada de logo de outra marca.
+# elementos: peças que o estilo coloca sozinho. quando: abertura | fim | 0.0 a 1.0 (fração do vídeo).
+# Textos aceitam {titulo}, {selo}, {servico} (vêm do projeto).
+
+padrao: divine
+
+estilos:
+  divine:
+    nome: "Divine (suave)"
+    descricao: "O padrão de hoje: elegante, texto dourado, câmera suave."
+
+  editorial:
+    nome: "Editorial"
+    descricao: "Legenda serifada em caixa escura com a palavra falada acesa, cartela 'minutos depois' com timecode."
+    legendas: {fonte: "InstrumentSerif-Regular.ttf", tamanho: 64, caixa: fundo, opacidade_outras: 0.45, escala_falada: 1.0,
+               max_palavras: 3}
+    meio: [visor, zoom_digital, revelar_foco, cartao_3d]
+    elementos:
+      - {tipo: cartela_tempo, quando: 0.62, texto: "Poucos minutos depois"}
+
+  glow:
+    nome: "Glow"
+    descricao: "Legenda com brilho dourado e luz que pulsa no ritmo."
+    legendas: {glow: dourado, escala_falada: 1.1}
+    meio: [luz_dourada, pulso, zoom_batida, flash, revelar_foco]
+    elementos:
+      - {tipo: luz_dourada, quando: abertura}
+
+  papel:
+    nome: "Papel"
+    descricao: "Recortes de jornal, letras de revista, rabisco e tíquete: tudo com cara de papel sobre a mesa."
+    legendas: {caixa: fundo, fonte: "DMSerifDisplay-Regular.ttf"}
+    meio: [rabisco, zoom_digital, cartao_3d]
+    elementos:
+      - {tipo: manchetes, quando: 0.08, textos: ["{titulo}", "Avaliação individual", "Na Av. Paulista"]}
+      - {tipo: recorte_papel, quando: 0.45, texto: "{selo}"}
+      - {tipo: ticket, quando: fim, titulo: "PEDIDO DA SUA PELE", texto: "Avaliação / com o Dr. Daniel", total: "1 PASSO"}
+
+  prova:
+    nome: "Prova"
+    descricao: "Apps e caixas de texto aparecendo: pedido digitado, comentário, celular com o vídeo."
+    meio: [zoom_batida, revelar_foco, visor]
+    elementos:
+      - {tipo: interface, quando: 0.10, texto: "quero cuidar da minha pele com segurança"}
+      - {tipo: celular, quando: 0.45, lado: esquerda}
+      - {tipo: balao, quando: 0.72, usuario: "paciente", texto: "Quero agendar minha avaliação!"}
+
+  telao:
+    nome: "Telão"
+    descricao: "Palavra gigante atrás de você (profundidade) e órbita de cartões."
+    meio: [parallax, foco_lente, zoom_digital]
+    elementos:
+      - {tipo: profundidade, quando: 0.06, texto: "{selo}", duracao: 3.0}
+      - {tipo: orbita, quando: 0.55}
+
+  garrafal:
+    nome: "Garrafal"
+    descricao: "Letras garrafais em caixa alta, cortes secos e impacto."
+    legendas: {fonte: "BebasNeue-Regular.ttf", tamanho: 92, caixa_alta: true, max_palavras: 2, escala_falada: 1.12}
+    ritmo: epico
+    meio: [zoom_batida, tremor, flash, zoom_blur, zoom_atravessa]
+    elementos:
+      - {tipo: adesivo, quando: 0.5, texto: "{selo}"}
+
+  revista:
+    nome: "Revista"
+    descricao: "Título de capa de revista com você na frente, recorte de papel e quebra de moldura."
+    legendas: {fonte: "PlayfairDisplay[wght].ttf", caixa: fundo}
+    meio: [cartao_3d, foco_lente, revelar_foco]
+    elementos:
+      - {tipo: profundidade, quando: abertura, texto: "{titulo}", duracao: 2.6}
+      - {tipo: quebra_moldura, quando: 0.55}
+
+  dividida:
+    nome: "Tecnologia em cena"
+    descricao: "Você sobre a foto da tecnologia ou da clínica (tela verde) e o celular mostrando o vídeo."
+    meio: [parallax, zoom_digital]
+    elementos:
+      - {tipo: tela_verde, quando: 0.15, duracao: 3.0}
+      - {tipo: celular, quando: 0.55, lado: direita}
+
+  neon:
+    nome: "Neon dourado"
+    descricao: "Luz dourada, brilho na legenda e celular 3D: noite de gala."
+    legendas: {glow: dourado}
+    ritmo: epico
+    meio: [luz_dourada, pulso, cartao_3d, giro]
+    elementos:
+      - {tipo: luz_dourada, quando: abertura}
+      - {tipo: celular, quando: 0.4, lado: direita}
+
+  viral16:
+    nome: "16 efeitos"
+    descricao: "O pacote dos 16 truques mais virais: manchetes, visor, órbita, rabisco, adesivo, recuo que revela..."
+    legendas: {caixa: fundo}
+    meio: [visor, rabisco, orbita, zoom_atravessa, antes_depois, zoom_batida]
+    elementos:
+      - {tipo: manchetes, quando: 0.05, textos: ["{titulo}", "A Divine *agora* faz isso"]}
+      - {tipo: recuo_revela, quando: 0.7}
+      - {tipo: seta_mao, quando: fim, texto: "agende aqui"}

@@ -333,7 +333,11 @@ def cmd_editar(a):
         v = versoes[i]
         nome = v.get("nome", f"V{i + 1}")
         print(f"• {nome}: fontes {fontes[i]} · SFX {'+'.join(sfx_a[i])} / {'+'.join(sfx_t[i])} / {'+'.join(sfx_f[i])}")
-        plano = tmpl.montar(p, v, fontes[i], dur, W, H, sfx_a[i], sfx_f[i], sfx_t[i])
+        from . import estilos
+        pv, v = estilos.aplicar(p, v, dur)                      # estilo de edição (config/estilos.yaml)
+        if pv.get("_estilo"):
+            print(f"  estilo de edição: {pv['_estilo']}")
+        plano = tmpl.montar(pv, v, fontes[i], dur, W, H, sfx_a[i], sfx_f[i], sfx_t[i])
         usou_t = [n for n in sfx_t[i] if any(e[1] == n for e in plano.eventos_sfx)]
         ach_v = revisar(p, plano.textos_tela)
         if any(x.nivel == "erro" for x in ach_v) and not a.forcar:
@@ -343,7 +347,8 @@ def cmd_editar(a):
         _gravar_linha(trabalho, nome, p, plano)
         if so_storyboard:                                      # só os quadros da edição, sem render
             from . import storyboard
-            sb = storyboard.gerar(pasta, nome, plano, p, base, W, H, dur, (bw, bh), extras_video, versao_idx=i)
+            sb = storyboard.gerar(pasta, nome, plano, pv, base, W, H, dur, (bw, bh), extras_video, versao_idx=i,
+                                  estilo=pv.get("_estilo", ""))
             print(f"  ✓ storyboard {nome}: {sb['cenas_total']} cenas · {sb['momentos_total']} momentos · "
                   f"{sb['segundos']:.0f}s (nada renderizado)")
             resultado.append({"nome": nome, "storyboard": f"trabalho/storyboard_{nome}.json"})
