@@ -57,3 +57,16 @@ metodo:
     - {titulo: "Plano individual", texto: "A combinação certa para o seu corpo, no seu tempo."}
     - {titulo: "Tecnologia", texto: "Aparelhos de ponta escolhidos pela indicação, não pela moda."}
     - {titulo: "Acompanhamento", texto: "Cada etapa revisada com a equipe médica."}
+
+# Método 3C (referência @afonsomolina, 02/11/2026): o algoritmo entrega mais o carrossel que tem os 3 C.
+#  1º C, Capa: promessa clara de até 12 palavras.
+#  2º C, CTA no meio: no 3º para o 4º slide, "antes de seguir, toca 2x na tela" (a curtida sobe a entrega).
+#  3º C, Convite no último slide: levar para o link da bio (agendamento).
+tres_c:
+  ligado: true
+  capa_max_palavras: 12
+  cta_meio:
+    depois_do_card: 3                # entra como 4º card
+    titulo: "Antes de você *seguir:*"
+    texto: "toca 2x na tela. / Isso ajuda este conteúdo a chegar em mais gente."
+  convite: "Agende sua avaliação pelo *link da bio.*"

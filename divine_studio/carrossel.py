@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import dataclasses
 import io
+import math
 import re
 import zipfile
 from pathlib import Path
@@ -31,7 +32,7 @@ from .config import ROOT, hexrgb, hoje, load, slug
 from .fonts import combinacao
 from .text import Estilo, render
 
-LAYOUTS = ["capa", "texto", "lista", "mito_verdade", "citacao", "cta"]
+LAYOUTS = ["capa", "texto", "lista", "mito_verdade", "citacao", "toque_duplo", "cta"]
 IMAGEM = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
 
 
@@ -108,7 +109,46 @@ def rascunho(titulo: str, formula: str = "lista", objetivo: str | None = None, s
     f = foto_do_tema(titulo)
     if f and cards and cards[0].get("layout") == "capa":      # foto da tecnologia/sala na capa, da Biblioteca
         cards[0]["foto"] = str(f.relative_to(ROOT))
-    return cards[: _cfg().get("max_cards", 8)]
+    return tres_c(cards)
+
+
+def tres_c(cards: list) -> list:
+    """Método 3C: capa com promessa curta, CTA de curtida no meio (3º para o 4º card) e convite no último."""
+    cfg = _cfg()
+    c3 = cfg.get("tres_c") or {}
+    maxc = int(cfg.get("max_cards", 8))
+    if not c3.get("ligado", True) or not cards:
+        return cards[:maxc]
+    cards = [dict(c) for c in cards]
+    meio = c3.get("cta_meio") or {}
+    k = int(meio.get("depois_do_card", 3))
+    if len(cards) > k and not any(c.get("layout") == "toque_duplo" for c in cards):
+        if len(cards) + 1 > maxc:                               # abre espaço tirando um card do meio (nunca capa e fim)
+            cards.pop(len(cards) - 2)
+        cards.insert(k, {"layout": "toque_duplo", "titulo": meio.get("titulo", "Antes de você *seguir:*"),
+                         "texto": meio.get("texto", "toca 2x na tela.")})
+    if cards[-1].get("layout") == "cta" and c3.get("convite"):
+        cards[-1].setdefault("convite", c3["convite"])
+    return cards[:maxc]
+
+
+def checar_3c(p: dict) -> list:
+    """Avisos do método 3C (não bloqueia)."""
+    c3 = _cfg().get("tres_c") or {}
+    if not c3.get("ligado", True):
+        return []
+    cards = p.get("cards") or []
+    out = []
+    if cards:
+        capa = re.sub(r"[*/]", " ", str(cards[0].get("titulo", "")))
+        n = len(capa.split())
+        if n > int(c3.get("capa_max_palavras", 12)):
+            out.append(f"3C: a capa tem {n} palavras; promessa clara de até {c3.get('capa_max_palavras', 12)}")
+    if not any(c.get("layout") == "toque_duplo" for c in cards):
+        out.append("3C: falta o CTA do meio (\"toca 2x na tela\" no 4º card)")
+    if cards and not (cards[-1].get("convite") or "bio" in str(cards[-1].get("pedido", "")).lower()):
+        out.append("3C: o último card não convida para o link da bio")
+    return out
 
 
 def novo(titulo: str, formula: str = "lista", objetivo: str | None = None, estilo: str = "divine") -> Path:
@@ -324,6 +364,23 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
             cab.alpha_composite(selo_verificado(int(34 * esc)), (foto.width + int(30 * esc) + nome.width, int(16 * esc)))
         cab.alpha_composite(arroba, (foto.width + int(24 * esc), int(14 * esc) + nome.height))
         centro(_empilhar([cab, frase], int(40 * esc), alinhar="left"))
+    elif lay == "toque_duplo":                     # 2º C do método 3C: pede a curtida no meio do carrossel
+        t, d, _, _ = _estilos(p, est, 84 * esc)
+        r = int(120 * esc)
+        cor_d = hexrgb(est["destaque"]) + (255,)
+        icone = Image.new("RGBA", (r * 4, r * 3), (0, 0, 0, 0))
+        di = ImageDraw.Draw(icone)
+        lw = max(4, int(10 * esc))
+        for dx in (0, r * 2):                     # dois corações (dois toques)
+            cx, cy = r + dx, int(r * 1.4)
+            pts = [(cx + 16 * (math.sin(a) ** 3) * r / 18, cy - (13 * math.cos(a) - 5 * math.cos(2 * a) - 2 * math.cos(3 * a)
+                    - math.cos(4 * a)) * r / 18) for a in [i * 2 * math.pi / 80 for i in range(81)]]
+            di.line(pts, fill=cor_d, width=lw, joint="curve")
+        tit = render(c.get("titulo", ""), t, d, largura_max=larg, sombra=escuro)
+        bloco = [icone, tit]
+        if c.get("texto"):
+            bloco.append(_caber(lambda s: _texto_corrido(c["texto"], est, s, larg), larg, int(area_h * 0.3), 40 * esc))
+        centro(_empilhar(bloco, int(30 * esc)))
     else:   # cta
         t, d, _, _ = _estilos(p, est, 84 * esc)
         bloco = []
@@ -333,6 +390,10 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
         if c.get("pedido"):
             ep = Estilo("Poppins-Medium.ttf", 34 * esc, hexrgb(est["destaque"]))
             bloco.append(render(c["pedido"], ep, ep, largura_max=larg, sombra=False))
+        if c.get("convite"):                       # 3º C: convite para o link da bio
+            ec = Estilo("Poppins-Light.ttf", 34 * esc, hexrgb(est["texto"]))
+            ecd = Estilo("Poppins-Medium.ttf", 34 * esc, hexrgb(est["destaque"]))
+            bloco.append(render(c["convite"], ec, ecd, largura_max=larg, sombra=False))
         centro(_empilhar(bloco, int(34 * esc)))
         if est.get("marca", True):
             m = load("marca")
@@ -359,7 +420,7 @@ def _empilhar(imgs: list, gap: int, alinhar: str = "center") -> Image.Image:
 def textos(p: dict) -> list:
     out = []
     for c in p.get("cards") or []:
-        for k in ("titulo", "apoio", "texto", "mito", "verdade", "pedido"):
+        for k in ("titulo", "apoio", "texto", "mito", "verdade", "pedido", "convite"):
             if c.get(k):
                 out.append(c[k])
         out += list(c.get("itens") or [])
@@ -394,6 +455,8 @@ def exportar(pasta: Path, p: dict) -> dict:
         print(f"  aviso: {n} cards (o padrão é de {cfg.get('min_cards', 5)} a {cfg.get('max_cards', 8)})")
     p = dict(p)
     p.setdefault("legenda", legenda(p))
+    for aviso_3c in checar_3c(p):
+        print(f"  aviso: {aviso_3c}")
     ach = revisar({**p, "_pasta": pasta}, textos(p))
     erros = [a for a in ach if a.nivel == "erro"]
     for a in ach:
