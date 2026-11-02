@@ -698,7 +698,11 @@ TIPOS = {
 QUADRO = {"zoom_digital": zoom_digital, "fundo_pip": fundo_pip, "cortina": cortina, "filme": filme,
           "vidro": vidro, "texto_atras": texto_atras}
 from . import efeitos3d as _e3d                                       # noqa: E402  (3D, espaciais e câmera)
+from . import efeitos_viral as _ev                                    # noqa: E402  (transições e efeitos virais)
 QUADRO.update(_e3d.EFEITOS)
+QUADRO.update(_ev.EFEITOS)
+_EXTRA_EXEMPLOS = {**_e3d.EXEMPLOS, **_ev.EXEMPLOS}
+_EXTRA_MOMENTO = {**_e3d.MOMENTO_AMOSTRA, **_ev.MOMENTO_AMOSTRA}
 
 
 def resolver_tipo(ef: dict) -> str:
@@ -728,6 +732,11 @@ def espacar(efeitos: list, intervalo: float) -> list:
         out.append(ef)
         ultimo = ini
     return out
+
+
+def ROOT_SFX():
+    from .config import ROOT
+    return ROOT / load("sfx")["pasta"]
 
 
 def _cortes(projeto: dict) -> list:
@@ -789,8 +798,13 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
                 plano.textos_tela.append(ef["texto"])
         else:
             raise SystemExit(f"Tipo de efeito desconhecido: {tipo}. Opções: {', '.join(sorted(TIPOS) + sorted(QUADRO))}")
-        if ef.get("som"):
-            plano.eventos_sfx.append((ef["inicio"], ef["som"], float(load("sfx").get("ganho_db", -24))))
+        som = ef.get("som")
+        if som is None and tipo in _ev.SONS and projeto.get("sfx_automaticos") is not False:
+            som = ritmo._som(_ev.SONS[tipo], int(ef["inicio"] * 10))      # som sugerido do kit viral
+        if som and not (ROOT_SFX() / f"{som}.wav").exists():
+            som = ritmo._som(som, int(ef["inicio"] * 10))                  # família (ex.: boom_grave) -> arquivo
+        if som:
+            plano.eventos_sfx.append((ef["inicio"], som, float(load("sfx").get("ganho_db", -24))))
     plano.efeitos_auto = [e for e in ordem if e.get("_auto") and e["inicio"] < plano.inicio_fechamento]
     if grade > 0:
         plano.efeitos_quadro.append(ritmo.grade_epica(grade))
@@ -859,7 +873,7 @@ NOMES = {
     "pergunta": "Card de pergunta", "chat": "Conversa de chat", "grafico": "Gráfico em expansão",
     "zoom_digital": "Zoom digital", "fundo_pip": "Vídeo em janela (PiP)", "cortina": "Cortina",
     "filme": "Visual de filme", "vidro": "Texto em vidro dourado", "texto_atras": "Título atrás da pessoa",
-    **_e3d.NOMES,
+    **_e3d.NOMES, **_ev.NOMES,
 }
 _POS = ("posicao", "escolha:topo|centro|base", "Posição")
 CAMPOS = {
@@ -885,13 +899,13 @@ CAMPOS = {
     "filme": [],
     "vidro": [("texto", "texto", "Frase"), _POS],
     "texto_atras": [("texto", "texto", "Título (fica atrás da pessoa)")],
-    **_e3d.CAMPOS,
+    **_e3d.CAMPOS, **_ev.CAMPOS,
 }
 DURACAO_PADRAO = {"camadas": 3.0, "queda_letras": 3.0, "letra_a_letra": 3.0, "riscado": 3.6, "digitando": 3.5,
                   "checklist": 4.5, "contador": 3.2, "linha_tempo": 3.6, "circulo": 3.0, "notificacao": 3.4,
                   "artigo": 3.6, "tweet": 4.0, "pergunta": 3.6, "chat": 4.0, "grafico": 3.6, "zoom_digital": 2.5,
                   "fundo_pip": 3.0, "cortina": 1.4, "filme": 4.0, "vidro": 3.0, "texto_atras": 3.5,
-                  **_e3d.DURACAO}
+                  **_e3d.DURACAO, **_ev.DURACAO}
 
 
 def catalogo() -> list:
@@ -902,7 +916,8 @@ def catalogo() -> list:
             cods.setdefault(e["tipo"], []).append(cod)
     return [{"tipo": t, "nome": NOMES.get(t, t), "codigos": cods.get(t, []), "duracao": DURACAO_PADRAO.get(t, 3.0),
              "campos": [{"campo": c, "tipo": k, "rotulo": r} for c, k, r in CAMPOS.get(t, [])],
-             "exemplo": EXEMPLOS.get(t, _e3d.EXEMPLOS.get(t, {}))} for t in list(TIPOS) + list(QUADRO)]
+             "som": _ev.SONS.get(t, ""),
+             "exemplo": EXEMPLOS.get(t, _EXTRA_EXEMPLOS.get(t, {}))} for t in list(TIPOS) + list(QUADRO)]
 
 
 def amostra(tipo: str, combo_codigo: str = "B", W: int = 270, H: int = 480) -> Image.Image:
@@ -913,12 +928,12 @@ def amostra(tipo: str, combo_codigo: str = "B", W: int = 270, H: int = 480) -> I
     yy = np.linspace(0, 1, H)[:, None, None]
     q[:] = (np.array([70, 60, 52]) * (1 - yy) + np.array([30, 28, 26]) * yy).astype(np.uint8)
     ex = dict(EXEMPLOS.get(tipo, {}))
-    if tipo in _e3d.EFEITOS:
+    if tipo in _e3d.EFEITOS or tipo in _ev.EFEITOS:
         q = _cena_referencia(W, H)
-        f = QUADRO[tipo]({"tipo": tipo, "inicio": 0.0, **_e3d.EXEMPLOS.get(tipo, {})}, combo, W, H, 10)
-        for t in np.arange(0, _e3d.MOMENTO_AMOSTRA.get(tipo, 1.0), 0.1):
+        f = QUADRO[tipo]({"tipo": tipo, "inicio": 0.0, **_EXTRA_EXEMPLOS.get(tipo, {})}, combo, W, H, 10)
+        for t in np.arange(0, _EXTRA_MOMENTO.get(tipo, 1.0), 0.1):
             f(q, float(t))                     # efeitos com memória (congelar) veem os quadros anteriores
-        return Image.fromarray(f(q, _e3d.MOMENTO_AMOSTRA.get(tipo, 1.0)))
+        return Image.fromarray(f(q, _EXTRA_MOMENTO.get(tipo, 1.0)))
     if tipo in ("zoom_digital", "fundo_pip", "cortina", "filme", "texto_atras"):
         ex.setdefault("texto", "CAPA")
         # um "vídeo" de referência para o efeito de quadro aparecer

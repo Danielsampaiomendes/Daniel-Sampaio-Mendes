@@ -90,3 +90,42 @@ def test_upscale_com_ia_quando_o_realesrgan_existe(tmp_path, monkeypatch):
                     "-c:v", "libx264", str(bruto)], check=True)
     r = qualidade.preparar(bruto, 0, 1, {"upscale": "auto"}, (540, 960), tmp_path / "q")
     assert r.exists() and r.stat().st_size > 1000
+
+
+# ---------------------------------------------------------------- efeitos e sons virais
+from divine_studio import efeitos_viral, sfx_viral  # noqa: E402
+
+
+@pytest.mark.parametrize("tipo", list(efeitos_viral.EFEITOS))
+def test_cada_efeito_viral_muda_o_quadro_so_dentro_do_tempo(tipo):
+    q = _cena()
+    f = efeitos.QUADRO[tipo]({"tipo": tipo, "inicio": 1.0, **efeitos_viral.EXEMPLOS[tipo]}, combinacao("O1"), 216, 384, 10)
+    assert np.array_equal(f(q, 0.5), q)
+    r = f(q, 1.0 + efeitos_viral.MOMENTO_AMOSTRA[tipo])
+    assert r.shape == q.shape and r.dtype == np.uint8 and not np.array_equal(r, q), tipo
+    assert np.array_equal(f(q, 1.0 + efeitos_viral.DURACAO[tipo] + 0.5), q)
+
+
+def test_giro_nunca_mostra_canto_preto():
+    q = np.full((384, 216, 3), 200, np.uint8)
+    f = efeitos_viral.giro({"inicio": 0.0, "duracao": 0.5}, None, 216, 384, 30)
+    for t in np.linspace(0.01, 0.49, 13):
+        assert f(q, float(t)).min() > 120, t
+
+
+def test_kit_de_sons_virais(tmp_path):
+    novos = sfx_viral.garantir(tmp_path)
+    assert len(novos) == 2 * len(sfx_viral.SONS)
+    assert sfx_viral.garantir(tmp_path) == []                                   # já existem: não refaz
+    import wave
+    with wave.open(str(tmp_path / "boom_grave_a.wav")) as w:
+        assert w.getframerate() == 48000 and w.getnchannels() == 2 and w.getnframes() > 48000 * 0.5
+
+
+def test_velocity_vira_rapido_lento_rapido(tmp_path):
+    from divine_studio.ingest import _expandir_velocity
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=red:s=64x112:r=10:d=2",
+                    "-c:v", "libx264", str(tmp_path / "a.mp4")], check=True)
+    out = _expandir_velocity({"_pasta": tmp_path}, [{"arquivo": "a.mp4", "fim": 2.0, "velocity": True}])
+    assert [c["velocidade"] for c in out] == [1.8, 0.4, 1.8]
+    assert out[0]["inicio"] == 0 and out[-1]["fim"] == 2.0 and all("velocity" not in c for c in out)

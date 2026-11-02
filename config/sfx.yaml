@@ -14,6 +14,17 @@ familias:
   riser_suave: "suspense antes de revelar"
   swell_reverso: "respiro antes de texto importante"
   cristal: "condição, tela final, CTA"
+  # kit viral (divine_studio/sfx_viral.py, sintetizado e livre de direitos)
+  boom_grave: "impacto tipo boom no gancho ou na revelação (1 por vídeo)"
+  drop_sub: "queda grave depois de um riser: entrada da batida"
+  whoosh_rapido: "passada rápida: chicote, zoom blur, troca de cena"
+  glitch_digital: "falha digital: glitch RGB"
+  flash_brilho: "estalo brilhante: flash branco ou dourado"
+  scratch_disco: "arranhão de disco: pausa, virada cômica"
+  coracao: "batida de coração: suspense, pulso"
+  zap_suave: "raio curto: giro, transição rápida"
+  estalo_dedos: "estalo de dedos: corte seco, troca de look, cor que volta"
+  subida_tensao: "riser curto de tensão antes do drop ou da revelação"
 
 # Ganho padrão em dB relativo ao arquivo (o kit sai normalizado em -1 dBFS); tudo bem abaixo da trilha
 ganho_db: -24

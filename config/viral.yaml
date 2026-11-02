@@ -32,7 +32,7 @@ modos:
     espacamento_minimo_s: 1.5
     abertura: [{tipo: luz_dourada, inicio: 0.25, duracao: 1.4, forca: 0.7, som: brilho_dourado}]
     nos_cortes: []                    # cortes secos já são interrupção
-    meio: [foco_lente, zoom_digital, luz_dourada, congelar]
+    meio: [foco_lente, zoom_digital, luz_dourada, congelar, zoom_batida, cor_volta, revelar_foco]
     antes_do_cta: {tipo: congelar, duracao: 1.4, zoom: 1.08, som: tick_suave}
     grade: 0.0
   epico:
@@ -42,8 +42,11 @@ modos:
     espacamento_minimo_s: 1.1
     abertura: [{tipo: cartao_3d, inicio: 0.0, duracao: 1.3, modo: girar, som: whoosh_suave},
                {tipo: luz_dourada, inicio: 1.7, duracao: 1.2, forca: 1.2, som: brilho_dourado}]
-    nos_cortes: [{tipo: chicote, duracao: 0.4, som: whoosh_suave}]
-    meio: [dolly_zoom, cartao_3d, congelar, luz_dourada, zoom_digital, parallax, foco_lente, chicote]
+    nos_cortes: [{tipo: chicote, duracao: 0.4, som: whoosh_rapido}, {tipo: zoom_blur, duracao: 0.4, som: whoosh_rapido},
+                 {tipo: flash, duracao: 0.3, cor: dourado, som: flash_brilho}, {tipo: giro, duracao: 0.5, som: zap_suave},
+                 {tipo: glitch_rgb, duracao: 0.35, som: glitch_digital}]
+    meio: [dolly_zoom, cartao_3d, congelar, luz_dourada, zoom_digital, parallax, foco_lente, chicote,
+           zoom_batida, tremor, glitch_rgb, cor_volta, zoom_blur, flash]
     antes_do_cta: {tipo: congelar, duracao: 1.6, zoom: 1.18, som: impacto_grave_suave}
     grade: 1.0                        # contraste de cinema com brilho dourado nas luzes
 
@@ -57,3 +60,4 @@ sons:
   parallax: swell_reverso
   foco_lente: cristal
   chicote: whoosh_suave
+  # efeitos virais: o som vem de divine_studio/efeitos_viral.py (SONS) quando não estiver aqui

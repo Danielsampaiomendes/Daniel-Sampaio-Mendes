@@ -95,7 +95,7 @@ function desenharClipes() {
   const k = $("#tl-barra").clientWidth / Math.max(total, ed.base || total);
   caixa.innerHTML = ed.clipes.map((c, i) => {
     const [a, d] = pos[i], nomeArq = String(c.arquivo || "").split("/").pop();
-    const tags = [Number(c.velocidade || 1) !== 1 ? c.velocidade + "x" : "", c.reverso ? "⟲" : "", c.mudo ? "🔇" : "",
+    const tags = [Number(c.velocidade || 1) !== 1 ? c.velocidade + "x" : "", c.reverso ? "⟲" : "", c.velocity ? "⚡velocity" : "", c.mudo ? "🔇" : "",
                   c.transicao && c.transicao !== "dissolver" ? "⇢ " + (ed.cfg.transicoes[c.transicao] || c.transicao) : ""].filter(Boolean).join(" ");
     return `<div class="tl-clipe ${ed.sel && ed.sel.tipo === "clip" && ed.sel.i === i ? "sel" : ""} ${(ed.clipesInfo[i] || {}).existe === false ? "falta" : ""}"
       data-i="${i}" style="left:${a * k}px;width:${Math.max(24, d * k - 2)}px" title="${esc(nomeArq)} · ${d.toFixed(1)}s">${esc(nomeArq)}<small>${esc(tags)}</small></div>`;
@@ -615,6 +615,7 @@ function formExtra(box) {
     <label>Transição na entrada<select id="c-trans" ${ed.sel.i === 0 ? "disabled" : ""}>${trans}</select></label>
     <label>Volume do som <span id="c-vol-v">${Math.round((c.volume ?? 1) * 100)}%</span><input id="c-vol" type="range" min="0" max="2" step="0.05" value="${c.volume ?? 1}"></label>
     <label>Zoom <input id="c-zoom" type="range" min="1" max="1.6" step="0.05" value="${c.zoom ?? 1}"></label>
+    <label class="check"><input type="checkbox" id="c-velocity" ${c.velocity ? "checked" : ""}> velocity (acelera, câmera lenta, acelera)</label>
     <label class="check"><input type="checkbox" id="c-rev" ${c.reverso ? "checked" : ""}> de trás para frente (reverso)</label>
     <label class="check"><input type="checkbox" id="c-mudo" ${c.mudo ? "checked" : ""}> sem som (b-roll)</label>
     <div class="linha"><button id="c-esq" ${ed.sel.i === 0 ? "disabled" : ""}>◀</button><button id="c-dir" ${ed.sel.i === ed.clipes.length - 1 ? "disabled" : ""}>▶</button>
@@ -628,6 +629,7 @@ function formExtra(box) {
     const vol = Number($("#c-vol").value); if (vol === 1) delete c.volume; else c.volume = vol;
     const z = Number($("#c-zoom").value); if (z === 1) delete c.zoom; else c.zoom = z;
     if ($("#c-rev").checked) c.reverso = true; else delete c.reverso;
+    if ($("#c-velocity").checked) c.velocity = true; else delete c.velocity;
     if ($("#c-mudo").checked) c.mudo = true; else delete c.mudo;
     $("#c-vol-v").textContent = Math.round(vol * 100) + "%";
     sujar(); desenharClipes();

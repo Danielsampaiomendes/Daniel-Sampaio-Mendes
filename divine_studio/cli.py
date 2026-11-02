@@ -210,6 +210,12 @@ def _resolver_hooks(p) -> None:
 
 def cmd_editar(a):
     from . import efeitos3d
+    try:                                   # kit de sons virais (cria os que faltam, rápido)
+        from .config import ROOT as _R, load as _L
+        from .sfx_viral import garantir
+        garantir(_R / _L("sfx")["pasta"])
+    except Exception as e:
+        print(f"  aviso: kit de sons virais não criado ({e})")
     efeitos3d.RAPIDO["ligado"] = bool(getattr(a, "rapido", False))
     from .audio import ler_audio, mixar, salvar_wav
     from .compliance import linha_checklist, revisar
@@ -386,8 +392,10 @@ def _gravar_linha(trabalho, nome, p, plano):
     manuais = {(s.get("nome"), round(float(s.get("inicio", 0)), 2)) for s in p.get("sons") or []}
     auto_ef = getattr(plano, "efeitos_auto", []) or []
     sons_ef = {(e.get("som"), round(float(e["inicio"]), 2)) for e in (p.get("efeitos") or []) + auto_ef if e.get("som")}
+    inicios_ef = {round(float(e.get("inicio", 0)), 2) for e in (p.get("efeitos") or []) + auto_ef}
     sfx = [{"nome": n, "inicio": round(float(t), 2), "ganho_db": round(float(g), 1)} for t, n, g in plano.eventos_sfx
-           if (n, round(float(t), 2)) not in manuais and (n, round(float(t), 2)) not in sons_ef]
+           if (n, round(float(t), 2)) not in manuais and (n, round(float(t), 2)) not in sons_ef
+           and round(float(t), 2) not in inicios_ef]          # som que nasce junto com um efeito fica no efeito
     efs = [{k: v for k, v in e.items() if not k.startswith("_")} for e in auto_ef]
     (trabalho / f"linha_{nome}.json").write_text(json.dumps({"versao": nome, "efeitos": efs, "sons": sfx},
                                                             ensure_ascii=False, indent=1), encoding="utf-8")

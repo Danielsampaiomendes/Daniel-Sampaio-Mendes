@@ -22,5 +22,14 @@ transicoes:
   circulo:   {nome: "Círculo abrindo", xfade: circleopen}
   desfoque:  {nome: "Desfoque", xfade: hblur}
   radial:    {nome: "Radial", xfade: radial}
+  # mais usadas em edits virais
+  vento:     {nome: "Vento (rastro de movimento)", xfade: hlwind}
+  pixel:     {nome: "Pixelizar", xfade: pixelize}
+  espremer:  {nome: "Espremer", xfade: squeezeh}
+  cortina:   {nome: "Cortina abrindo", xfade: horzopen}
+  diagonal:  {nome: "Diagonal", xfade: diagtl}
+  graos:     {nome: "Dissolver em grãos", xfade: dissolve}
+  cinza:     {nome: "Passa pelo cinza", xfade: fadegrays}
+  fatias:    {nome: "Fatias", xfade: hrslice}
 
 velocidades: [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0]

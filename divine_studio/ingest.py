@@ -78,6 +78,31 @@ def _atempo(vel: float) -> str:
     return ",".join(partes)
 
 
+VELOCITY = [(0.40, 1.8), (0.25, 0.4), (0.35, 1.8)]     # rápido, câmera lenta, rápido (fração do trecho, velocidade)
+
+
+def _expandir_velocity(projeto: dict, clipes: list) -> list:
+    """Clipe com 'velocity: true' vira 3 trechos colados (rápido, câmera lenta, rápido), o efeito velocity edit."""
+    out = []
+    for c in clipes:
+        if not c.get("velocity"):
+            out.append(c)
+            continue
+        arq = resolver(projeto, c["arquivo"])
+        ini = float(c.get("inicio", 0))
+        fim = float(c.get("fim") or probe(arq)["duracao"])
+        t = ini
+        for k, (frac, vel) in enumerate(VELOCITY):
+            pedaco = {**{x: v for x, v in c.items() if x != "velocity"}, "inicio": round(t, 3),
+                      "fim": round(t + (fim - ini) * frac, 3), "velocidade": vel}
+            if k:
+                pedaco["transicao"] = "corte"
+                pedaco["_corte_seco"] = True
+            out.append(pedaco)
+            t += (fim - ini) * frac
+    return out
+
+
 def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool | None = None) -> dict:
     """Gera trabalho/base.mp4 (vídeo + áudio original) e devolve metadados."""
     exp = load("exportacao")
@@ -89,6 +114,7 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
     if not clipes:
         raise SystemExit("O projeto não tem clipes (lista 'clipes' no projeto.yaml).")
 
+    clipes = _expandir_velocity(projeto, clipes)
     entradas, filtros, info_clipes = [], [], []
     hq_geral = False
     for i, c in enumerate(clipes):

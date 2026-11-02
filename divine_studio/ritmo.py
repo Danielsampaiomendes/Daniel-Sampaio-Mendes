@@ -35,8 +35,13 @@ def _som(familia: str, semente: int) -> str | None:
     return opcoes[semente % len(opcoes)] if opcoes else None
 
 
-def _livre(t: float, dur: float, ocupados: list, folga: float) -> bool:
-    return all(t + dur + folga <= a or t >= b + folga for a, b in ocupados)
+def _som_viral(tipo: str) -> str | None:
+    from .efeitos_viral import SONS
+    return SONS.get(tipo)
+
+
+def _livre(t: float, dur: float, ocupados: list, folga: float, espaco: float = 0.0) -> bool:
+    return all((t + dur + folga <= a or t >= b + folga) and abs(t - a) >= espaco for a, b in ocupados)
 
 
 def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None) -> list:
@@ -57,18 +62,19 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         ini = float(e.get("inicio", 0))
         ocupados.append((ini, ini + float(e.get("duracao", DURACAO_PADRAO.get(tipo, 3.0)))))
     folga = 0.3
+    espaco = float(cfg.get("espacamento_minimo_s", 1.5)) + 0.05     # o mesmo mínimo do render: nada é empurrado
     out = []
 
     def por(ef: dict, t: float) -> bool:
         tipo = ef["tipo"]
         dur = float(ef.get("duracao", DURACAO_PADRAO.get(tipo, 2.0)))
-        if t < 0 or t + dur > fim - 0.2 or not _livre(t, dur, ocupados, folga):
+        if t < 0 or t + dur > fim - 0.2 or not _livre(t, dur, ocupados, folga, espaco):
             return False
         novo = {**EXEMPLOS.get(tipo, {}), **ef, "inicio": round(t, 2), "duracao": dur, "_auto": True}
         if "som" in novo:
             novo["som"] = _som(novo["som"], semente + len(out))
-        elif sons.get(tipo) and m == "epico":
-            novo["som"] = _som(sons[tipo], semente + len(out))
+        elif m == "epico" and (sons.get(tipo) or _som_viral(tipo)):
+            novo["som"] = _som(sons.get(tipo) or _som_viral(tipo), semente + len(out))
         if not novo.get("som") or projeto.get("sfx_automaticos") is False:
             novo.pop("som", None)
         out.append(novo)
@@ -82,9 +88,11 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         ef = dict(cfg["antes_do_cta"])
         por(ef, fim - float(ef.get("duracao", 1.5)) - 0.4)
     # cortes entre takes: transição em chicote (épico)
-    for c in cortes or []:
-        for ef in cfg.get("nos_cortes") or []:
-            ef = dict(ef)
+    trans = list(cfg.get("nos_cortes") or [])
+    rnd.shuffle(trans)
+    for k, c in enumerate(cortes or []):                      # uma transição por corte, alternando os tipos
+        if trans:
+            ef = dict(trans[k % len(trans)])
             por(ef, max(0.0, c - float(ef.get("duracao", 0.4)) / 2))
     # meio: uma interrupção de padrão a cada intervalo, alternando os efeitos sem repetir em seguida
     a, b = cfg.get("intervalo_s", [2.6, 3.4])
@@ -96,7 +104,8 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         colocou = False
         for j in range(len(lista)):                       # tenta os efeitos na vez; se não cabe, o próximo
             tipo = lista[(k + j) % len(lista)]
-            if tipo == anterior or tipo == "camera_elegante":
+            if tipo == anterior or tipo == "camera_elegante" or \
+                    any(e["tipo"] == tipo and abs(e["inicio"] - t) < 3.0 for e in out):   # sem repetir colado
                 continue
             ef = {"tipo": tipo}
             if tipo == "cartao_3d":

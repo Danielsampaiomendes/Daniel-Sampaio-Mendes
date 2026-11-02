@@ -1213,6 +1213,12 @@ class Painel(BaseHTTPRequestHandler):
 
 
 def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
+    try:                                   # kit de sons virais (cria os que faltam, rápido)
+        from .config import ROOT as _R, load as _L
+        from .sfx_viral import garantir
+        garantir(_R / _L("sfx")["pasta"])
+    except Exception as e:
+        print(f"  aviso: kit de sons virais não criado ({e})")
     PROJETOS.mkdir(exist_ok=True)
     Painel.codigo = codigo_celular() if celular else None
     srv = ThreadingHTTPServer(("0.0.0.0" if celular else "127.0.0.1", porta), Painel)
