@@ -184,10 +184,28 @@ function marca(tipo, i, t, dur, rotulo, perto) {
   $("#tl-barra").appendChild(el);
 }
 
+function efeitoNoPonto(t) {
+  t = Math.round(Math.max(0, Math.min(t, (ed.base || ed.total) - 0.3)) * 10) / 10;
+  ed.efeitos.push({ tipo: null, inicio: t });
+  ed.sel = { tipo: "ef", i: ed.efeitos.length - 1 };
+  const v = $("#tl-video"); v.pause(); if (v.src) v.currentTime = t;
+  desenharTimeline(); desenharForm();
+  const f = $("#tl-form"); if (f) f.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+let toqueLongo = null;
 $("#tl-barra").onpointerdown = (e) => {
   const r = $("#tl-barra").getBoundingClientRect();
   const t = (e.clientX - r.left) / px();
   const v = $("#tl-video"); if (v.src) v.currentTime = Math.max(0, Math.min(t, ed.total));
+  clearTimeout(toqueLongo);
+  if (e.pointerType !== "mouse") toqueLongo = setTimeout(() => efeitoNoPonto(t), 550);   // iPhone: segure o dedo
+};
+["pointerup", "pointerleave", "pointercancel"].forEach((n) => $("#tl-barra").addEventListener(n, () => clearTimeout(toqueLongo)));
+$("#tl-barra").addEventListener("pointermove", (e) => { if (Math.abs(e.movementX) > 4) clearTimeout(toqueLongo); });
+$("#tl-barra").ondblclick = (e) => {
+  if (e.target.closest(".tl-marca")) return;
+  const r = $("#tl-barra").getBoundingClientRect();
+  efeitoNoPonto((e.clientX - r.left) / px());
 };
 $("#tl-video").ontimeupdate = () => { $("#tl-cursor").style.left = $("#tl-video").currentTime * px() + "px"; };
 $("#tl-video").onloadedmetadata = () => {
@@ -435,16 +453,37 @@ function desenharForm() {
   }
   const e = ed.efeitos[ed.sel.i];
   if (!e.tipo) {
-    box.innerHTML = `<h2>Qual efeito em ${(+e.inicio).toFixed(1)}s?</h2><div class="tipos">${ed.catalogo.map((c) =>
-      `<div class="tipo" data-tipo="${c.tipo}" title="${esc(c.codigos.join(", "))}"><img loading="lazy" src="/efeito.png?tipo=${c.tipo}" alt="">${esc(c.nome)}</div>`).join("")}</div>
+    const cats = ["Todos", ...new Set(ed.catalogo.map((c) => c.categoria || "Outros"))];
+    box.innerHTML = `<h2>Qual efeito em ${(+e.inicio).toFixed(1)}s?</h2>
+      <input id="e-busca" class="e-busca" placeholder="Buscar efeito (ex.: zoom, papel, texto, pixel)" autocomplete="off">
+      <div class="chips seg cat-ef">${cats.map((c, k) => `<button class="${k ? "" : "dourado"}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+      <div class="tipos" id="e-tipos"></div>
       <div class="linha"><button class="link" id="e-cancelar">cancelar</button></div>`;
-    $$(".tipo").forEach((t) => t.onclick = () => {
+    let catAtual = "Todos";
+    const norm = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const listar = () => {
+      const q = norm($("#e-busca").value);
+      const lista = ed.catalogo.filter((c) => (catAtual === "Todos" || (c.categoria || "Outros") === catAtual)
+        && (!q || norm(c.nome + " " + c.tipo + " " + (c.categoria || "")).includes(q)));
+      $("#e-tipos").innerHTML = lista.map((c) =>
+        `<div class="tipo" data-tipo="${c.tipo}" title="${esc(c.codigos.join(", "))}"><img loading="lazy" src="/efeito.png?tipo=${c.tipo}" alt="">${esc(c.nome)}</div>`).join("")
+        || '<p class="dica">Nenhum efeito com esse nome.</p>';
+      $$("#e-tipos .tipo").forEach((t) => t.onclick = escolher);
+    };
+    $$(".cat-ef [data-cat]").forEach((b) => b.onclick = () => {
+      catAtual = b.dataset.cat; $$(".cat-ef [data-cat]").forEach((x) => x.classList.toggle("dourado", x === b)); listar();
+    });
+    $("#e-busca").oninput = listar;
+    function escolher(ev) {
+      const t = ev.currentTarget;
       const c = TIPOS_NOME()[t.dataset.tipo];
       e.tipo = c.tipo;
       // só o que o efeito precisa para existir vem preenchido; o resto aparece como exemplo apagadinho
       for (const f of c.campos) if (OBRIGATORIOS.has(f.campo) && c.exemplo[f.campo] !== undefined) e[f.campo] = c.exemplo[f.campo];
       sujar(); desenharTimeline(); desenharForm();
-    });
+    }
+    listar();
+    setTimeout(() => { const b = $("#e-busca"); if (b && window.innerWidth > 700) b.focus(); }, 30);
     $("#e-cancelar").onclick = () => { ed.efeitos.splice(ed.sel.i, 1); ed.sel = null; desenharTimeline(); desenharForm(); };
     return;
   }

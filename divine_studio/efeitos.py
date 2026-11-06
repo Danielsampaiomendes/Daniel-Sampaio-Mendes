@@ -1005,7 +1005,9 @@ def catalogo() -> list:
     for cod, e in (_cfg().get("codigos") or {}).items():
         if e.get("tipo"):
             cods.setdefault(e["tipo"], []).append(cod)
+    cat = {t: c for c, ts in (_cfg().get("categorias") or {}).items() for t in ts}
     return [{"tipo": t, "nome": NOMES.get(t, t), "codigos": cods.get(t, []), "duracao": DURACAO_PADRAO.get(t, 3.0),
+             "categoria": cat.get(t, "Outros"),
              "campos": [{"campo": c, "tipo": k, "rotulo": r} for c, k, r in CAMPOS.get(t, [])],
              "som": SONS_SUGERIDOS.get(t, ""),
              "exemplo": EXEMPLOS.get(t, _EXTRA_EXEMPLOS.get(t, {}))} for t in list(TIPOS) + list(QUADRO)]

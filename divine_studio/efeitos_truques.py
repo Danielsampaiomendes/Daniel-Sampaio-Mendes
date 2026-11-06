@@ -898,3 +898,16 @@ SONS = {"manchetes": "estalo_dedos", "zoom_atravessa": "whoosh_rapido", "tela_ve
         "quebra_moldura": "boom_grave", "rabisco": "scratch_disco", "adesivo": "estalo_dedos", "antes_depois": "whoosh_rapido",
         "recuo_revela": "drop_sub", "balao": "flash_brilho", "mural": "subida_tensao", "saiba_mais": "coracao",
         "ticket": "zap_suave", "seta_mao": "scratch_disco", "cartela_tempo": "boom_grave"}
+
+
+# ------------------------------------------------------------------ mais efeitos (efeitos_mais.py) no mesmo registro
+from . import efeitos_mais as _mais  # noqa: E402
+
+EFEITOS.update(_mais.EFEITOS)
+APELIDOS.update(_mais.APELIDOS)
+NOMES.update(_mais.NOMES)
+CAMPOS.update(_mais.CAMPOS)
+DURACAO.update(_mais.DURACAO)
+EXEMPLOS.update(_mais.EXEMPLOS)
+MOMENTO_AMOSTRA.update(_mais.MOMENTO_AMOSTRA)
+SONS.update(_mais.SONS)

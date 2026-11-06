@@ -65,3 +65,21 @@ recursos:
   pergunta: {tipo: pergunta, obs: "card 'Pergunta que mais recebemos' (C-H152)"}
   notificacao: {tipo: notificacao, obs: "card de notificação (H188)"}
   tweet: {tipo: tweet, obs: "card de tweet do Dr. Daniel (C-H176)"}
+
+# Categorias do seletor de efeitos (duplo clique na linha do tempo). O que não estiver aqui cai em "Outros".
+categorias:
+  "Texto na tela": [camadas, queda_letras, letra_a_letra, riscado, digitando, gancho_digitado, texto_atras, vidro,
+                    adesivo, palavras_caindo, card_titulo, frame_titulo, cartela_tempo, pausado, mensagem, chip]
+  "Câmera e 3D": [camera_elegante, zoom_digital, visor, cartao_3d, parallax, dolly_zoom, foco_lente, congelar, lupa,
+                  holofote, desfoque_fundo, recuo_revela]
+  "Transições e impacto": [zoom_batida, zoom_atravessa, chicote, flash, glitch_rgb, giro, tremor, zoom_blur, cortina,
+                           revelar_foco, rastro, pulso]
+  "Cor e filtros": [luz_dourada, cor_volta, filme, retro, ascii, pixel, vhs, projetor, notas_dinheiro, pasteis,
+                    conta_gotas, dupla_exposicao, brilhos, estudio_edicao]
+  "Papel e colagem": [manchetes, recorte_papel, rabisco, ticket, mural_titulos, capas_reels, negativo, capa_revista,
+                      grade_cards, mural, triptico]
+  "Apps e interface": [interface, barra_prompt, prompt, desinstalando, deletar_app, linha_tempo_edicao, celular, balao,
+                       notificacao, tweet, chat, pergunta, artigo, conquista, quebra_moldura]
+  "Dados e listas": [contador, grafico, grafico_linha, checklist, linha_tempo, circulo, antes_depois, insert_foto]
+  "Pessoa recortada": [tela_verde, orbita, fundo_pip]
+  "Final e CTA": [saiba_mais, seta_mao, pilula_link]

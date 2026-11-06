@@ -546,3 +546,6 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .peca .redes input { width: auto; }
 @media (max-width: 640px) { .rd-item { grid-template-columns: 44px 1fr; } .rd-acoes { grid-column: 1 / -1; } }
 .rd-acoes a { color: var(--dourado); }
+.e-busca { margin: 6px 0; }
+.cat-ef { flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.cat-ef button { font-size: 12px; padding: 4px 10px; }

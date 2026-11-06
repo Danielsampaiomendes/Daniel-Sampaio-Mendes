@@ -182,6 +182,12 @@ Cada mudança guarda o projeto anterior em `trabalho/` e refaz o storyboard. Efe
 
 Truques novos na linha do tempo: `manchetes`, `zoom_atravessa`, `vertigem`, `tela_verde`, `celular`, `visor`, `recorte_papel`, `interface`, `orbita`, `quebra_moldura`, `rabisco`, `adesivo`, `antes_depois` (só da edição), `profundidade`, `recuo_revela`, `balao`, `mural`, `saiba_mais`, `ticket`, `seta_mao`, `cartela_tempo`. Para recortar a pessoa (tela verde, órbita, recorte de papel), instale `pip3 install mediapipe`; sem ele o app usa uma elipse no centro.
 
+Mais efeitos (06/11/2026, `divine_studio/efeitos_mais.py`):
+- **Da referência "24 efeitos":** `ascii`, `capa_revista`, `grade_cards`, `desinstalando`, `deletar_app`, `retro`, `barra_prompt`, `notas_dinheiro`, `conta_gotas`, `palavras_caindo`, `pausado`, `grafico_linha`, `projetor`, `pixel`, `pasteis`, `negativo`, `linha_tempo_edicao`, `capas_reels`, `mural_titulos`, `conquista`, `estudio_edicao`, `pilula_link`, `card_titulo`.
+- **Em alta nos apps de edição:** `holofote`, `lupa`, `rastro`, `triptico`, `vhs`, `dupla_exposicao`, `brilhos`, `desfoque_fundo`.
+
+**Pôr efeito com um clique:** dois cliques na linha do tempo (no iPhone, segure o dedo) abrem o seletor naquele segundo. O seletor tem categorias (texto, câmera e 3D, transições, cor e filtros, papel e colagem, apps e interface, dados, pessoa recortada, final e CTA) e busca; as categorias ficam em `config/efeitos.yaml`.
+
 Carrossel: método 3C automático (capa até 12 palavras, "toca 2x na tela" no 4º card, convite para o link da bio no último).
 
 ## Templates (`template:` no projeto.yaml)
