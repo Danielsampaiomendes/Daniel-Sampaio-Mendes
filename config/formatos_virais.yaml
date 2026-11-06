@@ -1,0 +1,137 @@
+# Laboratório de formatos virais: cada Reels é um TESTE de formato. O app mede, compara e decide o próximo teste.
+# Base: skills divine-modelos-reels-seguidores e divine-metodo-lucureau (nov/2026), banco de hooks e Código Viral.
+# Prioridade atual: GANHAR SEGUIDORES. Compliance (CFM 2.336/2023, Anvisa RDC 96/2008) vale em todos.
+# ata: atracao (ser descoberto) | tecnico (ser seguido) | autoridade (ser escolhido)
+# sinais: palavras que ajudam a reconhecer o formato num vídeo de referência (legenda, texto na tela, fala).
+
+formatos:
+  alto_contraste:
+    nome: "Alto contraste"
+    ata: tecnico
+    descricao: "Problema x solução lado a lado (como a maioria faz x como funciona). A pessoa aprende na hora e segue para aprender mais."
+    estrutura: ["gancho: o erro que quase todo mundo comete", "lado ✗ (apagado)", "lado ✓ (dourado)", "por que funciona", "CTA: segue para aprender mais"]
+    ganchos: ["Prato de quem vive com fome x prato que segura a fome.", "O que você acha que é {dor} x o que pode estar por trás.", "{tema}: quem começou x quem já entende."]
+    edicao: {estilo_edicao: editorial, efeitos: [antes_depois, rabisco], layout: dividida}
+    cta: seguir
+    sinais: [" vs ", " x ", "versus", "certo e errado", "errado", "iniciante", "avançado", "a maioria", "contraste"]
+    observacao: "Contraste de hábitos e conceitos, NUNCA antes e depois de paciente nem promessa de resultado."
+
+  tutorial_pratico:
+    nome: "Tutorial prático"
+    ata: tecnico
+    descricao: "Do ponto A ao B em passos simples: a pessoa sente que recebeu muito valor."
+    estrutura: ["gancho com situação concreta + promessa visual", "passo 1", "passo 2", "passo 3 (o mais útil)", "CTA: salva e segue"]
+    ganchos: ["Como se preparar para a sua primeira sessão de {tema} em 3 passos.", "Faça isso antes de {tema} e me agradeça depois.", "O jeito certo de {acao} em 20 segundos."]
+    edicao: {estilo_edicao: prova, efeitos: [interface, adesivo]}
+    cta: salvar
+    sinais: ["como fazer", "passo a passo", "passos", "tutorial", "aprenda", "em 3", "em 20 segundos", "jeito certo"]
+
+  nega_obvio:
+    nome: "Nega o óbvio e revela"
+    ata: atracao
+    descricao: "Abre negando o óbvio ('não é X, Y nem Z', riscando na tela), promete o melhor por último e revela um por um."
+    estrutura: ["'não é X, nem Y, nem Z' (riscado)", "'o último é o mais potente'", "revela 1", "revela 2", "revela o último", "CTA seguir"]
+    ganchos: ["Não é a dieta, nem o treino, nem a genética.", "Se você acha que {dor} é só {obvio}, olha isso.", "O motivo número um quase ninguém fala."]
+    edicao: {estilo_edicao: papel, efeitos: [rabisco, manchetes]}
+    cta: seguir
+    sinais: ["não é", "nem", "ninguém fala", "o último", "mais potente", "segredo", "quase ninguém"]
+
+  erro_comum:
+    nome: "Erro comum (alerta)"
+    ata: atracao
+    descricao: "'Você provavelmente está fazendo X errado': viés da negatividade + correção rápida."
+    estrutura: ["alerta: o erro", "por que é erro (sem medo exagerado)", "o que fazer no lugar", "CTA: manda para quem faz isso"]
+    ganchos: ["Você provavelmente está fazendo isso errado no seu skincare.", "Jamais faça {acao} antes de {etapa}.", "Esse hábito pode estar atrapalhando a sua {objetivo}."]
+    edicao: {estilo_edicao: garrafal, efeitos: [adesivo, visor]}
+    cta: enviar
+    sinais: ["errado", "erro", "pare de", "nunca faça", "jamais", "cuidado", "atrapalha"]
+
+  mito_verdade:
+    nome: "Mito x verdade (formato gêmeo)"
+    ata: tecnico
+    descricao: "Dr. Daniel duas vezes no quadro (mito x verdade, paciente x médico). Diverte e ensina."
+    estrutura: ["personagem 1: o mito", "personagem 2: a verdade", "virada", "CTA seguir"]
+    ganchos: ["Mito ou verdade: {tema} {mito}?", "O que a paciente pensa x o que o médico vê.", "Isso que você ouviu sobre {tema} não é bem assim."]
+    edicao: {estilo_edicao: editorial, layout: dividida}
+    cta: seguir
+    sinais: ["mito", "verdade", "fake", "mentira", "é verdade que"]
+
+  pergunta_paciente:
+    nome: "Pergunta real de paciente"
+    ata: autoridade
+    descricao: "Print/caixinha com pergunta real (sem identificar) e a resposta direta do médico."
+    estrutura: ["print da pergunta (anônima)", "resposta curta", "o detalhe que muda tudo", "CTA: manda a sua pergunta"]
+    ganchos: ["Me perguntaram se {pergunta}. A resposta curta é: depende disso.", "A pergunta que mais chega no consultório.", "Respondendo a dúvida que você tem vergonha de perguntar."]
+    edicao: {estilo_edicao: prova, efeitos: [balao, celular]}
+    cta: comentar
+    sinais: ["me perguntaram", "pergunta", "dúvida", "respondendo", "caixinha", "vocês perguntaram"]
+
+  analogia_objeto:
+    nome: "Analogia com objeto"
+    ata: atracao
+    descricao: "Objetos na mesa como metáfora (copos, potes, frascos) para explicar algo difícil."
+    estrutura: ["objeto inesperado na mão", "a analogia", "o que isso significa para você", "CTA seguir"]
+    ganchos: ["Imagina que a sua pele é esse copo.", "Esse pote explica por que {dor}.", "Vou te explicar {tema} com um copo d'água."]
+    edicao: {estilo_edicao: telao, efeitos: [visor, profundidade]}
+    cta: seguir
+    sinais: ["imagina", "é como se", "analogia", "pense em", "copo", "explicar com"]
+
+  bastidor_processo:
+    nome: "Bastidor / processo"
+    ata: autoridade
+    descricao: "POV dentro da clínica: o processo e o cuidado (experiência, nunca resultado clínico)."
+    estrutura: ["POV: abertura com movimento", "detalhe que ninguém vê", "o cuidado por trás", "CTA: agende sua avaliação"]
+    ganchos: ["POV: você chegou na Divine para a sua avaliação.", "O que acontece antes do procedimento que ninguém mostra.", "Bastidor de um dia de {tema} na Divine."]
+    edicao: {estilo_edicao: neon, efeitos: [recuo_revela, celular]}
+    cta: agendar
+    sinais: ["pov", "bastidor", "por dentro", "um dia", "rotina", "processo", "como é feito"]
+
+  lista_monta:
+    nome: "Lista que se monta"
+    ata: tecnico
+    descricao: "N coisas sobre um tema, a lista se monta sem números e fica fixa para print. 'A última quase ninguém sabe'."
+    estrutura: ["promessa: N coisas", "item", "item", "item (o melhor por último)", "CTA: salva"]
+    ganchos: ["3 sinais de que {dor} não é só cansaço.", "O que eu faria nas primeiras 24h depois de {tema}.", "Coisas que eu só aprendi depois de anos de consultório."]
+    edicao: {estilo_edicao: glow, efeitos: [adesivo, orbita]}
+    cta: salvar
+    sinais: ["coisas", "sinais", "dicas", "motivos", "lista", "3 ", "5 "]
+
+  reacao:
+    nome: "Reação (tela dividida)"
+    ata: atracao
+    descricao: "Médico reagindo a um vídeo viral ou mito da internet, tela dividida ou cabecinha."
+    estrutura: ["o vídeo viral (crédito)", "pausa: 'calma'", "o que está certo e o que está errado", "CTA seguir"]
+    ganchos: ["Esse vídeo tem milhões de views e está errado.", "Médico reage: {tema} viral.", "Calma, antes de você tentar isso em casa."]
+    edicao: {template: react, layout: auto}
+    cta: seguir
+    sinais: ["reagindo", "react", "reage", "viral", "vi esse vídeo", "trend"]
+
+  historia_virada:
+    nome: "História com virada"
+    ata: autoridade
+    descricao: "Uma história real (sem identificar paciente) ou vulnerabilidade do médico, com virada no fim."
+    estrutura: ["começa no pico da emoção", "o contexto", "a virada", "a lição", "CTA seguir"]
+    ganchos: ["Eu errei nisso por anos no consultório.", "A paciente chegou dizendo que já tinha tentado de tudo.", "O dia em que eu mudei a forma de tratar {tema}."]
+    edicao: {estilo_edicao: editorial, efeitos: [cartela_tempo]}
+    cta: seguir
+    sinais: ["história", "chegou", "aconteceu", "eu errei", "o dia em que", "nunca vou esquecer"]
+
+  tendencia:
+    nome: "Tendência / áudio do momento (apoio)"
+    ata: atracao
+    descricao: "Trend do momento: pega views mas traz poucos seguidores. Só como apoio, nunca a estratégia."
+    estrutura: ["formato da trend", "virada Divine", "CTA leve"]
+    ganchos: ["Trend, mas com a Divine.", "Quando a paciente descobre que {tema}.", "Ninguém: / Eu na Divine:"]
+    edicao: {estilo_edicao: viral16}
+    cta: seguir
+    sinais: ["trend", "ninguém:", "quando você", "áudio", "meme"]
+    peso: 0.5          # vale metade no plano (pouco seguidor)
+
+# Como o laboratório decide
+lab:
+  janela_dias: 120                 # só aprende com o que foi postado nesse período
+  minimo_para_campeao: 3           # testes mínimos para chamar um formato de campeão
+  descartar_abaixo: 0.2            # taxa de vitória abaixo disso (com 4+ testes) = descartar por enquanto
+  peso_radar: 2.0                  # quanto o que está viralizando lá fora (Radar) empurra um formato
+  testes_por_semana: 5
+  explorar_minimo: 1               # pelo menos 1 formato pouco testado por semana

@@ -1,0 +1,30 @@
+# Automações (no estilo do Zapier): QUANDO acontece algo, o app FAZ algo sozinho, enquanto o painel está aberto no Mac.
+# Gatilhos (quando):
+#   video_novo        chegou vídeo na caixa de entrada (pasta ou Google Drive)
+#   projeto_novo      um projeto nasceu da caixa de entrada ou do Radar
+#   hora_de_postar    uma peça agendada, com "postar sozinho" ligado, chegou no horário
+#   postado           uma peça foi publicada (por você ou pelo app)
+#   depois_24h        24 horas depois de postada
+#   depois_7d         7 dias depois de postada
+#   toda_semana       uma vez por semana (dia e hora abaixo)
+# Ações (fazer):
+#   analisar_entrada  cria o projeto e a proposta viral de cada vídeo novo
+#   storyboard        gera o storyboard do projeto (nada é renderizado; você aprova)
+#   publicar          publica nas redes da peça (Instagram; TikTok vai como rascunho, ver tiktok.modo)
+#   puxar_metricas    busca as métricas do Instagram e do TikTok (alimenta o Laboratório)
+#   buscar_radar      roda o Radar viral pela API oficial
+#   webhook           manda os dados para uma URL (Zapier, Make, n8n, WhatsApp via automação sua)
+# Segurança: nada é publicado sem você ligar "postar sozinho" na peça, e o revisor (CFM/Anvisa) roda antes.
+
+regras:
+  - {nome: "Vídeo novo vira proposta viral", quando: video_novo, fazer: [analisar_entrada], ligado: true}
+  - {nome: "Proposta pronta gera storyboard", quando: projeto_novo, fazer: [storyboard], ligado: true}
+  - {nome: "Postar no horário agendado", quando: hora_de_postar, fazer: [publicar], ligado: true}
+  - {nome: "Métricas 24h depois", quando: depois_24h, fazer: [puxar_metricas], ligado: true}
+  - {nome: "Métricas 7 dias depois", quando: depois_7d, fazer: [puxar_metricas], ligado: true}
+  - {nome: "Radar toda segunda", quando: toda_semana, fazer: [buscar_radar], ligado: true}
+  - {nome: "Avisar no Zapier quando postar", quando: postado, fazer: [webhook], ligado: false,
+     url: ""}          # cole aqui a URL do "Catch Hook" do Zapier/Make
+
+toda_semana: {dia: segunda, hora: 7}
+intervalo_s: 60        # de quanto em quanto tempo o painel confere os gatilhos

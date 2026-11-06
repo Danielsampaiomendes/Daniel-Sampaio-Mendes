@@ -1,0 +1,13 @@
+# Caixa de entrada: solte vídeos do celular numa pasta (ou no Google Drive) e o app analisa sozinho.
+# Para cada vídeo novo: cria o projeto, monta a edição automática, põe um FORMATO VIRAL diferente em cada versão
+# (Laboratório), escreve a proposta (trabalho/proposta_viral.md) e gera o storyboard para você aprovar.
+# O vídeo original nunca é apagado nem movido: o app copia para bruto/.
+pastas:
+  - entrada                                  # pasta "entrada" na raiz do Divine Studio
+  - "~/Library/CloudStorage/GoogleDrive-*/Meu Drive/Divine Studio/Entrada"     # Google Drive para computador
+  - "~/Library/CloudStorage/GoogleDrive-*/My Drive/Divine Studio/Entrada"
+  - "~/Google Drive/Meu Drive/Divine Studio/Entrada"
+estavel_s: 60          # só pega o arquivo parado há 60 s (o Drive ainda pode estar baixando)
+template: divine       # template das edições que nascem da entrada
+storyboard: true       # já gera o storyboard depois de montar
+conta: dvmedicalspa    # perfil padrão (troque no projeto se for para o @drdanielmendess)

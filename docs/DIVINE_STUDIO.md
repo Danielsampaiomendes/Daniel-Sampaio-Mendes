@@ -129,6 +129,44 @@ Saída de cada projeto:
 - `relatorio.md`: hook, código do banco, fontes, SFX, duração, tamanho e a linha de compliance de cada versão
 - `trabalho/V1_quadros.jpg`: folha de contato para conferir rápido
 
+## Laboratório viral (aprender e testar formatos)
+
+Menu **🧪 Laboratório viral**. A ideia: cada Reels é um teste de formato; o app mede, compara e decide o próximo.
+
+- **Formatos** (`config/formatos_virais.yaml`): alto contraste, tutorial prático, nega o óbvio, erro comum, mito x verdade, pergunta de paciente, analogia com objeto, bastidor, lista que se monta, reação, história com virada e tendência (só apoio). Base: skills de modelos de Reels e método Lucureau.
+- **Testes da semana**: um formato por dia. O app equilibra o que já vence com o que ainda precisa ser testado (amostragem de Thompson) e explora pelo menos um formato novo por semana. "Criar este teste" abre o projeto já com o formato.
+- **Placar**: para cada formato e perfil, testes, vitórias (melhor que a mediana do próprio perfil), alcance, envios, salvos, retenção (tempo médio / duração) e seguidores. Alimentado pelas métricas do Instagram e do TikTok.
+- **Edição automática**: cada uma das 3 versões testa um formato diferente, com o estilo de edição do formato.
+- `python3 -m divine_studio lab [--conta drdanielmendess]` mostra o placar e o plano no terminal.
+
+### Radar viral
+
+O que está viralizando agora no nicho (`config/radar.yaml`). Três fontes:
+1. **API oficial do Instagram**: perfis de referência (método 5x3) e hashtags. Botão "Buscar pela API do Instagram" ou `python3 -m divine_studio radar buscar`. A busca por hashtag precisa do login pelo Facebook.
+2. **Claude no Chrome**: "Pesquisar com o Claude no Chrome" gera a missão (Instagram ou TikTok). Você cola na extensão, ele navega no seu navegador só olhando, e você cola a resposta em "Colar resultado".
+3. **Colar à mão**: links com números ("1,2 mi views", "35 mil curtidas").
+
+O app não roda robô no Instagram nem no TikTok: isso viola os termos e pode bloquear a conta. Cada item ganha o formato e "quantas vezes acima do normal do perfil". "Roteiro para a Divine" adapta o formato ao seu tema: ganchos, sequência de gravação, fala para o teleprompter, CTA e legenda. Com a IA ligada, quem escreve é o Claude; sem ela, o app usa o modelo do formato. Sempre passa pelo revisor. "Criar projeto" já sai com `roteiro.md`, a fala no teleprompter e os 3 ganchos nas versões.
+
+### Caixa de entrada (celular e Google Drive)
+
+Solte vídeos em `entrada/` (na pasta do app) ou em **Google Drive > Meu Drive > Divine Studio > Entrada** (com o Google Drive para computador instalado). Com o painel aberto, cada vídeo novo vira um projeto: edição automática, um formato viral por versão, proposta em `trabalho/proposta_viral.md` (com referências do Radar) e o storyboard para você aprovar. O original nunca é apagado nem movido. Pelo terminal: `python3 -m divine_studio entrada`.
+
+### Publicar nas redes e automações
+
+- **Instagram**: "🚀 Publicar agora" na Programação publica o Reels direto do arquivo do Mac (sem link público). Carrossel e foto ainda são publicação assistida.
+- **TikTok**: Laboratório viral > TikTok. Crie um app em developers.tiktok.com (Login Kit e Content Posting API), cadastre a URL de retorno `http://127.0.0.1:8765/tiktok/retorno`, cole a chave e o segredo e conecte. Por padrão, o vídeo vai como **rascunho**: chega no app do TikTok e você toca em Publicar. Apps sem auditoria do TikTok só publicam direto como "só eu". Métricas dos vídeos entram no placar.
+- **Agendar** (DD/MM HH:MM) e marcar **🤖 postar sozinho**. Com o painel aberto no Mac, a peça é publicada no horário.
+- **Travas** (`publicar.pode_publicar`): você ligou "postar sozinho" ou tocou em "Publicar agora"; não é uso interno, TV, prévia nem NAO-POSTAR; autorização de imagem resolvida; revisor de compliance sem erro; perfil conectado.
+- **Automações** (`config/automacoes.yaml`, no estilo do Zapier):
+  - vídeo novo vira proposta e depois storyboard
+  - postar no horário
+  - métricas 24 h e 7 dias depois
+  - Radar toda segunda
+  - webhook para o Zapier ou o Make (cole a URL do "Catch Hook")
+  
+  Liga e desliga no painel; o histórico mostra o que aconteceu.
+
 ## Storyboard (antes do render)
 
 `python3 -m divine_studio storyboard <pasta>` (ou o botão **▦ Storyboard** no projeto) monta a edição em quadros reais, por cena e momento, sem renderizar nada (segundos). Cada quadro é exatamente o que vai sair naquele instante. Responda na aba Storyboard ou com `--responder`:

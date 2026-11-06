@@ -1,0 +1,48 @@
+# Radar viral: o que está viralizando AGORA no nicho, para o Laboratório de formatos e para as copies.
+# Fontes, da mais segura para a mais manual:
+#  1. API oficial do Instagram (conta profissional conectada em Programação): perfis de referência e hashtags.
+#  2. Pesquisa com o Claude no Chrome: o app gera a missão, o Claude navega no SEU navegador enquanto você vê,
+#     e você cola o resultado no Radar. Só leitura e no ritmo de uma pessoa: nada de curtir, seguir ou comentar.
+#  3. Colar à mão (links e números) ou vindo do vidIQ / Higgsfield pelo chat do Claude.
+# O app NÃO roda robô no Instagram nem no TikTok sozinho: isso viola os termos e pode bloquear a conta.
+
+# Método 5x3: 5 perfis de referência do nicho x 3 vídeos virais = 15 roteiros para estudar.
+# Coloque aqui os @ (só contas profissionais aparecem pela API oficial).
+perfis_referencia: []
+#  - lucureau
+#  - outro_perfil_do_nicho
+
+hashtags:                       # a API oficial deixa consultar até 30 hashtags diferentes por semana
+  - harmonizacaofacial
+  - nutrologia
+  - esteticaavancada
+  - laserco2
+  - emagrecimentosaudavel
+  - skincare
+
+viral_a_partir_de: 2.0          # "viralizou" = engajamento pelo menos 2x a mediana do próprio perfil/hashtag
+manter_dias: 60                 # itens mais velhos saem do cálculo de "em alta" (o histórico fica guardado)
+max_por_busca: 30
+
+# O que a missão do Claude no Chrome pede (você pode editar o texto)
+missao:
+  instagram: |
+    Você vai pesquisar formatos de Reels que estão viralizando no nicho de {nicho}, só OLHANDO (não curta, não siga,
+    não comente, não mande mensagem). Navegue no ritmo de uma pessoa.
+    1. Abra instagram.com/explore e as hashtags: {hashtags}.
+    2. Abra também estes perfis de referência (se houver): {perfis}.
+    3. Escolha os 15 Reels com mais visualizações ou curtidas em relação ao normal do perfil (os que destoam).
+    4. Para cada um, anote: link, @ do perfil, visualizações, curtidas, comentários, duração aproximada, a primeira
+       frase falada ou escrita (o gancho), o texto na tela, o formato (ex.: alto contraste, tutorial, mito x verdade,
+       lista, POV/bastidor, reação, história, tendência) e por que você acha que prendeu a atenção.
+    5. Responda SÓ com um bloco JSON, uma lista de objetos com as chaves:
+       link, conta, views, curtidas, comentarios, duracao_s, gancho, texto_tela, formato, por_que
+  tiktok: |
+    Pesquise vídeos que estão viralizando no TikTok no nicho de {nicho}, só OLHANDO (não curta, não siga, não comente).
+    1. Abra tiktok.com e pesquise: {hashtags}. Veja também o TikTok Creative Center (tendências), se abrir.
+    2. Escolha os 15 vídeos com mais visualizações em relação ao normal do perfil.
+    3. Para cada um, anote: link, @ do perfil, visualizações, curtidas, comentários, compartilhamentos, duração
+       aproximada, gancho (primeira frase), texto na tela, formato e por que prendeu a atenção.
+    4. Responda SÓ com um bloco JSON (lista) com as chaves:
+       link, conta, views, curtidas, comentarios, compartilhamentos, duracao_s, gancho, texto_tela, formato, por_que
+nicho: "medicina estética, nutrologia e skincare de luxo em São Paulo"

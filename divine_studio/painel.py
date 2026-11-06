@@ -474,7 +474,7 @@ def _estilos_edicao() -> list:
     return estilos.lista()
 
 
-CAMPOS_EDITAVEIS = {"estilo_edicao", "efeitos_evitar", "titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
+CAMPOS_EDITAVEIS = {"estilo_edicao", "efeitos_evitar", "formato_viral", "titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
@@ -899,7 +899,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/storyboard.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/storyboard.js", "/lab.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/projetos":
@@ -990,6 +990,35 @@ class Painel(BaseHTTPRequestHandler):
                                    "codigo": Painel.codigo if self.client_address[0] in LOCAIS else None})
             if u.path == "/api/videos":
                 return self._json(videos())
+            if u.path == "/api/lab":
+                from . import entrada, lab, radar, tiktok
+                conta = q.get("conta") or None
+                return self._json({"placar": lab.placar(conta), "plano": lab.plano_semana(conta),
+                                   "radar": radar.em_alta()[:60], "missao_instagram": radar.missao("instagram"),
+                                   "missao_tiktok": radar.missao("tiktok"),
+                                   "entrada": {"pastas": [str(x) for x in entrada.pastas()],
+                                               "pendentes": [x.name for x in entrada.pendentes()],
+                                               "recentes": sorted(entrada._indice().values(), key=lambda x: x.get("em", ""),
+                                                                  reverse=True)[:15]},
+                                   "tiktok": tiktok.estado()})
+            if u.path == "/api/automacoes":
+                from . import automacoes
+                return self._json({"regras": automacoes.regras(), "historico": automacoes.historico()})
+            if u.path == "/api/tiktok/conectar":
+                from . import tiktok
+                return self._json({"link": tiktok.link_autorizacao()})
+            if u.path == "/tiktok/retorno":
+                from . import tiktok
+                try:
+                    if q.get("error"):
+                        raise SystemExit(q.get("error_description") or q["error"])
+                    tiktok.retorno(q.get("code", ""), q.get("state", ""))
+                    msg = "TikTok conectado. Pode fechar esta aba e voltar ao Divine Studio."
+                except SystemExit as e:
+                    msg = f"Não conectou: {e}"
+                return self._html(f"<meta charset='utf-8'><body style='font-family:sans-serif;background:#12110F;"
+                                  f"color:#F5F4F1;padding:40px'><h2>{msg}</h2><p><a style='color:#CCBD91' "
+                                  f"href='/#programacao'>Voltar ao Divine Studio</a></p></body>")
             if u.path == "/api/storyboard":
                 from . import storyboard
                 pasta = _pasta(q["p"])
@@ -1331,7 +1360,8 @@ class Painel(BaseHTTPRequestHandler):
                 from . import aprendizado
                 campos = {k: v for k, v in (dados.get("campos") or {}).items()
                           if k in ("status", "gostei", "nao_gostei", "data_agendada", "data_postagem", "rede", "link",
-                                   "metricas", "obs", "validado", "na_tv")}
+                                   "metricas", "obs", "validado", "na_tv", "auto_postar", "redes", "hora_agendada",
+                                   "link_tiktok", "formato_viral")}
                 if campos.get("status") and campos["status"] not in aprendizado.STATUS:
                     raise ValueError("status inválido")
                 pasta_pub = _pasta(dados["p"])
@@ -1348,6 +1378,43 @@ class Painel(BaseHTTPRequestHandler):
                     raise ValueError("caminho fora do projeto")
                 subprocess.run(["open", "-R", str(alvo)] if alvo.is_file() else ["open", str(alvo)], check=False)
                 return self._json({"ok": True})
+            if u.path == "/api/publicar":             # "Publicar agora" (você tocou): mesmas travas, menos o 'sozinho'
+                from . import publicar
+                motivos = publicar.pode_publicar(dados["p"], dados["versao"], manual=True)
+                if motivos:
+                    raise ValueError("Não dá para publicar: " + "; ".join(motivos))
+                return self._json(publicar.publicar(dados["p"], dados["versao"], manual=True))
+            if u.path == "/api/radar/colar":
+                from . import radar
+                return self._json(radar.importar_texto(dados.get("texto", ""), dados.get("fonte", "chrome")))
+            if u.path == "/api/radar/buscar":
+                from . import radar
+                return self._json(radar.buscar_instagram())
+            if u.path == "/api/radar/roteiro":
+                from . import radar
+                return self._json(radar.roteiro(dados["id"], dados.get("tema") or "Divine", dados.get("ia", True)))
+            if u.path == "/api/radar/projeto":
+                from . import radar
+                return self._json({"nome": radar.criar_projeto(dados["id"], dados.get("tema") or "Divine", dados.get("ia", True))})
+            if u.path == "/api/radar/marcar":
+                from . import radar
+                return self._json(radar.marcar(dados["id"], **{k: v for k, v in dados.items() if k in ("descartado", "nota")}))
+            if u.path == "/api/entrada/varrer":
+                from . import automacoes
+                rodou = automacoes.ciclo(iniciar=iniciar)
+                return self._json({"rodou": [{"regra": r, "acao": a, "alvo": al, "detalhe": d} for r, a, al, d in rodou]})
+            if u.path == "/api/automacoes/ligar":
+                from . import automacoes
+                automacoes.ligar(int(dados["indice"]), bool(dados["ligado"]))
+                return self._json({"ok": True})
+            if u.path == "/api/tiktok/app":
+                from . import tiktok
+                tiktok.salvar_app(dados["client_key"], dados["client_secret"])
+                return self._json(tiktok.estado())
+            if u.path == "/api/tiktok/desconectar":
+                from . import tiktok
+                tiktok.desconectar()
+                return self._json(tiktok.estado())
             if u.path == "/api/storyboard":           # resposta: "aprovado" ou "4B: troca o título por ..."
                 from . import storyboard
                 nome = dados["p"]
@@ -1382,6 +1449,15 @@ class Painel(BaseHTTPRequestHandler):
             return self._erro(str(e))
 
 
+def _iniciar_seguro(nome: str, acao: str) -> str:
+    """Para as automações: espera a tarefa do projeto terminar em vez de falhar."""
+    for _ in range(120):
+        if not _job_do_projeto(nome):
+            return iniciar(nome, acao)
+        time.sleep(5)
+    return "projeto ocupado"
+
+
 def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
     try:                                   # kit de sons virais (cria os que faltam, rápido)
         from .config import ROOT as _R, load as _L
@@ -1391,6 +1467,12 @@ def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
         print(f"  aviso: kit de sons virais não criado ({e})")
     PROJETOS.mkdir(exist_ok=True)
     Painel.codigo = codigo_celular() if celular else None
+    try:                                   # automações (caixa de entrada, postar no horário, métricas, radar)
+        from . import automacoes, entrada
+        entrada.garantir_pasta_local()
+        automacoes.iniciar_vigia(iniciar=lambda nome, acao: _iniciar_seguro(nome, acao))
+    except Exception as e:
+        print(f"  aviso: automações desligadas ({e})")
     srv = ThreadingHTTPServer(("0.0.0.0" if celular else "127.0.0.1", porta), Painel)
     url = f"http://127.0.0.1:{porta}"
     print(f"Painel do Divine Studio em {url}  (Ctrl+C para fechar)")

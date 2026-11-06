@@ -1,0 +1,23 @@
+# Publicação e métricas nas redes. Os endereços das APIs ficam aqui (se a rede mudar, troque aqui, não no código).
+# Tokens e chaves NUNCA ficam no repositório: ficam no Mac em ~/.divine_studio/ (instagram.json, tiktok.json).
+
+instagram:
+  versao_api: v21.0
+  # Reels sai direto do arquivo do Mac (upload "resumable", sem precisar de link público).
+  # Carrossel e foto pedem um link público da imagem: por enquanto, publicação assistida (o app separa os arquivos).
+  compartilhar_no_feed: true
+  esperar_processamento_s: 300     # quanto tempo espera o Instagram processar o vídeo antes de publicar
+  hora_padrao: "19:00"             # horário quando a peça é agendada só com a data
+
+tiktok:
+  # Crie um app em developers.tiktok.com (Login Kit + Content Posting API) e cadastre a URL de retorno abaixo.
+  # Chave e segredo do app: variáveis TIKTOK_CLIENT_KEY e TIKTOK_CLIENT_SECRET (ou no painel, ficam no Mac).
+  autorizar: "https://www.tiktok.com/v2/auth/authorize/"
+  token: "https://open.tiktokapis.com/v2/oauth/token/"
+  api: "https://open.tiktokapis.com/v2"
+  retorno: "http://127.0.0.1:8765/tiktok/retorno"      # cadastre exatamente esta URL no app do TikTok
+  escopos: [user.info.basic, user.info.stats, video.list, video.upload, video.publish]
+  # rascunho: o vídeo chega na caixa de entrada do app TikTok e você toca em Publicar (recomendado; não exige auditoria)
+  # direto: publica sozinho (apps sem auditoria do TikTok só conseguem publicar como "só eu")
+  modo: rascunho
+  privacidade_direto: SELF_ONLY

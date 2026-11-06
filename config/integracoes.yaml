@@ -34,3 +34,18 @@ ferramentas:
     como: "Instale o realesrgan-ncnn-vulkan; o app usa sozinho em Qualidade máxima."
     link: "https://github.com/xinntao/Real-ESRGAN"
     status: integrado
+  - nome: "Claude no Chrome"
+    para: "Pesquisar no Instagram e no TikTok os vídeos que estão viralizando no nicho, navegando no seu navegador."
+    como: "Laboratório viral > Pesquisar com o Claude no Chrome: copie a missão, cole na extensão e cole a resposta em Colar resultado."
+    link: "https://claude.ai/chrome"
+    status: integrado
+  - nome: "TikTok (Login Kit e Content Posting API)"
+    para: "Métricas dos vídeos e envio do vídeo pronto (rascunho no app ou publicação direta)."
+    como: "Laboratório viral > TikTok: crie o app em developers.tiktok.com, cole a chave e conecte."
+    link: "https://developers.tiktok.com/"
+    status: integrado
+  - nome: "Zapier / Make (webhook)"
+    para: "Levar eventos do app (peça postada, métricas) para outras ferramentas: planilha, WhatsApp, CRM."
+    como: "Cole a URL do Catch Hook em config/automacoes.yaml (regra 'Avisar no Zapier quando postar') e ligue no painel."
+    link: "https://zapier.com/"
+    status: integrado

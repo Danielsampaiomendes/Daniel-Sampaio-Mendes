@@ -522,3 +522,27 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 #sb-retorno p { margin: 4px 0; }
 #sb-retorno .ok, #sb-meta .ok { color: var(--dourado); }
 @media (max-width: 640px) { .sb-quadro, .sb-quadro img, .sb-vazio { width: 120px; } }
+
+/* ---------------------------------------------------------------- laboratório viral */
+.lab-plano { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.lab-dia { border: 1px solid var(--linha); border-radius: 12px; padding: 12px; background: var(--painel2); display: grid; gap: 4px; }
+.lab-dia .g { margin: 4px 0; color: var(--branco); font-style: italic; }
+.lab-dia p { margin: 0; }
+.lab-placar { overflow-x: auto; }
+.lab-placar table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lab-placar th, .lab-placar td { padding: 6px 8px; border-bottom: 1px solid var(--linha); text-align: left; white-space: nowrap; }
+.lab-placar tr.st-campeão td:first-child { color: var(--dourado); font-weight: 600; }
+.lab-placar tr.st-descartar td { color: var(--apagado); }
+.rd-lista { display: grid; gap: 8px; }
+.rd-item { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; align-items: center; border-bottom: 1px solid var(--linha); padding: 8px 0; }
+.rd-num { font-size: 20px; color: var(--dourado); font-weight: 600; text-align: center; }
+.rd-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.en-pastas { margin: 6px 0; padding-left: 18px; font-size: 12px; }
+.au-regras { display: grid; gap: 6px; }
+.au-hist { font-size: 12px; max-height: 220px; overflow: auto; padding-left: 18px; }
+#tt-estado input { margin: 4px 0; }
+.peca .redes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.peca .redes label { font-size: 12px; display: flex; gap: 4px; align-items: center; }
+.peca .redes input { width: auto; }
+@media (max-width: 640px) { .rd-item { grid-template-columns: 44px 1fr; } .rd-acoes { grid-column: 1 / -1; } }
+.rd-acoes a { color: var(--dourado); }

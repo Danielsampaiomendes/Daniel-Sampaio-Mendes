@@ -24,6 +24,7 @@
     <button data-tela="nova" class="m-nova"><i>＋</i>Nova edição</button>
     <button data-tela="projetos"><i>▤</i>Projetos</button>
     <button data-tela="galeria"><i>▶</i>Vídeos</button>
+    <button data-tela="lab"><i>🧪</i>Laboratório viral</button>
     <button data-tela="crescimento"><i>↗</i>Crescimento</button>
     <button data-tela="programacao"><i>◷</i>Programação</button>
     <button data-tela="ia"><i>✦</i>Ideias e IA</button>
@@ -96,6 +97,34 @@
           <label class="check"><input type="checkbox" id="gal-agrupar" checked> por projeto</label></div>
       </div>
       <div class="galeria" id="gal-grade"></div>
+    </section>
+
+    <section id="lab" class="tela" hidden>
+      <div class="cabecalho"><div><h1>Laboratório viral</h1>
+        <div class="pasta">Cada Reels é um teste de formato. O app vê o que viraliza lá fora (Radar), testa nos seus perfis, mede e decide o próximo teste.</div></div>
+        <div class="acoes"><select id="lab-conta"><option value="">Todos os perfis</option><option value="dvmedicalspa">@dvmedicalspa</option><option value="drdanielmendess">@drdanielmendess</option></select></div></div>
+
+      <div class="cartao"><div class="linha-titulo"><h2>Testes desta semana</h2><span class="dica">um formato por dia; o app equilibra o que vence com o que ainda precisa testar</span></div>
+        <div id="lab-plano" class="lab-plano"></div></div>
+
+      <div class="cartao"><div class="linha-titulo"><h2>Radar: o que está viralizando agora</h2>
+          <div class="acoes"><button id="rd-missao" class="dourado">✦ Pesquisar com o Claude no Chrome</button>
+            <button id="rd-colar">Colar resultado</button><button id="rd-buscar">↻ Buscar pela API do Instagram</button></div></div>
+        <p class="dica">O app não roda robô no Instagram nem no TikTok (pode bloquear a conta). Use a API oficial ou a missão para o Claude no Chrome: ele navega no seu navegador, só olhando, e você cola o resultado aqui.</p>
+        <div id="rd-lista" class="rd-lista"></div></div>
+
+      <div class="cartao"><h2>Placar dos formatos</h2><div id="lab-placar" class="lab-placar"></div>
+        <p class="dica">Vitória = a peça foi melhor que a mediana do próprio perfil (alcance, envios, salvos, retenção e seguidores). Marque as peças como postadas e conecte o Instagram e o TikTok para o placar se alimentar sozinho.</p></div>
+
+      <div class="grade">
+        <div class="cartao"><div class="linha-titulo"><h2>Caixa de entrada</h2><button id="en-varrer">↻ Verificar agora</button></div>
+          <p class="dica">Solte vídeos do celular numa destas pastas (o Google Drive para computador sincroniza sozinho). Cada vídeo vira um projeto com 3 versões, cada uma testando um formato viral, e o storyboard para você aprovar.</p>
+          <ul id="en-pastas" class="en-pastas"></ul><div id="en-recentes"></div></div>
+        <div class="cartao"><h2>TikTok</h2><div id="tt-estado"></div></div>
+      </div>
+
+      <div class="cartao"><h2>Automações</h2><p class="dica">Como no Zapier: quando acontece algo, o app faz sozinho (com o painel aberto no Mac). Nada é publicado sem você ligar "postar sozinho" na peça.</p>
+        <div id="au-regras" class="au-regras"></div><h3>O que aconteceu</h3><ul id="au-hist" class="au-hist"></ul></div>
     </section>
 
     <section id="crescimento" class="tela" hidden>
@@ -519,5 +548,6 @@
 <script src="/ia.js"></script>
 <script src="/biblioteca.js"></script>
 <script src="/storyboard.js"></script>
+<script src="/lab.js"></script>
 </body>
 </html>

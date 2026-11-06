@@ -425,6 +425,31 @@ def cmd_editar(a):
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
 
 
+def cmd_lab(a):
+    from . import lab
+    print("Placar dos formatos:")
+    for x in lab.placar(a.conta):
+        print(f"  {x['nome']:<38} {x['status']:<22} testes {x['testes']}  vitórias {x['vitorias']}  radar {x['radar']}")
+    print("\nTestes da semana:")
+    for x in lab.plano_semana(a.conta):
+        print(f"  {x['dia']:<8} {x['nome']:<38} {x['motivo']}\n           gancho: {x['gancho']}")
+
+
+def cmd_radar(a):
+    from . import radar
+    if a.acao == "missao":
+        print(radar.missao(a.rede))
+    elif a.acao == "buscar":
+        print(radar.buscar_instagram())
+    elif a.acao == "colar":
+        texto = Path(a.arquivo).read_text(encoding="utf-8") if a.arquivo else sys.stdin.read()
+        print(radar.importar_texto(texto))
+    else:
+        for i in radar.em_alta():
+            print(f"  {i.get('outlier') or '-':>5}x  {i.get('rede'):<9} @{i.get('conta', ''):<20} "
+                  f"{i.get('formato_viral') or '?':<18} {i.get('link', '')}")
+
+
 def cmd_storyboard(a):
     from . import storyboard
     pasta = ler_projeto(Path(a.projeto))["_pasta"]
@@ -736,6 +761,14 @@ def cmd_auto(a):
     fn = _transcritor(p["_pasta"]) if (motor_disponivel() or tem_cache) else None
     semente = sum(map(ord, p["_pasta"].name))
     novo = auto.montar(p, a.template, fn, semente)
+    try:                                   # cada versão testa um formato viral diferente (Laboratório)
+        from . import lab
+        from .instagram import conta_do_projeto
+        lab.aplicar_em_versoes(novo, conta_do_projeto(novo))
+        print("• Formatos em teste: " + ", ".join(f"{v['nome']} {lab.nome(v.get('formato_viral'))}"
+                                                   for v in novo.get("versoes") or []))
+    except Exception as e:
+        print(f"  aviso: laboratório de formatos indisponível ({e})")
     chave, _ = auto.tema(novo.get("titulo", ""))
     arq = auto.salvar(p, novo)
     print(f"• Tema reconhecido: {chave} · template {novo['template']} · {len(novo['clipes'])} clipe(s) · "
@@ -863,6 +896,17 @@ def main(argv=None):
     s.add_argument("--forcar", action="store_true")
     s.add_argument("--sem-ia", action="store_true")
     s.set_defaults(f=cmd_storyboard, rapido=False, teste=True, storyboard=True)
+    s = sub.add_parser("entrada", help="analisa os vídeos novos da caixa de entrada (pasta ou Google Drive)")
+    s.add_argument("--conta", help="perfil (dvmedicalspa ou drdanielmendess)")
+    s.set_defaults(f=lambda a: __import__("divine_studio.entrada", fromlist=["varrer"]).varrer(a.conta))
+    s = sub.add_parser("lab", help="laboratório de formatos: placar e plano de testes da semana")
+    s.add_argument("--conta")
+    s.set_defaults(f=cmd_lab)
+    s = sub.add_parser("radar", help="radar viral: buscar (API oficial), missão do Claude no Chrome ou colar resultado")
+    s.add_argument("acao", choices=["buscar", "missao", "colar", "listar"])
+    s.add_argument("--rede", default="instagram")
+    s.add_argument("--arquivo", help="arquivo com o resultado colado (para 'colar')")
+    s.set_defaults(f=cmd_radar)
     s = sub.add_parser("transcrever", help="transcreve a fala dos clipes (tempo por palavra)")
     s.add_argument("projeto")
     s.add_argument("--motor", choices=["auto", "assemblyai", "faster_whisper", "whisper"])

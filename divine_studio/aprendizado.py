@@ -55,6 +55,8 @@ def caracteristicas(projeto: dict, versao: str, resultado: dict | None = None) -
         "duracao": round(dur) if dur else None, "objetivo": projeto.get("objetivo"),
         "formula": projeto.get("formula"), "estilo": projeto.get("estilo"),
         "legendas": bool(projeto.get("legendas")), "tema": projeto.get("tema") or projeto.get("titulo"),
+        "formato_viral": v.get("formato_viral") or projeto.get("formato_viral"),
+        "estilo_edicao": v.get("estilo_edicao") or projeto.get("estilo_edicao"),
     }.items() if x not in (None, [], "")}
 
 

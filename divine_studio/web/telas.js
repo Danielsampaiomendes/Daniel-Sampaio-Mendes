@@ -1,9 +1,9 @@
 // Telas do topo: Projetos, Programação, IA e ideias, Referências, Biblioteca.
-const TELAS = ["inicio", "nova", "projetos", "galeria", "crescimento", "programacao", "ia", "referencias", "biblioteca"];
+const TELAS = ["inicio", "nova", "projetos", "galeria", "lab", "crescimento", "programacao", "ia", "referencias", "biblioteca"];
 
 function mostrarTela(nome) {
   $$(".topo nav button").forEach((b) => b.classList.toggle("ativa", b.dataset.tela === nome));
-  const secoes = { inicio: "#vazio", nova: "#nova", galeria: "#galeria", crescimento: "#crescimento", programacao: "#programacao", ia: "#ia",
+  const secoes = { inicio: "#vazio", nova: "#nova", galeria: "#galeria", lab: "#lab", crescimento: "#crescimento", programacao: "#programacao", ia: "#ia",
                    referencias: "#referencias", biblioteca: "#biblioteca" };
   ["#escolha", "#projeto", "#carrossel", "#antesdepois", ...Object.values(secoes)].forEach((s) => { const el = $(s); if (el) el.hidden = true; });
   document.body.classList.toggle("com-lista", nome === "projetos");
@@ -14,7 +14,7 @@ function mostrarTela(nome) {
   }
   window.scrollTo(0, 0);
   const el = $(secoes[nome]); if (el) el.hidden = false;
-  const carregar = { inicio: carregarInicio, nova: montarNovaEdicao, crescimento: () => window.carregarCrescimento(), galeria: window.carregarGaleria, programacao: carregarProgramacao, ia: window.carregarIA, referencias: window.carregarReferencias,
+  const carregar = { inicio: carregarInicio, nova: montarNovaEdicao, lab: () => window.carregarLab(), crescimento: () => window.carregarCrescimento(), galeria: window.carregarGaleria, programacao: carregarProgramacao, ia: window.carregarIA, referencias: window.carregarReferencias,
                      biblioteca: window.carregarBiblioteca }[nome];
   if (carregar) carregar();
 }
@@ -65,7 +65,11 @@ async function carregarProgramacao() {
         ${id === "postado" ? `<div class="metricas" title="Métricas do Instagram (o app aprende com elas)">
           ${[["alcance", "alcance"], ["curtidas", "curtidas"], ["comentarios", "coment."], ["compartilhamentos", "envios"], ["salvamentos", "salvos"], ["views", "views"]]
             .map(([k, r]) => `<input type="number" min="0" data-m="${k}" placeholder="${r}" value="${m[k] ?? ""}">`).join("")}</div>` : ""}
-        <div class="pub">${id === "aprovado" || id === "agendado" ? '<button class="pb" data-a="postei">✓ Postei</button>' : ""}
+        ${id === "aprovado" || id === "agendado" ? `<div class="redes">
+          <label><input type="checkbox" data-rede="instagram" ${(p.redes || ["instagram"]).includes("instagram") ? "checked" : ""}> Instagram</label>
+          <label><input type="checkbox" data-rede="tiktok" ${(p.redes || []).includes("tiktok") ? "checked" : ""}> TikTok</label>
+          ${id === "agendado" ? `<label title="Publica sozinho no horário (o revisor roda antes)"><input type="checkbox" data-auto ${p.auto_postar ? "checked" : ""}> 🤖 postar sozinho${p.hora_agendada ? " às " + esc(p.hora_agendada) : ""}</label>` : ""}</div>` : ""}
+        <div class="pub">${id === "aprovado" || id === "agendado" ? '<button class="pb" data-a="publicar">🚀 Publicar agora</button><button class="pb" data-a="postei">✓ Postei</button>' : ""}
           ${id === "aprovado" ? '<button class="pb" data-a="agendar">📅 Agendar</button>' : ""}
           ${p.arquivo ? '<button class="pb" data-a="salvar">⤓ Salvar</button>' : ""}
           ${p.entrega ? '<button class="pb" data-a="pasta">Pasta</button>' : ""}
@@ -79,6 +83,16 @@ async function carregarProgramacao() {
     const el = inp.closest(".peca");
     await api("/api/publicacao", { p: el.dataset.p, versao: el.dataset.v, campos: { metricas: { [inp.dataset.m]: Number(inp.value) || 0 } } });
   });
+  $$(".peca [data-rede]").forEach((c) => c.onchange = async () => {
+    const el = c.closest(".peca");
+    const redes = [...el.querySelectorAll("[data-rede]")].filter((x) => x.checked).map((x) => x.dataset.rede);
+    await api("/api/publicacao", { p: el.dataset.p, versao: el.dataset.v, campos: { redes } });
+  });
+  $$(".peca [data-auto]").forEach((c) => c.onchange = async () => {
+    const el = c.closest(".peca");
+    await api("/api/publicacao", { p: el.dataset.p, versao: el.dataset.v, campos: { auto_postar: c.checked } });
+    aviso(c.checked ? "Vai postar sozinho no horário, se passar no revisor." : "Postagem automática desligada.");
+  });
   $$(".peca [data-a]").forEach((b) => b.onclick = async () => {
     const el = b.closest(".peca"), p = pecaDe(el);
     if (b.dataset.a === "salvar") return salvarNaGaleria(`/arquivo?p=${encodeURIComponent(p.projeto)}&f=${encodeURIComponent(p.arquivo)}`, p.arquivo.split("/").pop());
@@ -90,14 +104,27 @@ async function carregarProgramacao() {
       return;
     }
     if (b.dataset.a === "pasta") return api("/api/abrir_pasta", { caminho: p.entrega }).catch((e) => alert(e.message));
+    if (b.dataset.a === "publicar") {
+      const redes = (p.redes || ["instagram"]).join(" e ");
+      if (!confirm(`Publicar agora no ${redes}?\n${p.titulo} · ${p.versao}\nO revisor de compliance roda antes.`)) return;
+      b.disabled = true; b.textContent = "Publicando…";
+      try {
+        const r = await api("/api/publicar", { p: p.projeto, versao: p.versao });
+        alert(Object.entries(r).map(([k, v]) => `${k}: ${v}`).join("\n"));
+      } catch (err) { alert(err.message); }
+      return carregarProgramacao();
+    }
     let campos;
     if (b.dataset.a === "postei") {
       const link = prompt("Link do post (opcional):", ""); if (link === null) return;
       campos = { status: "postado", link: link || undefined };
     } else {
-      const d = prompt("Data da postagem (DD/MM):", ""); if (!d) return;
-      const [dia, mes, ano] = d.split("/");
+      const d = prompt("Data e hora da postagem (DD/MM HH:MM; sem hora = 19:00):", ""); if (!d) return;
+      const [data, hora] = d.trim().split(/\s+/);
+      const [dia, mes, ano] = data.split("/");
       campos = { status: "agendado", data_agendada: `${ano || new Date().getFullYear()}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}` };
+      if (hora && /^\d{1,2}:\d{2}$/.test(hora)) campos.hora_agendada = hora.padStart(5, "0");
+      campos.auto_postar = confirm("Postar sozinho nesse horário? (o app publica com o painel aberto no Mac; o revisor roda antes)");
     }
     await api("/api/publicacao", { p: p.projeto, versao: p.versao, campos });
     carregarProgramacao();
