@@ -186,6 +186,19 @@ Mais efeitos (06/11/2026, `divine_studio/efeitos_mais.py`):
 - **Da referência "24 efeitos":** `ascii`, `capa_revista`, `grade_cards`, `desinstalando`, `deletar_app`, `retro`, `barra_prompt`, `notas_dinheiro`, `conta_gotas`, `palavras_caindo`, `pausado`, `grafico_linha`, `projetor`, `pixel`, `pasteis`, `negativo`, `linha_tempo_edicao`, `capas_reels`, `mural_titulos`, `conquista`, `estudio_edicao`, `pilula_link`, `card_titulo`.
 - **Em alta nos apps de edição:** `holofote`, `lupa`, `rastro`, `triptico`, `vhs`, `dupla_exposicao`, `brilhos`, `desfoque_fundo`.
 
+**Linha do tempo estilo CapCut** (aba Edição):
+- O vídeo fica em cima, com uma agulha branca fixa no meio.
+- Arrastar a linha do tempo percorre o vídeo; enquanto toca, ela anda sozinha.
+- Zoom com − / +, ⤢ para ver tudo, ou pinça no trackpad.
+- Faixas separadas:
+  - **Vídeo:** tira de miniaturas e clipes; toque para aparar, dividir, velocidade e transição.
+  - **Texto:** o hook e as mensagens.
+  - **Legendas:** a fala em blocos; toque para corrigir o texto, e a correção vale para o vídeo inteiro.
+  - **Efeitos:** os seus e os automáticos (tracejados).
+  - **Áudio:** sons e voz.
+- Dois cliques numa faixa (no iPhone, segure o dedo) põem ali um item daquela faixa.
+- Barra de ferramentas embaixo: Dividir, Efeitos, Texto, Legendas, Áudio, Voz, Filtros e Quadro.
+
 **Pôr efeito com um clique:** dois cliques na linha do tempo (no iPhone, segure o dedo) abrem o seletor naquele segundo. O seletor tem categorias (texto, câmera e 3D, transições, cor e filtros, papel e colagem, apps e interface, dados, pessoa recortada, final e CTA) e busca; as categorias ficam em `config/efeitos.yaml`.
 
 Carrossel: método 3C automático (capa até 12 palavras, "toca 2x na tela" no 4º card, convite para o link da bio no último).

@@ -474,7 +474,7 @@ def _estilos_edicao() -> list:
     return estilos.lista()
 
 
-CAMPOS_EDITAVEIS = {"estilo_edicao", "efeitos_evitar", "formato_viral", "titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
+CAMPOS_EDITAVEIS = {"correcoes", "estilo_edicao", "efeitos_evitar", "formato_viral", "titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
@@ -511,6 +511,7 @@ def dados_projeto(nome: str) -> dict:
             pass
     ed = load("edicao")
     return {"projeto": d, "referencia": f"saida/{previas[0].name}" if previas else None, "duracao_base": dur,
+            "legendas_blocos": _blocos_legenda(pasta, d), "legendas_ligadas": bool(d.get("legendas")),
             "clipes_info": clipes, "linhas": linhas, "atencao": _atencao_v1(pasta),
             "filtros": {k: v["nome"] for k, v in (ed.get("filtros") or {}).items()},
             "transicoes": {k: v["nome"] for k, v in (ed.get("transicoes") or {}).items()},
@@ -518,6 +519,40 @@ def dados_projeto(nome: str) -> dict:
             "corte_limpo": bool(d.get("corte_limpo")),
             "fechamento_s": float(load("preferencias")["fechamento"]["duracao_s"]),
             "intervalo_efeitos": float(load("efeitos").get("intervalo_minimo_s", 1.5))}
+
+
+def _blocos_legenda(pasta: Path, d: dict) -> list:
+    """Blocos da legenda da fala (como saem no vídeo) para a faixa Legendas do editor."""
+    arq = pasta / "trabalho" / "fala_base.json"
+    if not arq.exists():
+        return []
+    try:
+        from .legendas import aplicar_correcoes, blocos, _cfg as cfg_leg
+        pal = aplicar_correcoes(json.loads(arq.read_text(encoding="utf-8")), d.get("correcoes"))
+        c = cfg_leg(d)
+        gs = blocos(pal, int(c.get("max_palavras", 4)), int(c.get("max_caracteres", 24)), float(c.get("pausa_quebra_s", 0.35)))
+        return [{"inicio": round(g[0]["inicio"], 2), "fim": round(g[-1]["fim"], 2),
+                 "texto": " ".join(w["texto"] for w in g)} for g in gs if g]
+    except Exception:
+        return []
+
+
+def tira_miniaturas(nome: str, rel: str, n: int = 24, altura: int = 96) -> Path:
+    """Tira de miniaturas do vídeo (uma imagem com n quadros lado a lado) para a faixa de vídeo do editor."""
+    import hashlib
+    pasta = _pasta(nome)
+    video = _arquivo_do_projeto(pasta, rel)
+    chave = hashlib.sha1(f"{rel}|{video.stat().st_mtime}|{n}|{altura}".encode()).hexdigest()[:12]
+    saida = pasta / "trabalho" / f"tira_{chave}.jpg"
+    if not saida.exists():
+        saida.parent.mkdir(exist_ok=True)
+        dur = max(0.5, _duracao_arquivo(video) or 1.0)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-vf",
+                        f"fps={n / dur},scale=-2:{altura},tile={n}x1", "-frames:v", "1", "-q:v", "5", str(saida)],
+                       check=False, timeout=120)
+    if not saida.exists():
+        raise ValueError("não consegui fazer as miniaturas do vídeo")
+    return saida
 
 
 def _atencao_v1(pasta: Path) -> dict:
@@ -1060,6 +1095,8 @@ class Painel(BaseHTTPRequestHandler):
                                    for h in sortear(int(q.get("n", 3)), tema=q.get("tema"))])
             if u.path == "/arquivo":
                 return self._arquivo(_arquivo_do_projeto(_pasta(q["p"]), q["f"]))
+            if u.path == "/api/tira":
+                return self._arquivo(tira_miniaturas(q["p"], q["f"], int(q.get("n", 24))))
             return self._erro("não encontrado", 404)
         except (ValueError, KeyError) as e:
             return self._erro(str(e))

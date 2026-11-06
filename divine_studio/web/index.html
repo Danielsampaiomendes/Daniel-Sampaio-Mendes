@@ -416,29 +416,52 @@
           <h2>Linha do tempo</h2>
           <p class="dica" id="tl-dica">Dê dois cliques na linha do tempo (no iPhone, segure o dedo) para pôr um efeito ali, ou pause e clique em <b>+ Efeito aqui</b> ou <b>+ Mensagem aqui</b>.
             Arraste as marcas para mudar o momento.</p>
-          <div class="tl-grade">
-            <div class="tl-video"><video id="tl-video" controls playsinline preload="metadata"></video>
-              <div id="tl-mira" class="tl-mira" hidden></div></div>
-            <div class="tl-lado">
-              <div class="tl-botoes">
-                <button id="tl-add-efeito" class="dourado">+ Efeito aqui</button>
-                <button id="tl-add-msg">+ Mensagem aqui</button>
-                <button id="tl-add-som">♪ Som aqui</button>
-                <button id="tl-gravar">🎙 Gravar voz aqui</button>
-                <button id="tl-dividir" title="Divide o clipe no ponto do vídeo (como no CapCut)">✂ Dividir aqui</button>
-                <button id="tl-quadro" title="Tira o quadro deste ponto para Higgsfield, Canva ou Nano Banana">📸 Quadro</button>
-              </div>
-              <div id="tl-auto-info" class="tl-auto-info" hidden></div>
-              <label class="check"><input type="checkbox" id="tl-sfx-auto" checked> sons automáticos (abertura, transições, fechamento)</label>
-              <div id="tl-form" class="tl-form"></div>
+          <div class="cc">
+            <div class="cc-preview"><div class="tl-video"><video id="tl-video" playsinline preload="metadata"></video>
+              <div id="tl-mira" class="tl-mira" hidden></div><button id="cc-play-grande" class="cc-play-grande" title="Tocar">▶</button></div></div>
+            <div class="cc-controles">
+              <span id="cc-tempo" class="cc-tempo">00:00 / 00:00</span>
+              <button id="cc-play" class="cc-play" title="Tocar ou pausar (espaço)">▶</button>
+              <div class="cc-zoom"><button id="cc-menos" title="Afastar (ver o vídeo inteiro)">−</button><button id="cc-ajustar" title="Caber o vídeo inteiro">⤢</button><button id="cc-mais" title="Aproximar">+</button></div>
             </div>
+            <div class="cc-trilhas" id="cc-trilhas">
+              <div class="cc-rotulos">
+                <div class="r-regua"></div>
+                <div class="r-video" title="Clipes do vídeo">▶<span>Vídeo</span></div>
+                <div class="r-texto" title="Hook e mensagens">T<span>Texto</span></div>
+                <div class="r-legendas" title="Legenda da fala">≡<span>Legendas</span></div>
+                <div class="r-efeitos" title="Efeitos">✦<span>Efeitos</span></div>
+                <div class="r-audio" title="Sons, voz e trilha">♪<span>Áudio</span></div>
+              </div>
+              <div class="cc-rolagem" id="cc-rolagem">
+                <div class="cc-pad" id="cc-pad">
+                  <div id="tl-barra" class="tl-barra cc-faixas">
+                    <div class="cc-faixa regua" id="cc-regua"></div>
+                    <div class="cc-faixa video"><div id="tl-clipes" class="tl-clipes"></div></div>
+                    <div class="cc-faixa texto" data-faixa="texto"></div>
+                    <div class="cc-faixa legendas" data-faixa="legendas"></div>
+                    <div class="cc-faixa efeitos" data-faixa="efeitos"></div>
+                    <div class="cc-faixa audio" data-faixa="audio"></div>
+                    <div id="tl-cursor" class="tl-cursor" hidden></div>
+                  </div>
+                </div>
+              </div>
+              <div class="cc-agulha"></div>
+            </div>
+            <div id="tl-auto-info" class="tl-auto-info" hidden></div>
+            <div class="cc-ferramentas">
+              <button id="tl-dividir" title="Divide o clipe na agulha (S)"><i>✂</i>Dividir</button>
+              <button id="tl-add-efeito"><i>✦</i>Efeitos</button>
+              <button id="tl-add-msg"><i>T</i>Texto</button>
+              <button id="cc-legendas"><i>≡</i>Legendas</button>
+              <button id="tl-add-som"><i>♪</i>Áudio</button>
+              <button id="tl-gravar"><i>🎙</i>Voz</button>
+              <button id="cc-filtros"><i>◐</i>Filtros</button>
+              <button id="tl-quadro" title="Tira o quadro deste ponto para Higgsfield, Canva ou Nano Banana"><i>📸</i>Quadro</button>
+            </div>
+            <label class="check cc-sfx"><input type="checkbox" id="tl-sfx-auto" checked> sons automáticos (abertura, transições, fechamento)</label>
+            <div id="tl-form" class="tl-form"></div>
           </div>
-          <div class="tl-rotulo">Clipes</div>
-          <div id="tl-clipes" class="tl-clipes"></div>
-          <div class="tl-rotulo">Efeitos, textos e sons</div>
-          <div id="tl-barra" class="tl-barra"><div id="tl-cursor" class="tl-cursor"></div></div>
-          <div class="tl-legenda"><span class="m-clip">clipe</span><span class="m-auto">automático (toque para editar)</span><span class="m-risco">risco de queda</span><span class="m-ef">efeito</span><span class="m-msg">mensagem</span><span class="m-som">som</span><span class="m-voz">sua voz</span>
-            <span class="m-hook">hook</span><span class="m-fech">fechamento</span></div>
         </div>
 
         <div class="grade">

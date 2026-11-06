@@ -290,6 +290,7 @@ def cmd_editar(a):
                 p["_fala"] += [{**w, "inicio": round(w["inicio"] + off, 3), "fim": round(w["fim"] + off, 3)}
                                for w in transcrever_fn(resolver(p, d["arquivo"]))]
             p["_fala"].sort(key=lambda w: w["inicio"])
+            (trabalho / "fala_base.json").write_text(json.dumps(p["_fala"], ensure_ascii=False), encoding="utf-8")
         except SystemExit as e:
             # legenda da fala e mensagens na fala são opcionais: segue sem elas (o corte limpo já teria parado antes)
             print(f"  aviso: sem a fala transcrita, a legenda da fala e o na_fala ficam de fora.\n  {e}")

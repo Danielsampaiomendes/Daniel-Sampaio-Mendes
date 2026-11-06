@@ -28,6 +28,8 @@ async function carregarEditor() {
   ed.clipes = JSON.parse(JSON.stringify(d.projeto.clipes || []));
   ed.clipesInfo = d.clipes_info || []; ed.linhas = d.linhas || {}; ed.corteLimpo = d.corte_limpo;
   ed.atencao = d.atencao || {};
+  ed.legendas = d.legendas_blocos || []; ed.legLigadas = d.legendas_ligadas; ed.correcoes = { ...(d.projeto.correcoes || {}) };
+  ed.ref = d.referencia;
   ed.cfg = { filtros: d.filtros || {}, transicoes: d.transicoes || {}, velocidades: d.velocidades || [1] };
   ed.cor = { ...(d.projeto.cor || {}) };
   ed.audio = { ...(d.projeto.audio || {}) }; ed.licenca = !!d.projeto.musica_licenciada;
@@ -38,14 +40,16 @@ async function carregarEditor() {
   const v = $("#tl-video");
   if (d.referencia) {
     v.src = `/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(d.referencia)}`;
-    $("#tl-dica").innerHTML = "Dê play, pause no ponto e use <b>+ Efeito</b>, <b>+ Mensagem</b>, <b>♪ Som</b> ou <b>✂ Dividir</b>. Arraste as marcas para mudar o momento. " +
-      "<span class='atalhos-tec'>Atalhos: espaço toca/pausa · ← → quadro a quadro · S divide · Delete remove · ⌘S salva</span>";
+    $("#tl-dica").innerHTML = "Arraste a linha do tempo para percorrer o vídeo: a agulha branca no meio é o ponto atual. Dois cliques numa faixa (no iPhone, segure o dedo) põem efeito, texto ou som ali; arraste as marcas para mudar o momento. " +
+      "<span class='atalhos-tec'>Atalhos: espaço toca/pausa · ← → quadro a quadro · S divide · Delete remove · ⌘S salva · + − zoom</span>";
   } else {
     v.removeAttribute("src"); v.load();
     $("#tl-dica").innerHTML = "Gere as prévias uma vez (ou a <b>edição automática</b>) para ver o vídeo aqui. Dá para adicionar efeitos digitando o segundo.";
   }
   ed.base = d.duracao_base || 0;
   ed.total = ed.base ? ed.base + ed.fechS : 30;
+  ed.pps = 0;                                   // zoom inicial: cerca de 10 s na largura da tela
+  ed.tiraN = 0;
   $("#ed-selo").value = d.projeto.selo || "";
   const cta = d.projeto.cta_antecipado;
   $("#ed-cta").value = typeof cta === "string" ? cta : (cta && cta.texto) || "";
@@ -58,7 +62,10 @@ async function carregarEditor() {
 
 // ---------------------------------------------------------------- linha do tempo
 
-const px = () => $("#tl-barra").clientWidth / Math.max(1, ed.total);
+const px = () => ed.pps || 60;
+const FAIXA = { ef: "efeitos", "ef auto": "efeitos", msg: "texto", som: "audio", "som auto": "audio", voz: "audio" };
+const faixa = (tipo) => $(`#tl-barra [data-faixa="${FAIXA[tipo] || "efeitos"}"]`);
+const mmss = (t) => { t = Math.max(0, t || 0); return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(Math.floor(t % 60)).padStart(2, "0")}`; };
 
 function duracaoEf(e) { return Number(e.duracao) || (TIPOS_NOME()[e.tipo] || {}).duracao || 3; }
 
@@ -93,7 +100,7 @@ function desenharClipes() {
   if (!caixa) return;
   if (ed.corteLimpo) { caixa.innerHTML = '<div class="dica">Corte limpo ligado: os clipes são cortados pela fala. Para aparar à mão, desligue o corte limpo na aba Projeto.</div>'; return; }
   const pos = posicoesClipes(), total = pos.length ? pos[pos.length - 1][0] + pos[pos.length - 1][1] : 1;
-  const k = $("#tl-barra").clientWidth / Math.max(total, ed.base || total);
+  const k = px();
   caixa.innerHTML = ed.clipes.map((c, i) => {
     const [a, d] = pos[i], nomeArq = String(c.arquivo || "").split("/").pop();
     const tags = [Number(c.velocidade || 1) !== 1 ? c.velocidade + "x" : "", c.reverso ? "⟲" : "", c.velocity ? "⚡velocity" : "", c.mudo ? "🔇" : "",
@@ -120,8 +127,74 @@ $("#tl-dividir").onclick = () => {
   ed.sel = { tipo: "clip", i: i + 1 }; sujar(); desenharTimeline(); desenharForm();
 };
 
+function ajustarEscala() {
+  const w = $("#cc-rolagem").clientWidth || 600;
+  if (!ed.pps) ed.pps = Math.max(24, Math.min(160, w / Math.min(ed.total || 10, 10)));
+  $("#cc-pad").style.paddingLeft = $("#cc-pad").style.paddingRight = (w / 2) + "px";
+  $("#tl-barra").style.width = Math.max(1, ed.total * px()) + "px";
+  // tira de miniaturas: um quadro a cada ~32 px (proporção do vídeo vertical na altura da faixa)
+  const n = Math.max(8, Math.min(160, Math.round(ed.total * px() / 32 / 8) * 8));
+  if (ed.ref && n !== ed.tiraN) {
+    ed.tiraN = n;
+    $("#tl-clipes").style.backgroundImage = `url("/api/tira?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(ed.ref)}&n=${n}")`;
+  }
+  if (!ed.ref) $("#tl-clipes").style.backgroundImage = "";
+}
+function desenharRegua() {
+  const r = $("#cc-regua"), k = px();
+  const passo = k >= 90 ? 1 : k >= 45 ? 2 : k >= 20 ? 5 : 10;
+  let h = "";
+  for (let t = 0; t <= ed.total + 0.01; t += passo / 2) {
+    const grande = Math.abs(t / passo - Math.round(t / passo)) < 0.01;
+    h += `<span class="${grande ? "g" : "p"}" style="left:${t * k}px">${grande ? mmss(t) : "·"}</span>`;
+  }
+  r.innerHTML = h;
+}
+function desenharLegendas() {
+  const f = $('#tl-barra [data-faixa="legendas"]');
+  if (!f) return;
+  f.querySelectorAll(".cc-leg, .cc-vazio").forEach((x) => x.remove());
+  const k = px();
+  if (!ed.legendas.length) {
+    const v = document.createElement("div");
+    v.className = "cc-vazio";
+    v.innerHTML = ed.legLigadas ? "As legendas aparecem aqui depois da próxima prévia (com a fala transcrita)."
+      : '<button class="link" id="cc-ligar-leg">＋ Ligar legendas automáticas da fala</button>';
+    f.appendChild(v);
+    const b = v.querySelector("#cc-ligar-leg");
+    if (b) b.onclick = (e) => { e.stopPropagation(); ligarLegendas(); };
+    return;
+  }
+  ed.legendas.forEach((l, i) => {
+    const el = document.createElement("div");
+    el.className = "cc-leg" + (ed.sel && ed.sel.tipo === "leg" && ed.sel.i === i ? " sel" : "");
+    el.style.left = l.inicio * k + "px";
+    el.style.width = Math.max(14, (l.fim - l.inicio) * k - 2) + "px";
+    el.textContent = l.texto;
+    el.title = `${l.texto} · ${l.inicio.toFixed(1)}s`;
+    el.onpointerdown = (ev) => { ev.stopPropagation(); ed.sel = { tipo: "leg", i }; irPara(l.inicio + 0.05); desenharLegendas(); desenharForm(); };
+    f.appendChild(el);
+  });
+}
+async function ligarLegendas() {
+  try {
+    await api("/api/dados", { p: atual, dados: { legendas: true, corte_limpo: true } });
+    ed.legLigadas = true; desenharLegendas();
+    aviso("Legendas ligadas. Gere as prévias para ver a fala na faixa Legendas.");
+  } catch (err) { aviso(err.message, "erro"); }
+}
+function irPara(t) {
+  t = Math.max(0, Math.min(t, ed.total));
+  const v = $("#tl-video"); if (v.src) v.currentTime = t;
+  ed.rolandoCodigo = true;
+  $("#cc-rolagem").scrollLeft = t * px();
+  mostrarTempo(t);
+}
+function mostrarTempo(t) { $("#cc-tempo").textContent = `${mmss(t)} / ${mmss(ed.total)}`; }
+
 function desenharTimeline() {
-  desenharClipes();
+  ajustarEscala(); desenharRegua();
+  desenharClipes(); desenharLegendas();
   const barra = $("#tl-barra");
   barra.querySelectorAll(".tl-marca, .tl-zona").forEach((x) => x.remove());
   const k = px();
@@ -147,6 +220,27 @@ function desenharTimeline() {
     $("#tl-auto-info").innerHTML = `${au.efeitos.length} efeito(s) e ${au.sons.length} som(ns) automáticos da ${esc(au.versao)} estão tracejados na linha.
       <button class="link" id="tl-fixar">Trazer para a linha do tempo e editar</button>`;
     $("#tl-fixar").onclick = fixarAutos;
+  }
+  // hook da V1 na faixa Texto (como os textos no CapCut); tocar leva até ele e abre as versões
+  const v1 = ed.versoes[0] || {}, beats = Array.isArray(v1.hook) ? v1.hook : [];
+  let th = 0;
+  beats.forEach((bt) => {
+    const d = Number(bt.duracao) || Math.max(1.6, (bt.titulo || "").split(/\s+/).length / 3.2 + 0.7);
+    const el = document.createElement("div");
+    el.className = "tl-marca msg hookb";
+    el.style.left = th * px() + "px"; el.style.width = Math.max(18, d * px() - 2) + "px";
+    el.textContent = "Hook: " + (bt.titulo || "").replace(/[*\/]/g, "");
+    el.title = "Hook da V1 (edite em Versões: hook e fontes)";
+    const ini = th;
+    el.onpointerdown = (ev) => { ev.stopPropagation(); irPara(ini + 0.05); };
+    faixa("msg").appendChild(el);
+    th += d;
+  });
+  if (!beats.length && (v1.hook_id || v1.hook === "auto")) {
+    const el = document.createElement("div");
+    el.className = "tl-marca msg hookb"; el.style.left = "0px"; el.style.width = Math.max(18, hookFim() * px() - 2) + "px";
+    el.textContent = v1.hook_id ? `Hook ${v1.hook_id}` : "Hook sorteado do banco";
+    faixa("msg").appendChild(el);
   }
   ed.mensagens.forEach((m, i) => { if (m.inicio !== undefined && m.inicio !== null && m.inicio !== "") {
     const a = Number(m.inicio), d = Math.max(1.6, (m.titulo || "").split(/\s+/).length / 3.2 + 0.7);
@@ -181,9 +275,15 @@ function marca(tipo, i, t, dur, rotulo, perto) {
       if (mexeu) { sujar(); desenharTimeline(); desenharForm(); } $("#tl-video").currentTime = lista[i].inicio; };
     window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar);
   };
-  $("#tl-barra").appendChild(el);
+  (faixa(tipo) || $("#tl-barra")).appendChild(el);
 }
 
+function itemNoPonto(t, faixaNome) {
+  if (faixaNome === "texto") { irPara(t); return $("#tl-add-msg").click(); }
+  if (faixaNome === "audio") { irPara(t); return $("#tl-add-som").click(); }
+  if (faixaNome === "legendas") { irPara(t); return; }
+  efeitoNoPonto(t);
+}
 function efeitoNoPonto(t) {
   t = Math.round(Math.max(0, Math.min(t, (ed.base || ed.total) - 0.3)) * 10) / 10;
   ed.efeitos.push({ tipo: null, inicio: t });
@@ -192,22 +292,75 @@ function efeitoNoPonto(t) {
   desenharTimeline(); desenharForm();
   const f = $("#tl-form"); if (f) f.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
-let toqueLongo = null;
+let toqueLongo = null, arrasto = null;
 $("#tl-barra").onpointerdown = (e) => {
   const r = $("#tl-barra").getBoundingClientRect();
   const t = (e.clientX - r.left) / px();
-  const v = $("#tl-video"); if (v.src) v.currentTime = Math.max(0, Math.min(t, ed.total));
+  const nomeFaixa = (e.target.closest("[data-faixa]") || {}).dataset ? e.target.closest("[data-faixa]").dataset.faixa : "efeitos";
   clearTimeout(toqueLongo);
-  if (e.pointerType !== "mouse") toqueLongo = setTimeout(() => efeitoNoPonto(t), 550);   // iPhone: segure o dedo
+  if (e.pointerType !== "mouse") { toqueLongo = setTimeout(() => itemNoPonto(t, nomeFaixa), 550); return; }   // iPhone: segure o dedo
+  // mouse: arrastar a linha do tempo percorre o vídeo; clique simples leva a agulha até ali
+  arrasto = { x: e.clientX, sl: $("#cc-rolagem").scrollLeft, mexeu: false, t };
+  const mover = (ev) => {
+    if (!arrasto) return;
+    if (Math.abs(ev.clientX - arrasto.x) > 4) arrasto.mexeu = true;
+    if (arrasto.mexeu) $("#cc-rolagem").scrollLeft = arrasto.sl - (ev.clientX - arrasto.x);
+  };
+  const soltar = () => {
+    window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", soltar);
+    if (arrasto && !arrasto.mexeu) irPara(arrasto.t);
+    arrasto = null;
+  };
+  window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar);
 };
 ["pointerup", "pointerleave", "pointercancel"].forEach((n) => $("#tl-barra").addEventListener(n, () => clearTimeout(toqueLongo)));
 $("#tl-barra").addEventListener("pointermove", (e) => { if (Math.abs(e.movementX) > 4) clearTimeout(toqueLongo); });
 $("#tl-barra").ondblclick = (e) => {
-  if (e.target.closest(".tl-marca")) return;
+  if (e.target.closest(".tl-marca, .cc-leg, .tl-clipe, button")) return;
   const r = $("#tl-barra").getBoundingClientRect();
-  efeitoNoPonto((e.clientX - r.left) / px());
+  const fx = e.target.closest("[data-faixa]");
+  itemNoPonto((e.clientX - r.left) / px(), fx ? fx.dataset.faixa : "efeitos");
 };
-$("#tl-video").ontimeupdate = () => { $("#tl-cursor").style.left = $("#tl-video").currentTime * px() + "px"; };
+
+// rolagem = tempo: arrastar percorre o vídeo; tocando, a linha anda sozinha sob a agulha
+$("#cc-rolagem").addEventListener("scroll", () => {
+  const t = $("#cc-rolagem").scrollLeft / px();
+  mostrarTempo(t);
+  if (ed.rolandoCodigo) { ed.rolandoCodigo = false; return; }
+  const v = $("#tl-video");
+  if (v.src && v.paused) { cancelAnimationFrame(ed.rafBusca); ed.rafBusca = requestAnimationFrame(() => { v.currentTime = Math.min(t, ed.total); }); }
+});
+function seguirVideo() {
+  const v = $("#tl-video");
+  if (!v.paused) { ed.rolandoCodigo = true; $("#cc-rolagem").scrollLeft = v.currentTime * px(); mostrarTempo(v.currentTime); requestAnimationFrame(seguirVideo); }
+}
+const tocar = () => { const v = $("#tl-video"); if (!v.src) return aviso("Gere uma prévia para ver o vídeo aqui."); v.paused ? v.play() : v.pause(); };
+$("#cc-play").onclick = tocar;
+$("#cc-play-grande").onclick = tocar;
+$("#tl-video").addEventListener("play", () => { $("#cc-play").textContent = "❚❚"; $("#cc-play-grande").hidden = true; seguirVideo(); });
+$("#tl-video").addEventListener("pause", () => { $("#cc-play").textContent = "▶"; $("#cc-play-grande").hidden = false; });
+$("#tl-video").addEventListener("click", () => { if (!ed.pegandoPonto) tocar(); });
+function zoom(fator) {
+  const t = $("#cc-rolagem").scrollLeft / px();
+  ed.pps = Math.max(6, Math.min(400, px() * fator));
+  desenharTimeline(); ed.rolandoCodigo = true; $("#cc-rolagem").scrollLeft = t * px();
+}
+$("#cc-mais").onclick = () => zoom(1.5);
+$("#cc-menos").onclick = () => zoom(1 / 1.5);
+$("#cc-ajustar").onclick = () => { ed.pps = Math.max(6, ($("#cc-rolagem").clientWidth - 40) / Math.max(1, ed.total)); desenharTimeline(); irPara(0); };
+$("#cc-rolagem").addEventListener("wheel", (e) => {
+  if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15); }      // pinça do trackpad = zoom
+  else if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); $("#cc-rolagem").scrollLeft += e.deltaY; }
+}, { passive: false });
+$("#cc-filtros").onclick = () => { const c = $("#ed-filtro"); if (c) { c.closest(".cartao").scrollIntoView({ behavior: "smooth" }); c.focus(); } };
+$("#cc-legendas").onclick = () => {
+  if (!ed.legendas.length && !ed.legLigadas) return ligarLegendas();
+  const t = $("#cc-rolagem").scrollLeft / px();
+  const i = ed.legendas.findIndex((l) => l.fim >= t);
+  if (i < 0) return aviso(ed.legendas.length ? "Sem legenda daqui para frente." : "As legendas aparecem depois da próxima prévia.");
+  ed.sel = { tipo: "leg", i }; irPara(ed.legendas[i].inicio + 0.05); desenharLegendas(); desenharForm();
+};
+$("#tl-video").ontimeupdate = () => { if ($("#tl-video").paused) mostrarTempo($("#tl-video").currentTime); };
 $("#tl-video").onloadedmetadata = () => {
   const d = $("#tl-video").duration;
   if (d && isFinite(d)) { ed.total = d; if (!ed.base) ed.base = Math.max(1, d - ed.fechS); desenharTimeline(); }
@@ -227,7 +380,11 @@ function mostrarMira(x, y) {
   const m = $("#tl-mira"); m.hidden = false; m.style.left = x * 100 + "%"; m.style.top = y * 100 + "%";
 }
 
-function agora() { const v = $("#tl-video"); return Math.round((v.src ? v.currentTime : 0) * 10) / 10; }
+function agora() {
+  const v = $("#tl-video");
+  const t = v.src ? v.currentTime : $("#cc-rolagem").scrollLeft / px();
+  return Math.round(t * 10) / 10;
+}
 
 $("#tl-add-efeito").onclick = () => {
   ed.efeitos.push({ tipo: null, inicio: agora() });
@@ -408,9 +565,26 @@ function lerCampo(c) {
   return v;
 }
 
+function formLegenda(box) {
+  const l = ed.legendas[ed.sel.i];
+  box.innerHTML = `<h2>Legenda · ${l.inicio.toFixed(1)}s</h2>
+    <label>Texto como sai no vídeo<input id="lg-texto" value="${esc(l.texto)}"></label>
+    <p class="dica">Corrigir aqui ensina o app: a correção vale para este vídeo inteiro (ex.: "divaine" → "Divine").</p>
+    <div class="linha"><button class="link" id="lg-prox">próxima ›</button><button id="lg-ok">Aplicar</button></div>`;
+  $("#lg-ok").onclick = () => {
+    const novo = $("#lg-texto").value.trim();
+    if (novo && novo !== l.texto) { ed.correcoes[l.texto] = novo; l.texto = novo; sujar(); desenharLegendas(); }
+  };
+  $("#lg-prox").onclick = () => {
+    if (ed.sel.i + 1 >= ed.legendas.length) return;
+    ed.sel.i += 1; irPara(ed.legendas[ed.sel.i].inicio + 0.05); desenharLegendas(); desenharForm();
+  };
+}
+
 function desenharForm() {
   const box = $("#tl-form");
   if (!ed.sel) { box.innerHTML = '<p class="dica">Toque num clipe ou numa marca da linha do tempo para editar, ou adicione um efeito no ponto do vídeo.</p>'; return; }
+  if (ed.sel.tipo === "leg") return formLegenda(box);
   if (formExtra(box)) return;
   if (ed.sel.tipo === "som") {
     const s = ed.sons[ed.sel.i];
@@ -610,7 +784,7 @@ async function salvarEditor(depois) {
     await api("/api/dados", { p: atual, dados: { efeitos, mensagens, versoes, selo: $("#ed-selo").value,
       cta_antecipado: $("#ed-cta").value, fechamento: fech, sons: ed.sons.filter((x) => x.nome),
       sfx_automaticos: $("#tl-sfx-auto").checked, audio, cor: Object.keys(ed.cor).length ? ed.cor : null,
-      musica_licenciada: ed.licenca || null, ...extra } });
+      musica_licenciada: ed.licenca || null, correcoes: Object.keys(ed.correcoes || {}).length ? ed.correcoes : {}, ...extra } });
     ed.efeitos = efeitos;
     sujar(false);
     if (pendentes) $("#ed-status").textContent = "Salvo (efeito sem tipo escolhido ficou de fora).";
@@ -717,7 +891,7 @@ $("#ed-musica").onchange = async () => {
 };
 
 // a linha do tempo é desenhada pela largura: redesenha quando a aba aparece ou a tela muda de tamanho
-if (window.ResizeObserver) new ResizeObserver(() => { if (ed.proj && $("#tl-barra").clientWidth) desenharTimeline(); }).observe($("#tl-barra"));
+if (window.ResizeObserver) new ResizeObserver(() => { if (ed.proj && $("#cc-rolagem").clientWidth) desenharTimeline(); }).observe($("#cc-rolagem"));
 
 
 // atalhos de teclado na aba Edição (como no CapCut): espaço toca/pausa, S divide, Delete remove, ⌘/Ctrl+S salva
