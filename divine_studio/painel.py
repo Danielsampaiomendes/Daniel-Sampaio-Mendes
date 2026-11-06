@@ -1468,6 +1468,7 @@ class Painel(BaseHTTPRequestHandler):
                 from . import atualizar as _at
                 r = _at.atualizar(ROOT)
                 d = _at.dependencias(ROOT)
+                _at.fontes(ROOT)
                 if r["ok"] and r.get("mudou"):
                     porta = self.server.server_address[1]
                     args = [sys.executable, "-m", "divine_studio", "painel", "--porta", str(porta), "--sem-navegador"]

@@ -23,15 +23,14 @@ if ! python3 -c "import PIL, numpy, yaml" >/dev/null 2>&1; then
   echo "Instalando as bibliotecas do Divine Studio (só na primeira vez)..."
   python3 -m pip install --user -r requirements.txt || { read -r -p "Falhou. Enter para fechar."; exit 1; }
 fi
-if [ -z "$(ls Biblioteca_Fontes/ttf/*.ttf 2>/dev/null)" ]; then
-  echo "Baixando as fontes (só na primeira vez)..."
-  bash Biblioteca_Fontes/baixar_fontes.sh
-fi
 
 # Atualiza pelo GitHub (guarda em _arquivo/ qualquer arquivo seu que fosse trocado) e reinstala o que mudou.
 if [ "$1" != "--sem-atualizar" ]; then
   python3 divine_studio/atualizar.py --sem-painel || echo "  (seguindo com a versão que já está no Mac)"
 fi
+
+# Fontes: baixa só as que faltam (as novas de cada atualização entram sozinhas)
+bash Biblioteca_Fontes/baixar_fontes.sh >/dev/null 2>&1 || echo "  (sem internet para as fontes novas; seguindo com as que já estão no Mac)"
 
 # Painel antigo aberto? Fecha, senão ele continua rodando o código velho.
 PIDS=$(lsof -ti tcp:$PORTA -sTCP:LISTEN 2>/dev/null)

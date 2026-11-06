@@ -28,7 +28,7 @@ Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 
 - **Versões substituídas**: `Videos/_Versoes anteriores/`. **Trilhas originais**: `Videos/Trilhas/`.
 - **Legendas e roteiros**: arquivos `Legenda*`/`*COPY.md` dentro de cada projeto (ver o mapa).
 - **Código**: só existe o template de antes e depois para TV (uso interno): `Bumbum Up - Uso Interno/Template_codigo/` (`common.py`, `static.py`, `video.py`, `audio.py`, LEIA-ME) e `Endolaser Bracos - Uso Interno/Template_codigo/static_endolaser.py`. Os scripts esperam as fontes em `assets/Biblioteca_Fontes/ttf/` e os logos em `assets/`.
-- **Fontes**: `Biblioteca_Fontes/` (`ttf/` com 33 fontes, `previews/`, `baixar_fontes.sh` baixa tudo, `LEIA-ME.md` com as combinações A a N).
+- **Fontes**: `Biblioteca_Fontes/` (`ttf/` com 86 fontes, `previews/`, `baixar_fontes.sh` baixa só as que faltam e roda sozinho ao abrir o app, `LEIA-ME.md` com as combinações A a N, O1 a O6, P1 a P7 e Q1 a Q5).
 - **Efeitos sonoros**: `Biblioteca_SFX/` (`1_kit_original_divine/` com 28 WAV livres, `2_extraidos_referencia/` só referência, `gerar_kit_sfx.py` regenera o kit, `teste_combinacoes_sfx.mp3`, `LEIA-ME.md`).
 - **Marca**: `Logo_Divine.svg`, `Logo_com_nome_vertical2.png`, `divine-simbolo-1024.png`, `Logo-Preto.png` (raiz).
 - **Uso interno (nunca postar)**: `Bumbum Up - Uso Interno/`, `Endolaser Bracos - Uso Interno/`.

@@ -112,6 +112,17 @@ def dependencias(pasta: Path) -> str | None:
     return "Aviso: não consegui instalar as bibliotecas novas (rode: python3 -m pip install --user -r requirements.txt)."
 
 
+def fontes(pasta: Path) -> str | None:
+    """Baixa as fontes que faltam (a lista cresce com as atualizações)."""
+    script = Path(pasta) / "Biblioteca_Fontes" / "baixar_fontes.sh"
+    if not script.exists() or not shutil.which("bash"):
+        return None
+    antes = len(list((script.parent / "ttf").glob("*.ttf"))) if (script.parent / "ttf").exists() else 0
+    subprocess.run(["bash", str(script)], capture_output=True, timeout=600)
+    depois = len(list((script.parent / "ttf").glob("*.ttf")))
+    return f"{depois - antes} fonte(s) nova(s) baixada(s)." if depois > antes else None
+
+
 def fechar_painel(porta: int = PORTA) -> bool:
     """Fecha o painel antigo que estiver na porta (ele seguraria o código velho)."""
     if not shutil.which("lsof"):
@@ -139,6 +150,9 @@ def main(argv=None) -> int:
     d = dependencias(pasta)
     if d:
         print("  " + d)
+    f = fontes(pasta)
+    if f:
+        print("  " + f)
     if sem_painel:
         return 0 if r["ok"] else 1
     if fechar_painel():

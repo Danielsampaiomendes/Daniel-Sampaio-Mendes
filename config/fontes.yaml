@@ -6,7 +6,7 @@ pasta: Biblioteca_Fontes/ttf
 
 # Rodízio: desde 31/10/2026 o padrão é título grande em CAIXA ALTA (dourado em degradê) + cursiva fina colada
 # embaixo (skill divine-fontes). Só estas entram no rodízio automático; as outras continuam escolhíveis à mão.
-rodizio: [O1, O2, O3, O4, O5, O6, E, H, K, L, N]
+rodizio: [O1, O2, O3, O4, O5, O6, P1, P2, P3, P4, P5, P6, P7, E, H, K, L, N]
 
 # Degradê dourado do título no padrão novo (de cima para baixo) e sombra escura suave
 degrade_dourado: ["#F5E9BE", "#D6BE7D", "#B09458"]
@@ -114,6 +114,70 @@ combinacoes:
     destaque: {arquivo: "Unbounded[wght].ttf", peso: 900}
 
 # Combinações fixas de templates específicos (fora do rodízio A a N)
+
+  # ---- fontes em alta (nov/2026). P = padrão novo (caixa alta dourada + cursiva fina, entram no rodízio);
+  # ---- Q = estilos modernos de Reels para escolher à mão.
+  P1:
+    nome: Clássico romano
+    titulo: {arquivo: Marcellus-Regular.ttf, caixa_alta: true, tracking: 0.04, escala: 0.92, degrade: true}
+    apoio: {arquivo: Parisienne-Regular.ttf, escala: 1.45}
+    destaque: {arquivo: Marcellus-Regular.ttf, caixa_alta: true, degrade: true, escala: 0.92}
+  P2:
+    nome: Gala
+    titulo: {arquivo: GildaDisplay-Regular.ttf, caixa_alta: true, tracking: 0.03, escala: 0.95, degrade: true}
+    apoio: {arquivo: Italianno-Regular.ttf, escala: 1.7}
+    destaque: {arquivo: GildaDisplay-Regular.ttf, caixa_alta: true, degrade: true, escala: 0.95}
+  P3:
+    nome: Joalheria
+    titulo: {arquivo: "LibreBodoni[wght].ttf", peso: 700, caixa_alta: true, escala: 0.9, degrade: true}
+    apoio: {arquivo: ImperialScript-Regular.ttf, escala: 1.5}
+    destaque: {arquivo: "LibreBodoni[wght].ttf", peso: 700, caixa_alta: true, degrade: true, escala: 0.9}
+  P4:
+    nome: Prata
+    titulo: {arquivo: Prata-Regular.ttf, caixa_alta: true, tracking: 0.02, escala: 0.9, degrade: true}
+    apoio: {arquivo: Corinthia-Regular.ttf, escala: 1.75}
+    destaque: {arquivo: Prata-Regular.ttf, caixa_alta: true, degrade: true, escala: 0.9}
+  P5:
+    nome: Editorial moderno
+    titulo: {arquivo: YoungSerif-Regular.ttf, caixa_alta: true, escala: 0.86, degrade: true}
+    apoio: {arquivo: Birthstone-Regular.ttf, escala: 1.5}
+    destaque: {arquivo: YoungSerif-Regular.ttf, caixa_alta: true, degrade: true, escala: 0.86}
+  P6:
+    nome: Impacto luxo
+    titulo: {arquivo: Anton-Regular.ttf, caixa_alta: true, tracking: 0.02, escala: 1.05, degrade: true}
+    apoio: {arquivo: AlexBrush-Regular.ttf, escala: 1.45}
+    destaque: {arquivo: Anton-Regular.ttf, caixa_alta: true, degrade: true, escala: 1.05}
+  P7:
+    nome: Moda
+    titulo: {arquivo: PlayfairDisplaySC-Regular.ttf, caixa_alta: true, tracking: 0.03, escala: 0.9, degrade: true}
+    apoio: {arquivo: WindSong-Regular.ttf, escala: 1.35}
+    destaque: {arquivo: PlayfairDisplaySC-Regular.ttf, caixa_alta: true, degrade: true, escala: 0.9}
+  Q1:
+    nome: Tech elegante
+    titulo: {arquivo: "Geist[wght].ttf", peso: 600, escala: 0.9}
+    apoio: {arquivo: "Geist[wght].ttf", peso: 300, escala: 0.8}
+    destaque: {arquivo: InstrumentSerif-Italic.ttf, escala: 1.08}
+  Q2:
+    nome: Grotesca editorial
+    titulo: {arquivo: "BricolageGrotesque[opsz,wdth,wght].ttf", peso: 700, escala: 0.9}
+    apoio: {arquivo: "Newsreader-Italic[opsz,wght].ttf", peso: 400, escala: 0.95}
+    destaque: {arquivo: "Newsreader-Italic[opsz,wght].ttf", peso: 500, escala: 1.05}
+  Q3:
+    nome: Minimal premium
+    titulo: {arquivo: "PlusJakartaSans[wght].ttf", peso: 700, escala: 0.88}
+    apoio: {arquivo: "PlusJakartaSans[wght].ttf", peso: 300, escala: 0.8}
+    destaque: {arquivo: "EBGaramond-Italic[wght].ttf", peso: 500, escala: 1.1}
+  Q4:
+    nome: Reels forte
+    titulo: {arquivo: "Oswald[wght].ttf", peso: 700, caixa_alta: true, escala: 1.0}
+    apoio: {arquivo: "Inter[opsz,wght].ttf", peso: 400, escala: 0.8}
+    destaque: {arquivo: "Oswald[wght].ttf", peso: 700, caixa_alta: true}
+  Q5:
+    nome: Caderno
+    titulo: {arquivo: "Syne[wght].ttf", peso: 700, escala: 0.88}
+    apoio: {arquivo: NanumPenScript-Regular.ttf, escala: 1.4}
+    destaque: {arquivo: ShadowsIntoLight.ttf, escala: 1.2}
+
 combinacoes_fixas:
   PESSOAL:
     nome: Pessoal do Renato
