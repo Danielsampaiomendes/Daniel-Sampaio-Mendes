@@ -187,6 +187,14 @@ Solte vídeos em `entrada/` (na pasta do app) ou em **Google Drive > Meu Drive >
   
   Liga e desliga no painel; o histórico mostra o que aconteceu.
 
+## Edição automática pela fala (roteirista)
+
+A "Criar edição automática" transcreve o que você fala e escreve as 3 versões em cima disso: hooks tirados das suas frases,
+mensagens na tela no momento exato da fala (`na_fala`), efeitos só onde reforçam o que é dito, legenda do post sobre o assunto.
+Com `ANTHROPIC_API_KEY` quem escreve é o Claude; sem ela, regras do app sobre a própria fala. Sem transcrição (falta o
+faster-whisper) o painel mostra um alerta: o ⟳ Atualizar instala sozinho. O botão **✦ Pedir a edição ao Claude** copia o pedido
+para colar no Claude (app do Mac ou Cowork), do mesmo jeito que você edita no chat.
+
 ## Storyboard (antes do render)
 
 `python3 -m divine_studio storyboard <pasta>` (ou o botão **▦ Storyboard** no projeto) monta a edição em quadros reais, por cena e momento, sem renderizar nada (segundos). Cada quadro é exatamente o que vai sair naquele instante. Responda na aba Storyboard ou com `--responder`:

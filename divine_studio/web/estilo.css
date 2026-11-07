@@ -630,3 +630,4 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 #lista li:hover .lixo, #lista li.ativo .lixo { opacity: .7; }
 #lista li .lixo:hover { opacity: 1; }
 @media (hover: none) { #lista li .lixo { opacity: .55; } }
+.pp-alerta { border-left: 3px solid var(--erro); padding: 6px 10px; background: #e0866f15; border-radius: 6px; }

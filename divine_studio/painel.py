@@ -435,6 +435,7 @@ def detalhe(nome: str) -> dict:
             "brutos": [{"nome": b, "no_projeto": b in usados, "fora": b in (d.get("brutos_fora") or []),
                         "duracao": _duracao_arquivo(pasta / "bruto" / b)} for b in brutos], "saidas": saidas,
             "ritmo": d.get("ritmo"), "epico": d.get("ritmo") == "epico" or bool(d.get("epico")),
+            "entende_fala": _entende_fala(), "roteiro_automatico": d.get("roteiro_automatico"),
             "storyboard": bool(list((pasta / "trabalho").glob("storyboard_*.json"))) if (pasta / "trabalho").exists() else False,
             "storyboard_aprovado": (pasta / "trabalho" / "storyboard_aprovado.json").exists(),
             "fotos": sorted(f.name for f in (pasta / "bruto").glob("*") if f.suffix.lower() in
@@ -548,6 +549,12 @@ def versao_app() -> dict:
     data = git("log", "-1", "--format=%cd", "--date=format:%d/%m %H:%M")
     return {"commit": git("rev-parse", "--short", "HEAD"), "data": data, "pasta": str(ROOT),
             "ramo": git("rev-parse", "--abbrev-ref", "HEAD"), "git": bool(data)}
+
+
+def _entende_fala() -> dict:
+    from . import assistente
+    from .transcricao import motor_disponivel
+    return {"transcricao": bool(motor_disponivel()), "ia": assistente.disponivel()[0]}
 
 
 def acao_bruto(nome: str, arquivo: str, acao: str) -> dict:

@@ -781,6 +781,24 @@ def cmd_auto(a):
     fn = _transcritor(p["_pasta"]) if (motor_disponivel() or tem_cache) else None
     semente = sum(map(ord, p["_pasta"].name))
     novo = auto.montar(p, a.template, fn, semente)
+    # roteirista: as 3 versões escritas EM CIMA da fala (como o Claude faz no chat), não pelo título
+    falados = [c for c in novo.get("clipes") or [] if not c.get("mudo")]
+    if fn and falados:
+        try:
+            from . import roteirista
+            palavras = []
+            for c in falados:
+                palavras += fn(p["_pasta"] / c["arquivo"])
+            if palavras:
+                plano = roteirista.planejar(novo, palavras)
+                novo = roteirista.aplicar(novo, plano)
+                print(f"• Roteiro pela fala ({'Claude' if plano.get('fonte') == 'ia' else 'regras do app'}): "
+                      f"{len(novo.get('mensagens') or [])} mensagem(ns), {len(novo.get('efeitos') or [])} efeito(s) no ponto da fala")
+        except SystemExit as e:
+            print(f"  aviso: roteiro pela fala indisponível ({e})")
+    elif not fn:
+        print("  aviso: SEM TRANSCRIÇÃO. O app não entende a fala e usa textos genéricos do tema. "
+              "Instale com: pip3 install faster-whisper (o Divine Studio.command instala sozinho ao atualizar).")
     try:                                   # cada versão testa um formato viral diferente (Laboratório)
         from . import lab
         from .instagram import conta_do_projeto

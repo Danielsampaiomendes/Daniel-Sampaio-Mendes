@@ -267,11 +267,17 @@ function desenharProximoPasso() {
   if (!dados.brutos.length) {
     h = `<b>1. Solte os vídeos brutos</b> no quadro acima (ou clique nele para escolher). Pode soltar vários de uma vez.`;
   } else if (!previas && !finais) {
-    h = `<b>2. Assista cada vídeo</b> (play no cartão) e toque em <i>Tirar da edição</i> no que não quer usar.
+    const ef = dados.entende_fala || {};
+    const alerta = !ef.transcricao ? `<div class="pp-alerta">⚠ <b>O app ainda não entende a sua fala</b> (falta a transcrição): a edição sai com textos genéricos.
+        Toque em <b>⟳ Atualizar</b> (ele instala sozinho) ou no Terminal: <code>pip3 install faster-whisper</code>.</div>`
+      : !ef.ia ? `<div class="dica">A fala é transcrita e vira legenda, ganchos e mensagens. Para o Claude escrever as 3 versões
+        (como no chat), ligue a IA com a chave da API (Ideias e IA) ou use o botão <b>Pedir a edição ao Claude</b> abaixo.</div>` : "";
+    h = alerta + `<b>2. Assista cada vídeo</b> (play no cartão) e toque em <i>Tirar da edição</i> no que não quer usar.
       <b>Depois, crie a edição:</b> ${dentro} vídeo(s) vão entrar.
       <label class="check"><input type="checkbox" id="pp-epico" ${dados.epico ? "checked" : ""}> ✦ Vídeo Épico (3D, vertigem, chicote, cor de cinema)</label>
       <button class="dourado" id="pp-auto">✦ Criar edição automática (3 prévias)</button>
-      <span class="dica">Leva alguns minutos: o app corta, põe hooks, textos, efeitos e som e gera as 3 versões.</span>`;
+      <span class="dica">Leva alguns minutos: o app transcreve a fala, corta, escreve hooks e textos sobre o que você falou, põe efeitos e som e gera as 3 versões.</span>
+      <button id="pp-claude">✦ Pedir a edição ao Claude (como no chat)</button>`;
   } else if (!finais) {
     h = `<b>3. Veja as 3 prévias</b> na aba <a href="#" data-aba-link="versoes">Versões</a> e escolha a melhor.
       Quer mudar algo? Use a aba <a href="#" data-aba-link="edicao">Edição</a> (efeitos, textos, linha do tempo) ou peça no
@@ -285,6 +291,16 @@ function desenharProximoPasso() {
   if (ep) ep.onchange = () => api("/api/dados", { p: atual, dados: { ritmo: ep.checked ? "epico" : "viral", epico: null } })
     .then(() => { dados.epico = ep.checked; aviso(ep.checked ? "Vídeo Épico ligado" : "Padrão viral luxo"); });
   const au = $("#pp-auto"); if (au) au.onclick = () => rodar("auto");
+  const pc = $("#pp-claude"); if (pc) pc.onclick = async () => {
+    const t = `Edite o vídeo do projeto projetos/${atual} do Divine Studio, do mesmo jeito que você edita aqui no chat.
+1. Leia o CLAUDE.md e as skills divine-* (vídeo, sequência de gravação, modelos de Reels).
+2. Transcreva os brutos: python3 -m divine_studio transcrever projetos/${atual}
+3. Escreva o projeto.yaml com 3 versões que tenham tudo a ver com a fala: hooks tirados do que eu falo, mensagens com na_fala,
+   efeitos com na_fala só onde reforçam a fala, legenda do post, corte_limpo e legendas ligados. Compliance CFM/Anvisa.
+4. Rode o storyboard (python3 -m divine_studio storyboard projetos/${atual}) e me mostre os quadros para eu aprovar.`;
+    try { await navigator.clipboard.writeText(t); aviso("Copiado: cole no Claude (app do Mac ou Cowork) com a pasta do Divine Studio liberada."); }
+    catch (e) { prompt("Copie e cole no Claude:", t); }
+  };
   $$("#proximo-passo [data-aba-link]").forEach((a) => a.onclick = (e) => { e.preventDefault(); $(`[data-aba="${a.dataset.abaLink}"]`).click(); });
 }
 

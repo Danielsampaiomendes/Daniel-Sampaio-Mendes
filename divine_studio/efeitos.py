@@ -853,6 +853,19 @@ def aplicar(plano, projeto: dict, versao: dict, combo: dict, W: int, H: int, fps
         if grade > 0:
             plano.efeitos_quadro.append(ritmo.grade_epica(grade))
         return
+    # efeito preso à fala (na_fala): entra no segundo em que a frase é dita; sem a fala transcrita, fica de fora
+    fala = projeto.get("_fala") or []
+    presos = []
+    for ef in lista:
+        if ef.get("inicio") is None and ef.get("na_fala"):
+            from .legendas import achar_fala
+            t = achar_fala(fala, ef["na_fala"]) if fala else None
+            if t is None:
+                print(f"  aviso: não achei \"{ef['na_fala']}\" na fala; efeito {ef.get('tipo')} ficou de fora")
+                continue
+            ef["inicio"] = round(max(0.0, t - 0.1), 2)
+        presos.append(ef)
+    lista[:] = presos
     for ef in lista:
         ef["tipo"] = resolver_tipo(ef)
     try:

@@ -170,6 +170,13 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
     bt = batida(projeto)
     if bt and bt < 0.45:                                       # música muito rápida: a cada 2 batidas
         bt *= 2
+    # vídeo falado: menos efeitos e sempre no começo de uma frase (nunca no meio de uma palavra importante)
+    fala = projeto.get("_fala") or []
+    inicios_frase = [float(w["inicio"]) for i, w in enumerate(fala)
+                     if i == 0 or float(w["inicio"]) - float(fala[i - 1].get("fim", w["inicio"])) > 0.35]
+    if fala:
+        a, b = a * 1.6, b * 1.6
+        bt = None
     t, k = (2.2 if m == "viral" else 1.4), 0
     anterior = ((cfg.get("abertura") or [{}])[-1]).get("tipo")
     while t < fim - 2.0 and lista:
@@ -188,6 +195,11 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
             if m == "epico":                               # épico: tudo mais curto e mais seguido
                 ef["duracao"] = min(float(ef.get("duracao", DURACAO_PADRAO.get(tipo, 2.0))), 1.8)
             t_ef = round(round(t / bt) * bt, 3) if bt else t           # efeito cai na batida da música
+            if inicios_frase:
+                perto = min(inicios_frase, key=lambda x: abs(x - t))
+                if abs(perto - t) > 1.2:
+                    continue
+                t_ef = round(perto, 2)
             if por(ef, t_ef):
                 anterior, k, colocou = tipo, k + j + 1, True
                 break
