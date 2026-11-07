@@ -623,3 +623,4 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .proximo-passo { margin-top: 12px; padding: 14px; border: 1px solid var(--dourado2); border-radius: 12px; background: #ccbd9110; display: grid; gap: 8px; line-height: 1.5; }
 .proximo-passo a { color: var(--dourado); }
 .proximo-passo button.dourado { justify-self: start; }
+.versao-app { color: var(--apagado); font-size: 11px; }

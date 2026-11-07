@@ -8,6 +8,7 @@ URL="http://127.0.0.1:$PORTA"
 
 echo "Divine Studio"
 echo "-------------"
+echo "Pasta: $PWD"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Falta o Python 3. Instale em https://www.python.org/downloads/ e abra de novo."
@@ -40,6 +41,7 @@ if [ -n "$PIDS" ]; then
   sleep 1
 fi
 
+echo "Versão: $(git log -1 --format='%cd · %h' --date=format:'%d/%m %H:%M' 2>/dev/null || echo 'sem atualização automática')"
 echo "Abrindo o painel em $URL"
 echo "Deixe esta janela aberta enquanto usa. Para fechar o app: Ctrl + C (ou feche esta janela)."
 echo

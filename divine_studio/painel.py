@@ -523,6 +523,16 @@ def dados_projeto(nome: str) -> dict:
             "intervalo_efeitos": float(load("efeitos").get("intervalo_minimo_s", 1.5))}
 
 
+def versao_app() -> dict:
+    """Qual versão está rodando e de qual pasta (para não confundir cópias antigas do app)."""
+    def git(*a):
+        r = subprocess.run(["git", "-C", str(ROOT), *a], capture_output=True, text=True)
+        return r.stdout.strip() if r.returncode == 0 else ""
+    data = git("log", "-1", "--format=%cd", "--date=format:%d/%m %H:%M")
+    return {"commit": git("rev-parse", "--short", "HEAD"), "data": data, "pasta": str(ROOT),
+            "ramo": git("rev-parse", "--abbrev-ref", "HEAD"), "git": bool(data)}
+
+
 def acao_bruto(nome: str, arquivo: str, acao: str) -> dict:
     """Vídeo bruto: 'usar' na edição, 'tirar' da edição (fica na pasta) ou 'descartar' (vai para _arquivo/ do projeto)."""
     import shutil as _sh
@@ -975,6 +985,8 @@ class Painel(BaseHTTPRequestHandler):
             if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/storyboard.js", "/lab.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
+            if u.path == "/api/versao":
+                return self._json(versao_app())
             if u.path == "/api/projetos":
                 return self._json(listar())
             if u.path == "/api/projeto":

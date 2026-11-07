@@ -462,3 +462,10 @@ $("#cr-puxar").onclick = async () => {
   try { const r = await api("/api/crescimento/puxar", {}); alert(Object.keys(r).length ? Object.entries(r).map(([u, n]) => `@${u}: ${n}`).join("\n") : "Conecte o Instagram em Programação para puxar sozinho."); window.carregarCrescimento(); }
   catch (err) { alert(err.message); }
 };
+
+// ---------------------------------------------------------------- versão rodando (e de qual pasta)
+api("/api/versao").then((v) => {
+  const el = $("#versao-app"); if (!el) return;
+  el.textContent = v.git ? `· versão de ${v.data}` : "· pasta sem atualização automática";
+  el.title = `Pasta: ${v.pasta}\nVersão: ${v.commit || "?"} (${v.ramo || "sem git"})`;
+}).catch(() => {});
