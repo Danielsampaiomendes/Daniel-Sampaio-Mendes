@@ -426,6 +426,25 @@ def cmd_editar(a):
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
 
 
+def cmd_higgsfield(a):
+    from . import higgsfield as hf
+    if a.acao == "fila":
+        for x in hf.listar():
+            print(f"  {x['id']}  {x['status']:<9} {x['nome']:<22} {x['projeto']}  {x['entrada'].get('arquivo', '')}")
+    elif a.acao == "instrucao":
+        print(hf.instrucao_claude())
+    elif a.acao == "pronto":
+        if not (a.id and a.valor):
+            raise SystemExit("Use: higgsfield pronto <id> <arquivo ou link>")
+        r = hf.receber(a.id, a.valor, a.job, a.creditos)
+        print(f"✓ resultado em {r['projeto']}/{r['resultado']['arquivo']}")
+    else:
+        if not (a.id and a.valor):
+            raise SystemExit("Use: higgsfield status <id> <pendente|gerando|erro|cancelado>")
+        r = hf.atualizar(a.id, status=a.valor, **({"nota": a.nota} if a.nota else {}))
+        print(f"✓ {r['id']} agora está {r['status']}")
+
+
 def cmd_lab(a):
     from . import lab
     print("Placar dos formatos:")
@@ -908,6 +927,14 @@ def main(argv=None):
     s.add_argument("--rede", default="instagram")
     s.add_argument("--arquivo", help="arquivo com o resultado colado (para 'colar')")
     s.set_defaults(f=cmd_radar)
+    s = sub.add_parser("higgsfield", help="fila de pedidos do Higgsfield (o Claude executa com o conector)")
+    s.add_argument("acao", choices=["fila", "instrucao", "pronto", "status"])
+    s.add_argument("id", nargs="?")
+    s.add_argument("valor", nargs="?", help="pronto: arquivo ou link do resultado · status: pendente|gerando|erro|cancelado")
+    s.add_argument("--job", default="")
+    s.add_argument("--creditos", type=float)
+    s.add_argument("--nota", default="")
+    s.set_defaults(f=cmd_higgsfield)
     s = sub.add_parser("transcrever", help="transcreve a fala dos clipes (tempo por palavra)")
     s.add_argument("projeto")
     s.add_argument("--motor", choices=["auto", "assemblyai", "faster_whisper", "whisper"])

@@ -994,3 +994,189 @@ SONS = {"ascii": "glitch_digital", "capa_revista": "flash_brilho", "grade_cards"
         "estudio_edicao": "zap_suave", "pilula_link": "coracao", "card_titulo": "whoosh_rapido",
         "holofote": "drop_sub", "lupa": "zap_suave", "rastro": "whoosh_rapido", "triptico": "boom_grave",
         "vhs": "scratch_disco", "dupla_exposicao": "subida_tensao", "brilhos": "flash_brilho", "desfoque_fundo": "drop_sub"}
+
+
+# ------------------------------------------------------------------ versões nativas de efeitos do Higgsfield
+# (o que dá para fazer sobre o vídeo gravado, sem IA generativa: grátis, no Mac, sem internet)
+def congelar_pessoa(ef, combo, W, H, fps):
+    """'Stop world' / 'Act natural': a pessoa congela no lugar enquanto o fundo continua andando."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.5))
+    guardado = {}
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            guardado.clear()
+            return q
+        if "q" not in guardado:
+            guardado["q"] = q.astype(np.float32)
+            guardado["m"] = _mascara(q)
+        a = _env(t, t0, dur, 0.05, 0.25)
+        m = guardado["m"] * a
+        r = guardado["q"] * m + q.astype(np.float32) * (1 - m)
+        return np.clip(r, 0, 255).astype(np.uint8)
+    return f
+
+
+def mundo_congelado(ef, combo, W, H, fps):
+    """'Frozen in motion' ao contrário: o fundo para no tempo e só a pessoa continua se mexendo."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.5))
+    guardado = {}
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            guardado.clear()
+            return q
+        fundo = guardado.setdefault("q", q.astype(np.float32))
+        m = _mascara(q)
+        a = _env(t, t0, dur, 0.05, 0.25)
+        cinza = fundo.mean(axis=2, keepdims=True)
+        fundo_t = fundo * (1 - 0.35 * a) + cinza * 0.35 * a                 # o mundo parado perde um pouco a cor
+        r = q.astype(np.float32) * m + (fundo_t * a + q.astype(np.float32) * (1 - a)) * (1 - m)
+        return np.clip(r, 0, 255).astype(np.uint8)
+    return f
+
+
+def clones(ef, combo, W, H, fps):
+    """'Clones' / 'Studio slide': cópias recortadas da pessoa ao lado e atrás, entrando em sequência."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.5))
+    n = int(ef.get("quantos", 4))
+    lugares = [(-0.28, 0.9), (0.28, 0.9), (-0.16, 0.75), (0.16, 0.75), (-0.38, 0.7), (0.38, 0.7)][:n]
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            return q
+        a = _env(t, t0, dur, 0.1, 0.3)
+        m = _mascara(q)
+        pessoa = np.concatenate([q, (m * 255).astype(np.uint8)], axis=2)
+        img = Image.fromarray(pessoa, "RGBA")
+        out = q.astype(np.float32)
+        base = out.copy()
+        for k, (dx, esc) in enumerate(sorted(lugares, key=lambda v: v[1])):
+            u = clamp((t - t0 - k * 0.15) / 0.3)
+            if u <= 0:
+                continue
+            c = img.resize((int(W * esc), int(H * esc)))
+            cam = np.zeros_like(out)
+            _colar(cam, c, W / 2 + dx * W, H * (1 - esc / 2) + (1 - esc) * H * 0.02, 1.0)
+            mk = np.zeros((H, W, 1), np.float32)
+            cm = Image.fromarray((np.asarray(c)[..., 3]).astype(np.uint8))
+            tmp = np.zeros((H, W), np.float32)
+            x0 = int(W / 2 + dx * W - c.width / 2)
+            y0 = int(H * (1 - esc / 2) + (1 - esc) * H * 0.02 - c.height / 2)
+            xs, ys, xe, ye = max(0, x0), max(0, y0), min(W, x0 + c.width), min(H, y0 + c.height)
+            if xe > xs and ye > ys:
+                tmp[ys:ye, xs:xe] = np.asarray(cm, np.float32)[ys - y0:ye - y0, xs - x0:xe - x0] / 255
+            mk[..., 0] = tmp * a * ease_out(u) * 0.95
+            base = base * (1 - mk) + cam * mk
+        r = base * (1 - m) + out * m                                         # a original fica na frente
+        return np.clip(r, 0, 255).astype(np.uint8)
+    return f
+
+
+def desenho(ef, combo, W, H, fps):
+    """'Sketch' / 'Canvas': vira desenho a lápis sobre papel creme."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.5))
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            return q
+        g = Image.fromarray(q).convert("L")
+        inv = ImageOps.invert(g).filter(ImageFilter.GaussianBlur(max(2, W // 160)))
+        gf, bf = np.asarray(g, np.float32), np.asarray(inv, np.float32)
+        lapis = np.clip(gf * 255 / np.maximum(1, 255 - bf), 0, 255)            # "color dodge": traço de lápis
+        papel = np.array(CREME, np.float32)
+        r = (lapis[..., None] / 255) * papel + (1 - lapis[..., None] / 255) * np.array((60, 52, 44), np.float32)
+        return _mistura(q, r, _env(t, t0, dur, 0.3, 0.3))
+    return f
+
+
+def quadrinho(ef, combo, W, H, fps):
+    """'Comic' / 'Flash comic': cores chapadas, contorno preto grosso e retícula."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.0))
+    passo = max(4, W // 160)
+    yy, xx = np.mgrid[0:H, 0:W]
+    pontos = ((xx % passo - passo / 2) ** 2 + (yy % passo - passo / 2) ** 2 < (passo * 0.3) ** 2)[..., None]
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            return q
+        im = Image.fromarray(q)
+        chapado = np.asarray(ImageOps.posterize(im.filter(ImageFilter.MedianFilter(5)), 3), np.float32)
+        bordas = np.asarray(im.convert("L").filter(ImageFilter.FIND_EDGES).filter(ImageFilter.MaxFilter(3)), np.float32)[..., None]
+        r = chapado * (1 - np.clip(bordas / 60, 0, 1))
+        sombra = (chapado.mean(axis=2, keepdims=True) < 90) & pontos
+        r = np.where(sombra, r * 0.4, r)
+        return _mistura(q, r, _env(t, t0, dur, 0.15, 0.25))
+    return f
+
+
+def luz_estourada(ef, combo, W, H, fps):
+    """'Overexposed': luz estourada e brilho difuso (abertura etérea, sonho)."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.0))
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            return q
+        a = _env(t, t0, dur, 0.3, 0.4)
+        qf = q.astype(np.float32)
+        brilho = np.clip(qf - 150, 0, 255)
+        bloom = np.asarray(Image.fromarray(brilho.astype(np.uint8)).filter(ImageFilter.GaussianBlur(W // 30)), np.float32)
+        r = np.clip(qf * (1 + 0.6 * a) + bloom * 1.6 * a + 25 * a, 0, 255)
+        return r.astype(np.uint8)
+    return f
+
+
+def noir(ef, combo, W, H, fps):
+    """'Noir': preto e branco de alto contraste, vinheta e sombra de persiana."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.5))
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    vinheta = np.clip(1.3 - np.hypot((xx - W / 2) / W, (yy - H / 2) / H) * 1.6, 0.25, 1)
+    persiana = 0.82 + 0.18 * (np.sin((yy + xx * 0.35) / (H / 40)) > 0)
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            return q
+        g = q.astype(np.float32).mean(axis=2)
+        g = np.clip((g - 128) * 1.45 + 128, 0, 255) * vinheta * persiana
+        return _mistura(q, np.repeat(g[..., None], 3, axis=2), _env(t, t0, dur, 0.3, 0.3))
+    return f
+
+
+def marmore(ef, combo, W, H, fps):
+    """'Marble': vira escultura em mármore (relevo claro com veios suaves)."""
+    t0, dur = ef["inicio"], float(ef.get("duracao", 2.5))
+    rnd = np.random.default_rng(12)
+    ruido = np.asarray(Image.fromarray((rnd.random((H // 8, W // 8)) * 255).astype(np.uint8)).resize((W, H), Image.BICUBIC), np.float32)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    veios = (np.abs(np.sin((xx * 0.8 + yy * 0.5) / (W / 9) + ruido / 40)) ** 6)[..., None]
+
+    def f(q, t):
+        if not _dentro(t, t0, dur):
+            return q
+        relevo = np.asarray(Image.fromarray(q).convert("L").filter(ImageFilter.EMBOSS), np.float32)[..., None]
+        lum = q.astype(np.float32).mean(axis=2, keepdims=True)
+        pedra = (lum * 0.55 + relevo * 0.45) * np.array((1.02, 1.0, 0.95), np.float32) + 40
+        pedra = pedra * (1 - veios * 0.12)
+        return _mistura(q, np.clip(pedra, 0, 255), _env(t, t0, dur, 0.4, 0.4))
+    return f
+
+
+EFEITOS.update({"congelar_pessoa": congelar_pessoa, "mundo_congelado": mundo_congelado, "clones": clones,
+                "desenho": desenho, "quadrinho": quadrinho, "luz_estourada": luz_estourada, "noir": noir,
+                "marmore": marmore})
+APELIDOS.update({"stop_world": "congelar_pessoa", "act_natural": "congelar_pessoa", "frozen_in_motion": "mundo_congelado",
+                 "studio_slide": "clones", "sketch": "desenho", "comic": "quadrinho", "overexposed": "luz_estourada",
+                 "marble": "marmore"})
+NOMES.update({"congelar_pessoa": "Pessoa congelada (Stop world)", "mundo_congelado": "Mundo congelado (Frozen in motion)",
+              "clones": "Clones", "desenho": "Desenho a lápis (Sketch)", "quadrinho": "Quadrinho (Comic)",
+              "luz_estourada": "Luz estourada (Overexposed)", "noir": "Noir", "marmore": "Mármore (Marble)"})
+CAMPOS.update({"congelar_pessoa": [], "mundo_congelado": [], "clones": [("quantos", "numero", "Quantos clones (2 a 6)")],
+               "desenho": [], "quadrinho": [], "luz_estourada": [], "noir": [], "marmore": []})
+DURACAO.update({"congelar_pessoa": 2.5, "mundo_congelado": 2.5, "clones": 2.5, "desenho": 2.5, "quadrinho": 2.0,
+                "luz_estourada": 2.0, "noir": 2.5, "marmore": 2.5})
+EXEMPLOS.update({"clones": {"quantos": 4}})
+MOMENTO_AMOSTRA.update({k: min(1.6, DURACAO[k] * 0.6) for k in ("congelar_pessoa", "mundo_congelado", "clones", "desenho",
+                                                                 "quadrinho", "luz_estourada", "noir", "marmore")})
+SONS.update({"congelar_pessoa": "drop_sub", "mundo_congelado": "subida_tensao", "clones": "whoosh_rapido",
+             "desenho": "scratch_disco", "quadrinho": "estalo_dedos", "luz_estourada": "flash_brilho", "noir": "boom_grave",
+             "marmore": "drop_sub"})
