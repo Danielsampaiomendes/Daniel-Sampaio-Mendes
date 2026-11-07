@@ -217,6 +217,8 @@ def aplicar_em_versoes(projeto: dict, conta: str | None = None) -> dict:
             continue
         v["formato_viral"] = fmt
         est = (formatos()[fmt].get("edicao") or {}).get("estilo_edicao")
+        if not load("roteiros").get("estilo_do_formato", False):
+            est = None                     # visual escolhido por você (Estilo de edição), não sorteado pelo formato
         if est and not v.get("estilo_edicao"):
             v["estilo_edicao"] = est
     return projeto

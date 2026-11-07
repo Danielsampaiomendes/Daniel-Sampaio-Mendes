@@ -20,14 +20,16 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
   read -r -p "Enter para fechar."
   exit 1
 fi
-if ! python3 -c "import PIL, numpy, yaml" >/dev/null 2>&1; then
-  echo "Instalando as bibliotecas do Divine Studio (só na primeira vez)..."
-  python3 -m pip install --user -r requirements.txt || { read -r -p "Falhou. Enter para fechar."; exit 1; }
-fi
-
-# Atualiza pelo GitHub (guarda em _arquivo/ qualquer arquivo seu que fosse trocado) e reinstala o que mudou.
+# Atualiza pelo GitHub (guarda em _arquivo/ qualquer arquivo seu que fosse trocado), prepara o Python próprio do
+# app (.venv, Python 3.12: o do Xcode é antigo demais para a IA) e instala só o que mudou, uma biblioteca por vez.
 if [ "$1" != "--sem-atualizar" ]; then
   python3 divine_studio/atualizar.py --sem-painel || echo "  (seguindo com a versão que já está no Mac)"
+fi
+PY=python3
+[ -x .venv/bin/python ] && PY=.venv/bin/python
+if ! "$PY" -c "import PIL, numpy, yaml" >/dev/null 2>&1; then
+  echo "Instalando as bibliotecas básicas..."
+  "$PY" -m pip install -q Pillow numpy PyYAML || { read -r -p "Falhou. Enter para fechar."; exit 1; }
 fi
 
 # Fontes: baixa só as que faltam (as novas de cada atualização entram sozinhas)
@@ -45,4 +47,5 @@ echo "Versão: $(git log -1 --format='%cd · %h' --date=format:'%d/%m %H:%M' 2>/
 echo "Abrindo o painel em $URL"
 echo "Deixe esta janela aberta enquanto usa. Para fechar o app: Ctrl + C (ou feche esta janela)."
 echo
-exec python3 -m divine_studio painel --porta "$PORTA"
+echo "Python: $("$PY" --version 2>&1)"
+exec "$PY" -m divine_studio painel --porta "$PORTA"

@@ -33,6 +33,7 @@ modos:
     abertura: [{tipo: luz_dourada, inicio: 0.25, duracao: 1.4, forca: 0.7, som: brilho_dourado}]
     nos_cortes: []                    # cortes secos já são interrupção
     meio: [foco_lente, zoom_digital, luz_dourada, congelar, zoom_batida, cor_volta, revelar_foco]
+    meio_com_fala: [zoom_digital, zoom_batida, luz_dourada, foco_lente]   # vídeo falado: nada de congelar a imagem com a voz correndo
     antes_do_cta: {tipo: congelar, duracao: 1.4, zoom: 1.08, som: tick_suave}
     grade: 0.0
   epico:

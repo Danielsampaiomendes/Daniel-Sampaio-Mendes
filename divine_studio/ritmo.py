@@ -155,6 +155,8 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         k_int = 1.0
     a, b = a * k_int, b * k_int
     lista = list(projeto.get("_estilo_meio") or cfg.get("meio") or [])      # o estilo de edição troca a lista
+    if projeto.get("_fala") and not projeto.get("_estilo_meio") and cfg.get("meio_com_fala"):
+        lista = list(cfg["meio_com_fala"])      # vídeo falado: só efeitos que não brigam com quem fala
     try:                                    # aprende: efeito que foi mal nas suas peças (nota negativa) sai do sorteio
         from .aprendizado import preferencias
         from .instagram import conta_do_projeto

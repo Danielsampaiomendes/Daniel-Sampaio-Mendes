@@ -123,4 +123,5 @@ cta_antecipado:
 # Montagem
 alvo_sem_fala_s: 30          # vídeo sem fala: pega o miolo dos clipes até ~30 s
 max_mensagens_da_fala: 3     # vídeo falado: frases fortes da própria fala viram mensagens na tela
+estilo_do_formato: false   # edição automática: o formato viral muda o hook e o CTA, não o visual (papel, neon... só se você escolher)
 velocidade_broll: 0.85       # clipes sem fala entram em câmera lenta suave

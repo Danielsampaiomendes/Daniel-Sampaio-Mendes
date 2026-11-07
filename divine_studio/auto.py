@@ -43,16 +43,27 @@ def tema(titulo: str) -> tuple:
     return (melhor, cfg["temas"][melhor]) if melhor else ("padrao", cfg["padrao"])
 
 
-def tem_fala(arquivo: Path) -> bool:
-    """Áudio com voz: nível de fala alto e bem acima do ruído de fundo."""
+def tem_fala(arquivo: Path, transcrever_fn=None) -> bool:
+    """Vídeo falado? Com transcrição, decide pelas palavras ditas (é o que importa); sem ela, pelo nível da voz.
+
+    Só o volume errava em vídeo real: fala contínua ou ruído da clínica derrubavam a distância voz x fundo e o
+    vídeo falado virava b-roll mudo e em câmera lenta.
+    """
     from .audio import ler_audio
     from .ingest import probe
     from .voz import medir_ruido
     p = probe(arquivo)
     if not p["audio"]:
         return False
+    if transcrever_fn is not None:
+        try:
+            pal = transcrever_fn(arquivo)
+            dur = max(1.0, float(p["duracao"] or 1))
+            return len(pal) >= 6 and len(pal) / dur >= 0.5
+        except SystemExit:
+            pass
     m = medir_ruido(ler_audio(arquivo, min(p["duracao"], 60)))
-    return m["fala_db"] > -32 and m["snr_db"] > 14
+    return m["fala_db"] > -38 and m["snr_db"] > 8
 
 
 def _ok(frase: str) -> bool:
@@ -145,7 +156,7 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
     clipes, com_fala = [], []
     for b in brutos:
         c = dict(antes.get(f"bruto/{b.name}") or {"arquivo": f"bruto/{b.name}", "foco": [0.5, 0.4]})
-        if tem_fala(b):
+        if tem_fala(b, transcrever_fn):
             com_fala.append(c)
         else:
             c.setdefault("mudo", True)

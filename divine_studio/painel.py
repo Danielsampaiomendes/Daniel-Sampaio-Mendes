@@ -1631,14 +1631,16 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/atualizar":           # baixa a versão nova e reinicia este painel
                 from . import atualizar as _at
                 r = _at.atualizar(ROOT)
+                _at.preparar_python(ROOT)
                 d = _at.dependencias(ROOT)
                 _at.fontes(ROOT)
                 if r["ok"] and r.get("mudou"):
                     porta = self.server.server_address[1]
-                    args = [sys.executable, "-m", "divine_studio", "painel", "--porta", str(porta), "--sem-navegador"]
+                    py = _at.python_do_app(ROOT)
+                    args = [py, "-m", "divine_studio", "painel", "--porta", str(porta), "--sem-navegador"]
                     if self.codigo:
                         args.append("--celular")
-                    threading.Timer(0.8, lambda: (os.chdir(ROOT), os.execv(sys.executable, args))).start()
+                    threading.Timer(0.8, lambda: (os.chdir(ROOT), os.execv(args[0], args))).start()
                 return self._json({**r, "dependencias": d, "reiniciando": bool(r["ok"] and r.get("mudou"))})
             if u.path == "/api/regra":
                 from .cli import main

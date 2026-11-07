@@ -48,7 +48,7 @@ def test_classificar_e_aplicar_em_versoes(monkeypatch):
     lab.aplicar_em_versoes(p)
     assert p["versoes"][1]["formato_viral"] == "reacao"
     assert all(v.get("formato_viral") in lab.formatos() for v in p["versoes"])
-    assert p["versoes"][0].get("estilo_edicao")
+    assert not p["versoes"][0].get("estilo_edicao")      # 07/11: o formato não sorteia o visual (papel, neon...)
 
 
 def test_radar_colar_numeros_outlier_e_roteiro(tmp_path, monkeypatch):

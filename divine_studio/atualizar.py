@@ -96,8 +96,71 @@ def atualizar(pasta: Path) -> dict:
         return {"ok": False, "mudou": False, "msg": f"Não consegui atualizar: {e}{dica}"}
 
 
+def python_do_app(pasta: Path) -> str:
+    """O Python que roda o app: o próprio do Divine Studio (.venv, Python novo) quando existe; senão o do Mac."""
+    for cand in (Path(pasta) / ".venv" / "bin" / "python", Path(pasta) / ".venv" / "Scripts" / "python.exe"):
+        if cand.exists():
+            return str(cand)
+    return sys.executable
+
+
+def _versao(py: str) -> tuple:
+    try:
+        r = subprocess.run([py, "-c", "import sys; print(sys.version_info[0], sys.version_info[1])"],
+                           capture_output=True, text=True, timeout=30)
+        return tuple(int(x) for x in r.stdout.split()[:2])
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return (0, 0)
+
+
+def _uv() -> list:
+    """Comando do uv (instalador rápido), onde estiver: neste Python, no python3 do Mac ou no PATH."""
+    for cmd in ([sys.executable, "-m", "uv"], [shutil.which("python3") or "python3", "-m", "uv"], [shutil.which("uv") or "uv"]):
+        try:
+            if subprocess.run([*cmd, "--version"], capture_output=True, timeout=30).returncode == 0:
+                return cmd
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return []
+
+
+def _tem_uv() -> bool:
+    return bool(_uv())
+
+
+def preparar_python(pasta: Path) -> str | None:
+    """O Python do Xcode no Mac é antigo (3.9, pip 21) e não instala a biblioteca nova do Claude nem tudo o que o
+    app usa. Cria uma vez o Python próprio do app (3.12, em .venv) com o uv. Se falhar, segue com o do Mac."""
+    pasta = Path(pasta)
+    if (pasta / ".venv").exists() or _versao(sys.executable) >= (3, 10):
+        return None
+    print("  Preparando o Python do Divine Studio (só na primeira vez, leva 1 ou 2 minutos)...", flush=True)
+    if not _tem_uv():
+        subprocess.run([sys.executable, "-m", "pip", "install", "--user", "-q", "uv"], capture_output=True)
+    if not _tem_uv():
+        return "Aviso: não consegui preparar o Python novo (seguindo com o do Mac; a IA pode ficar desligada)."
+    r = subprocess.run([*_uv(), "venv", "--seed", "--python", "3.12", str(pasta / ".venv")],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        shutil.rmtree(pasta / ".venv", ignore_errors=True)
+        return "Aviso: não consegui preparar o Python novo (seguindo com o do Mac; a IA pode ficar desligada)."
+    (pasta / ".divine_studio_req.sha").unlink(missing_ok=True)       # instala tudo no Python novo
+    return "Python 3.12 do Divine Studio pronto."
+
+
+def _instalar(py: str, pacotes: list) -> bool:
+    """Instala no Python do app: uv quando existe (rápido), senão pip (sem --user dentro do .venv)."""
+    uv = _uv()
+    if uv:
+        cmd = [*uv, "pip", "install", "--python", py, "-q", *pacotes]
+    else:
+        no_venv = ".venv" in py
+        cmd = [py, "-m", "pip", "install", "-q", *([] if no_venv else ["--user"]), *pacotes]
+    return subprocess.run(cmd).returncode == 0
+
+
 def dependencias(pasta: Path) -> str | None:
-    """Reinstala as bibliotecas quando o requirements.txt muda."""
+    """Reinstala as bibliotecas quando o requirements.txt muda. Uma que falhe não derruba as outras."""
     req = Path(pasta) / "requirements.txt"
     if not req.exists():
         return None
@@ -105,11 +168,19 @@ def dependencias(pasta: Path) -> str | None:
     h = hashlib.sha256(req.read_bytes()).hexdigest()
     if marca.exists() and marca.read_text().strip() == h:
         return None
-    r = subprocess.run([sys.executable, "-m", "pip", "install", "--user", "-q", "-r", str(req)])
-    if r.returncode == 0:
+    py = python_do_app(pasta)
+    pacotes = [ln.split("#")[0].strip() for ln in req.read_text(encoding="utf-8").splitlines()]
+    pacotes = [x for x in pacotes if x and not x.startswith("-")]
+    print("  Instalando as bibliotecas do app...", flush=True)
+    if _instalar(py, pacotes):
         marca.write_text(h)
         return "Bibliotecas atualizadas."
-    return "Aviso: não consegui instalar as bibliotecas novas (rode: python3 -m pip install --user -r requirements.txt)."
+    falhas = [x for x in pacotes if not _instalar(py, [x])]      # uma por vez: o que dá, entra
+    if not falhas:
+        marca.write_text(h)
+        return "Bibliotecas atualizadas."
+    nomes = ", ".join(f.split(">")[0].split("=")[0] for f in falhas)
+    return f"Aviso: não instalou {nomes}. O resto foi instalado e o app abre normalmente."
 
 
 def fontes(pasta: Path) -> str | None:
@@ -147,6 +218,9 @@ def main(argv=None) -> int:
     print("Divine Studio: procurando atualização...")
     r = atualizar(pasta)
     print("  " + r["msg"])
+    pp = preparar_python(pasta)
+    if pp:
+        print("  " + pp)
     d = dependencias(pasta)
     if d:
         print("  " + d)
@@ -159,7 +233,8 @@ def main(argv=None) -> int:
         print("  Painel antigo fechado.")
     print("  Abrindo o painel atualizado...")
     os.chdir(pasta)
-    os.execvp(sys.executable, [sys.executable, "-m", "divine_studio", "painel", "--porta", str(PORTA)])
+    py = python_do_app(pasta)
+    os.execvp(py, [py, "-m", "divine_studio", "painel", "--porta", str(PORTA)])
     return 0
 
 

@@ -42,3 +42,14 @@ def test_estilo_legenda_padrao_e_projeto(tmp_path, monkeypatch):
     cs, _ = legendas.camadas({"legendas": {"fonte": "Anton-Regular.ttf", "caixa": True}},
                              [{"texto": "Oi", "inicio": 0, "fim": 0.4}], 1080, 1920, 10)
     assert cs and abs((cs[0].y + cs[0].h / 2) - 1920 * 0.3) < 4
+
+
+def test_tem_fala_pela_transcricao(tmp_path):
+    import subprocess
+    from divine_studio import auto
+    v = tmp_path / "v.mp4"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=s=64x64:d=10", "-f", "lavfi",
+                    "-i", "anoisesrc=d=10:a=0.3", "-shortest", str(v)], check=True)
+    palavras = [{"texto": "oi", "inicio": i * 0.5, "fim": i * 0.5 + 0.3} for i in range(15)]
+    assert auto.tem_fala(v, lambda f: palavras)
+    assert not auto.tem_fala(v, lambda f: [])
