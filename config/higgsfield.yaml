@@ -11,6 +11,11 @@ regras_prompt: >-
 rotulo_ia: true          # ao postar algo gerado por IA, ligue o rótulo "Feito com IA" do Instagram (o app lembra)
 formato_padrao: "9:16"
 
+# Teto de créditos (o Claude sempre mostra o custo e espera o seu ok; estes tetos ele não passa sem você mandar)
+orcamento:
+  por_video: 60
+  por_semana: 250
+
 # Efeitos virais (Viral Hub) que combinam com a Divine. id = preset do Higgsfield; entrada = o que mandar.
 # nativo = versão feita no próprio Divine Studio (grátis, sem internet). Sem 'nativo' = precisa de IA generativa.
 efeitos:

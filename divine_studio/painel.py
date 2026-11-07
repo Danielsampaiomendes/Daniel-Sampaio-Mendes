@@ -1103,6 +1103,11 @@ class Painel(BaseHTTPRequestHandler):
                                                "recentes": sorted(entrada._indice().values(), key=lambda x: x.get("em", ""),
                                                                   reverse=True)[:15]},
                                    "tiktok": tiktok.estado()})
+            if u.path == "/api/radar/missao":
+                from . import radar
+                host = self.headers.get("Host") or "127.0.0.1:8765"
+                return self._json({"texto": radar.missao_completa(q.get("rede", "instagram"), q.get("tema", ""),
+                                                                  f"http://{host}", q.get("higgsfield") == "1")})
             if u.path == "/api/automacoes":
                 from . import automacoes
                 return self._json({"regras": automacoes.regras(), "historico": automacoes.historico()})

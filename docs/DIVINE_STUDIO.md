@@ -156,6 +156,14 @@ Menu **🧪 Laboratório viral**. A ideia: cada Reels é um teste de formato; o 
 O que está viralizando agora no nicho (`config/radar.yaml`). Três fontes:
 1. **API oficial do Instagram**: perfis de referência (método 5x3) e hashtags. Botão "Buscar pela API do Instagram" ou `python3 -m divine_studio radar buscar`. A busca por hashtag precisa do login pelo Facebook.
 2. **Claude no Chrome**: "Pesquisar com o Claude no Chrome" gera a missão (Instagram ou TikTok). Você cola na extensão, ele navega no seu navegador só olhando, e você cola a resposta em "Colar resultado".
+**Pesquisa ao vivo com o Claude no Chrome (Instagram ao lado):**
+1. No Divine Studio aberto no Chrome, vá em Laboratório viral > **✦ Pesquisar com o Claude (Instagram ao lado)**.
+2. Escreva o tema (opcional) e, se quiser, marque **Incluir o Higgsfield**.
+3. Toque em **↗ Abrir ao lado** (o Instagram ou o TikTok abre numa janela na metade direita) e em **Copiar missão**.
+4. Cole a missão na extensão do Claude no Chrome. Ele pesquisa só olhando, volta para a aba do Divine Studio, cola tudo no Radar e sugere os 3 melhores para virar roteiro.
+
+Com o Higgsfield marcado, ele sugere efeitos para viralizar no site do Higgsfield, mostra o custo e só gera com o seu ok, dentro do teto de `config/higgsfield.yaml` (`orcamento`: 60 créditos por vídeo, 250 por semana).
+
 3. **Colar à mão**: links com números ("1,2 mi views", "35 mil curtidas").
 
 O app não roda robô no Instagram nem no TikTok: isso viola os termos e pode bloquear a conta. Cada item ganha o formato e "quantas vezes acima do normal do perfil". "Roteiro para a Divine" adapta o formato ao seu tema: ganchos, sequência de gravação, fala para o teleprompter, CTA e legenda. Com a IA ligada, quem escreve é o Claude; sem ela, o app usa o modelo do formato. Sempre passa pelo revisor. "Criar projeto" já sai com `roteiro.md`, a fala no teleprompter e os 3 ganchos nas versões.

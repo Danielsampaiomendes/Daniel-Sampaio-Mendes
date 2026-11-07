@@ -180,6 +180,22 @@ def usar(id_: str, onde: str = "fim") -> dict:
     return {"ok": True, "clipes": len(clipes)}
 
 
+def creditos_semana() -> float:
+    """Créditos gastos nos pedidos desta semana (segunda a domingo)."""
+    hoje = _dt.date.today()
+    seg = (hoje - _dt.timedelta(days=hoje.weekday())).isoformat()
+    return round(sum(float((x.get("resultado") or {}).get("creditos") or 0) for x in ler()
+                     if str(x.get("atualizado_em") or x.get("criado_em", ""))[:10] >= seg), 1)
+
+
+def orcamento() -> dict:
+    o = _cfg().get("orcamento") or {}
+    semana = float(o.get("por_semana", 250))
+    usado = creditos_semana()
+    return {"por_video": float(o.get("por_video", 60)), "por_semana": semana, "usado_semana": usado,
+            "resta_semana": round(max(0.0, semana - usado), 1)}
+
+
 def instrucao_claude(ids: list | None = None) -> str:
     """Texto para colar no Claude (desktop, com o conector do Higgsfield e a pasta do Divine Studio liberada)."""
     pend = [x for x in listar("pendente") if not ids or x["id"] in ids]
@@ -188,5 +204,6 @@ def instrucao_claude(ids: list | None = None) -> str:
     return (
         "Processe os pedidos do Higgsfield do Divine Studio, seguindo docs/HIGGSFIELD_PONTE.md.\n"
         f"Fila: projetos/.higgsfield_fila.json ({len(pend)} pendente(s)):\n" + "\n".join(linhas or ["- (nenhum)"]) +
-        "\nAntes de gerar, me mostre o custo em créditos de cada um e espere o meu ok. Quando ficar pronto, rode "
+        f"\nTeto: até {orcamento()['por_video']:.0f} créditos por vídeo e {orcamento()['resta_semana']:.0f} restantes nesta semana. "
+        "Antes de gerar, me mostre o custo em créditos de cada um e espere o meu ok. Quando ficar pronto, rode "
         "`python3 -m divine_studio higgsfield pronto <id> <arquivo ou link>` para o resultado entrar no projeto.")

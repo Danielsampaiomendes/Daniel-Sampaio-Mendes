@@ -169,6 +169,25 @@ def missao(rede: str = "instagram") -> str:
     return modelo.format(nicho=c.get("nicho", "estética"), hashtags=hashtags, perfis=perfis).strip()
 
 
+def missao_completa(rede: str = "instagram", tema: str = "", url_studio: str = "http://127.0.0.1:8765",
+                    higgsfield: bool = False) -> str:
+    """Missão para o Claude no Chrome: pesquisa na rede E registra no Divine Studio (aba ao lado)."""
+    c = _cfg()
+    perfis = ", ".join("@" + p for p in c.get("perfis_referencia") or []) or "(nenhum cadastrado: use os que aparecerem)"
+    hf = ""
+    if higgsfield:
+        from . import higgsfield as _hf
+        o = _hf.orcamento()
+        hf = (f"6. Higgsfield (só se eu pedir): abra higgsfield.ai numa aba nova, na minha conta. Sugira 1 ou 2 efeitos que "
+              f"aumentariam a viralização do nosso vídeo (ex.: Eyes in, Orbit 360, Bullet time), me diga o custo em créditos "
+              f"e ESPERE o meu ok. Teto: {o['por_video']:.0f} créditos por vídeo e {o['resta_semana']:.0f} restantes na semana. "
+              "Baixe o resultado e solte em Vídeos brutos do projeto no Divine Studio.")
+    return c.get("missao_completa", "").format(
+        rede="TikTok" if rede == "tiktok" else "Instagram", nicho=c.get("nicho", "estética"),
+        tema=f", com foco em \"{tema}\"" if tema else "", hashtags=", ".join("#" + h for h in c.get("hashtags") or []),
+        perfis=perfis, url_studio=url_studio, higgsfield=hf).strip()
+
+
 # ---------------------------------------------------------------- API oficial do Instagram
 def buscar_instagram(usuario: str | None = None) -> dict:
     """Perfis de referência (business discovery) e hashtags (top media) pela API oficial."""

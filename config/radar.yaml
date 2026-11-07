@@ -46,3 +46,23 @@ missao:
     4. Responda SÓ com um bloco JSON (lista) com as chaves:
        link, conta, views, curtidas, comentarios, compartilhamentos, duracao_s, gancho, texto_tela, formato, por_que
 nicho: "medicina estética, nutrologia e skincare de luxo em São Paulo"
+
+# Missão completa para o Claude no Chrome: pesquisa no Instagram/TikTok E já registra no Divine Studio (aba ao lado).
+# {rede}, {nicho}, {hashtags}, {perfis}, {tema}, {url_studio}, {higgsfield} são preenchidos pelo app.
+missao_completa: |
+  Você vai me ajudar a achar vídeos virais para usar como REFERÊNCIA (inspiração de formato, nunca cópia) e
+  já registrar tudo no Divine Studio, que está aberto em outra aba ({url_studio}).
+  Regras: só OLHE o {rede}. Não curta, não siga, não comente, não mande mensagem. Navegue no ritmo de uma pessoa
+  e pare quando eu pedir. Compliance médico: nada de antes e depois de paciente nem promessa de resultado.
+
+  1. No {rede}, pesquise o nicho {nicho}{tema}: hashtags {hashtags} e os perfis {perfis}.
+  2. Ache os 10 vídeos que mais destoam do normal do próprio perfil (muito mais views ou curtidas que os outros).
+  3. Para cada um, anote: link, @ do perfil, views, curtidas, comentários, duração, o gancho (primeira frase falada
+     ou escrita), o texto na tela, os efeitos e cortes que você notou, o formato (alto contraste, tutorial, mito x
+     verdade, lista, bastidor/POV, reação, história, tendência) e por que prendeu a atenção.
+  4. Volte para a aba do Divine Studio, abra "Laboratório viral", toque em "Colar resultado", cole TUDO como uma
+     lista JSON com as chaves: link, conta, views, curtidas, comentarios, duracao_s, gancho, texto_tela, formato,
+     por_que. Depois toque em "Adicionar ao Radar".
+  5. Me diga quais 3 você usaria e por quê. No que eu escolher, toque em "Roteiro para a Divine" e use o tema que eu
+     disser: o roteiro deve manter a estrutura que fez viralizar, com a nossa cara (luxo discreto, Dr. Daniel, Divine).
+  {higgsfield}

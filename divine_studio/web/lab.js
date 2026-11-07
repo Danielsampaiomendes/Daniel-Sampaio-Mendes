@@ -80,8 +80,20 @@ async function carregarAutomacoes() {
     || '<li class="dica">Nada ainda.</li>';
 }
 
+function perguntarNaPagina(titulo, rotulo) {
+  return new Promise((ok) => {
+    const m = modal(`<h2>${esc(titulo)}</h2><label>${esc(rotulo)}<input id="pp-resp" autocomplete="off"></label>
+      <div class="sb-botoes"><button class="dourado" data-ok>Continuar</button><button data-fechar>Cancelar</button></div>`, 520);
+    const inp = m.querySelector("#pp-resp"); setTimeout(() => inp.focus(), 30);
+    const fim = (v) => { m.remove(); ok(v); };
+    m.querySelector("[data-ok]").onclick = () => fim(inp.value.trim());
+    inp.onkeydown = (e) => { if (e.key === "Enter") fim(inp.value.trim()); };
+    m.querySelector("[data-fechar]").addEventListener("click", () => ok(""));
+  });
+}
+
 async function criarTeste(formato) {
-  const tema = prompt("Tema do vídeo (ex.: Laser de CO2 no rosto):", "");
+  const tema = await perguntarNaPagina("Criar este teste", "Tema do vídeo (ex.: Laser de CO2 no rosto)");
   if (!tema) return;
   try {
     const r = await api("/api/nova_edicao", { tipo: "video", titulo: tema });
@@ -92,7 +104,7 @@ async function criarTeste(formato) {
 }
 
 async function roteiroRadar(id) {
-  const tema = prompt("Tema da Divine para adaptar este formato (ex.: Endolaser nos braços):", "");
+  const tema = await perguntarNaPagina("Roteiro para a Divine", "Tema da Divine para adaptar este formato (ex.: Endolaser nos braços)");
   if (!tema) return;
   aviso("Escrevendo o roteiro...");
   let r;
@@ -120,20 +132,37 @@ $("#rd-buscar").onclick = async () => {
   catch (err) { aviso(err.message, "erro"); }
 };
 $("#rd-missao").onclick = () => {
-  const d = labDados || {};
-  const m = modal(`<h2>Pesquisa com o Claude no Chrome</h2>
-    <p class="dica">1. Abra o Claude no Chrome (extensão) já logado no Instagram ou no TikTok. 2. Cole a missão abaixo e acompanhe enquanto ele navega (só olhando). 3. Copie a resposta dele e toque em "Colar resultado".</p>
+  const m = modal(`<h2>Pesquisar com o Claude no Chrome</h2>
+    <p class="dica">1. Toque em <b>Abrir ao lado</b>: o ${"Instagram"} abre numa janela ao lado desta.
+      2. Toque em <b>Copiar missão</b> e cole na extensão do Claude no Chrome.
+      3. Acompanhe: ele pesquisa (só olhando), volta para esta aba e preenche o Radar sozinho.</p>
     <div class="chips seg"><button class="dourado" data-rede="instagram">Instagram</button><button data-rede="tiktok">TikTok</button></div>
-    <textarea id="rd-texto-missao" rows="14" readonly>${esc(d.missao_instagram || "")}</textarea>
-    <div class="sb-botoes"><button class="dourado" data-copiar>Copiar missão</button><button data-fechar>Fechar</button></div>`, 760);
+    <label>Tema (opcional, ex.: Endolaser nos braços)<input id="ms-tema" autocomplete="off"></label>
+    <label class="check"><input type="checkbox" id="ms-hf"> Incluir o Higgsfield (sugerir efeitos para viralizar, sempre com o seu ok e dentro do teto de créditos)</label>
+    <textarea id="rd-texto-missao" rows="12" readonly></textarea>
+    <div class="sb-botoes"><button class="dourado" data-abrir>↗ Abrir ao lado</button><button class="dourado" data-copiar>Copiar missão</button><button data-fechar>Fechar</button></div>`, 780);
+  let rede = "instagram";
+  const montar = async () => {
+    const q = new URLSearchParams({ rede, tema: m.querySelector("#ms-tema").value.trim(), higgsfield: m.querySelector("#ms-hf").checked ? "1" : "0" });
+    try { m.querySelector("#rd-texto-missao").value = (await api("/api/radar/missao?" + q)).texto; } catch (e) { /* segue */ }
+  };
   m.querySelectorAll("[data-rede]").forEach((b) => b.onclick = () => {
-    m.querySelectorAll("[data-rede]").forEach((x) => x.classList.toggle("dourado", x === b));
-    m.querySelector("#rd-texto-missao").value = b.dataset.rede === "tiktok" ? d.missao_tiktok : d.missao_instagram;
+    rede = b.dataset.rede; m.querySelectorAll("[data-rede]").forEach((x) => x.classList.toggle("dourado", x === b)); montar();
   });
+  m.querySelector("#ms-tema").oninput = () => { clearTimeout(m._t); m._t = setTimeout(montar, 400); };
+  m.querySelector("#ms-hf").onchange = montar;
+  m.querySelector("[data-abrir]").onclick = () => {
+    const w = Math.round(screen.availWidth / 2), h = screen.availHeight;
+    const url = rede === "tiktok" ? "https://www.tiktok.com/explore" : "https://www.instagram.com/explore/";
+    const j = window.open(url, "divine_pesquisa", `popup=yes,width=${w},height=${h},left=${screen.availWidth - w},top=0`);
+    if (!j) aviso("O navegador bloqueou a janela: permita pop-ups para o Divine Studio.", "erro");
+    else aviso("Aberto ao lado. Deixe o Divine Studio na metade esquerda da tela.");
+  };
   m.querySelector("[data-copiar]").onclick = async () => {
-    try { await navigator.clipboard.writeText(m.querySelector("#rd-texto-missao").value); aviso("Missão copiada"); }
+    try { await navigator.clipboard.writeText(m.querySelector("#rd-texto-missao").value); aviso("Missão copiada: cole no Claude no Chrome"); }
     catch (e) { m.querySelector("#rd-texto-missao").select(); }
   };
+  montar();
 };
 $("#rd-colar").onclick = () => {
   const m = modal(`<h2>Colar resultado da pesquisa</h2>
