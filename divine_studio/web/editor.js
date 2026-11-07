@@ -29,6 +29,7 @@ async function carregarEditor() {
   ed.clipesInfo = d.clipes_info || []; ed.linhas = d.linhas || {}; ed.corteLimpo = d.corte_limpo;
   ed.atencao = d.atencao || {};
   ed.legendas = d.legendas_blocos || []; ed.legLigadas = d.legendas_ligadas; ed.correcoes = { ...(d.projeto.correcoes || {}) };
+  ed.legEstilo = { ...(d.legenda_estilo || {}) }; ed.legEstiloMudou = false;
   ed.ref = d.referencia;
   ed.cfg = { filtros: d.filtros || {}, transicoes: d.transicoes || {}, velocidades: d.velocidades || [1] };
   ed.cor = { ...(d.projeto.cor || {}) };
@@ -357,8 +358,13 @@ $("#cc-legendas").onclick = () => {
   if (!ed.legendas.length && !ed.legLigadas) return ligarLegendas();
   const t = $("#cc-rolagem").scrollLeft / px();
   const i = ed.legendas.findIndex((l) => l.fim >= t);
-  if (i < 0) return aviso(ed.legendas.length ? "Sem legenda daqui para frente." : "As legendas aparecem depois da próxima prévia.");
+  if (i < 0) { ed.sel = { tipo: "legestilo" }; return desenharForm(); }
   ed.sel = { tipo: "leg", i }; irPara(ed.legendas[i].inicio + 0.05); desenharLegendas(); desenharForm();
+};
+$("#cc-estilo-leg").onclick = async () => {
+  if (!ed.legLigadas) await ligarLegendas();
+  ed.sel = { tipo: "legestilo" }; desenharForm();
+  $("#tl-form").scrollIntoView({ behavior: "smooth", block: "nearest" });
 };
 $("#tl-video").ontimeupdate = () => { if ($("#tl-video").paused) mostrarTempo($("#tl-video").currentTime); };
 $("#tl-video").onloadedmetadata = () => {
@@ -570,7 +576,8 @@ function formLegenda(box) {
   box.innerHTML = `<h2>Legenda · ${l.inicio.toFixed(1)}s</h2>
     <label>Texto como sai no vídeo<input id="lg-texto" value="${esc(l.texto)}"></label>
     <p class="dica">Corrigir aqui ensina o app: a correção vale para este vídeo inteiro (ex.: "divaine" → "Divine").</p>
-    <div class="linha"><button class="link" id="lg-prox">próxima ›</button><button id="lg-ok">Aplicar</button></div>`;
+    <div class="linha"><button class="link" id="lg-estilo">Aa estilo da legenda</button><button class="link" id="lg-prox">próxima ›</button><button id="lg-ok">Aplicar</button></div>`;
+  $("#lg-estilo").onclick = () => { ed.sel = { tipo: "legestilo" }; desenharForm(); };
   $("#lg-ok").onclick = () => {
     const novo = $("#lg-texto").value.trim();
     if (novo && novo !== l.texto) { ed.correcoes[l.texto] = novo; l.texto = novo; sujar(); desenharLegendas(); }
@@ -581,10 +588,84 @@ function formLegenda(box) {
   };
 }
 
+const CORES_LEG = [["off_white", "#F5F4F1", "Off-white"], ["#FFFFFF", "#FFFFFF", "Branco"], ["dourado", "#CCBD91", "Dourado"],
+  ["dourado_destaque", "#D6C08A", "Dourado claro"], ["creme", "#FBF8F1", "Creme"], ["#F7D046", "#F7D046", "Amarelo"],
+  ["#111111", "#111111", "Preto"], ["navy", "#0E194A", "Navy"]];
+const hexDe = (v) => (CORES_LEG.find((c) => c[0] === v) || [v, String(v || "").startsWith("#") ? v : "#F5F4F1"])[1];
+
+async function formEstiloLegenda(box) {
+  if (!ed.fontesLeg) { try { ed.fontesLeg = await api("/api/fontes_legenda"); } catch (e) { ed.fontesLeg = []; } }
+  const s = ed.legEstilo;
+  const pos = s.posicao ?? 0.66, tam = s.tamanho ?? 58;
+  const fundo = s.caixa ? (s.caixa === "creme" ? "creme" : "escura") : "nenhum";
+  const amostras = (campo, atual) => CORES_LEG.map(([v, hx, n]) =>
+    `<button class="le-cor${hexDe(atual) === hx ? " sel" : ""}" data-campo="${campo}" data-v="${v}" title="${n}" style="background:${hx}"></button>`).join("") +
+    `<input type="color" class="le-cor-livre" data-campo="${campo}" value="${hexDe(atual)}" title="Outra cor">`;
+  box.innerHTML = `<h2>Estilo da legenda <small class="dica">(vale para o vídeo todo)</small></h2>
+    <div class="le-grade">
+      <div class="le-previa"><img id="le-prev" alt="Prévia da legenda"><span class="dica">Toque na imagem para pôr a legenda ali.</span></div>
+      <div class="le-campos">
+        <label>Posição <span id="le-pos-v"></span><input id="le-pos" type="range" min="0.12" max="0.9" step="0.01" value="${pos}"></label>
+        <div class="chips"><button data-pos="0.25">Em cima</button><button data-pos="0.5">Meio</button><button data-pos="0.66">Peito</button><button data-pos="0.78">Embaixo</button></div>
+        <label>Tamanho <span id="le-tam-v"></span><input id="le-tam" type="range" min="34" max="120" step="1" value="${tam}"></label>
+        <label>Fonte<select id="le-fonte">${(ed.fontesLeg || []).map((f) => `<option value="${esc(f.arquivo)}" ${f.arquivo === s.fonte ? "selected" : ""}>${esc(f.nome)}</option>`).join("")}</select></label>
+        <div class="le-rotulo">Cor do texto</div><div class="le-cores">${amostras("cor", s.cor || "off_white")}</div>
+        <div class="le-rotulo">Cor da palavra-chave</div><div class="le-cores">${amostras("cor_chave", s.cor_chave || "dourado")}</div>
+        <label>Fundo<select id="le-fundo"><option value="nenhum">Sem fundo</option><option value="escura">Caixa escura</option><option value="creme">Caixa clara</option></select></label>
+        <label>Palavras por vez <span id="le-max-v"></span><input id="le-max" type="range" min="1" max="6" step="1" value="${s.max_palavras ?? 4}"></label>
+        <label class="check"><input type="checkbox" id="le-alta" ${s.caixa_alta ? "checked" : ""}> CAIXA ALTA</label>
+        <label class="check"><input type="checkbox" id="le-glow" ${s.glow ? "checked" : ""}> Brilho dourado</label>
+        <label class="check"><input type="checkbox" id="le-pap" ${s.palavra_a_palavra !== false ? "checked" : ""}> Acende a palavra falada</label>
+      </div>
+    </div>
+    <div class="linha"><button class="link" id="le-padrao">Usar nos próximos vídeos</button><button id="le-ok">Aplicar e salvar</button></div>
+    <p class="dica">O quadro acima é a legenda real no ponto da agulha. Depois de salvar, gere a prévia para ver em movimento.</p>`;
+  $("#le-fundo").value = fundo;
+  let tmr;
+  const previa = () => {
+    $("#le-pos-v").textContent = `${Math.round((s.posicao ?? pos) * 100)}% da altura`;
+    $("#le-tam-v").textContent = String(s.tamanho ?? tam);
+    $("#le-max-v").textContent = String(s.max_palavras ?? 4);
+    clearTimeout(tmr);
+    tmr = setTimeout(() => {
+      const v = $("#tl-video"); const t = v && v.src ? v.currentTime : $("#cc-rolagem").scrollLeft / px();
+      const img = $("#le-prev"); if (!img) return;
+      img.src = `/legenda.jpg?p=${encodeURIComponent(atual)}&t=${t.toFixed(2)}&estilo=${encodeURIComponent(JSON.stringify(s))}`;
+    }, 220);
+  };
+  const mudar = (k, v) => { s[k] = v; ed.legEstiloMudou = true; sujar(); previa(); };
+  $("#le-pos").oninput = (e) => mudar("posicao", +e.target.value);
+  box.querySelectorAll("[data-pos]").forEach((b) => b.onclick = () => { $("#le-pos").value = b.dataset.pos; mudar("posicao", +b.dataset.pos); });
+  $("#le-tam").oninput = (e) => mudar("tamanho", +e.target.value);
+  $("#le-max").oninput = (e) => mudar("max_palavras", +e.target.value);
+  $("#le-fonte").onchange = (e) => mudar("fonte", e.target.value);
+  $("#le-fundo").onchange = (e) => mudar("caixa", e.target.value === "nenhum" ? false : e.target.value === "creme" ? "creme" : true);
+  $("#le-alta").onchange = (e) => mudar("caixa_alta", e.target.checked);
+  $("#le-glow").onchange = (e) => mudar("glow", e.target.checked ? "dourado" : false);
+  $("#le-pap").onchange = (e) => mudar("palavra_a_palavra", e.target.checked);
+  box.querySelectorAll(".le-cor").forEach((b) => b.onclick = () => {
+    box.querySelectorAll(`.le-cor[data-campo="${b.dataset.campo}"]`).forEach((x) => x.classList.toggle("sel", x === b));
+    mudar(b.dataset.campo, b.dataset.v);
+  });
+  box.querySelectorAll(".le-cor-livre").forEach((i) => i.oninput = () => mudar(i.dataset.campo, i.value.toUpperCase()));
+  $("#le-prev").onclick = (e) => {
+    const r = e.target.getBoundingClientRect();
+    const y = Math.max(0.12, Math.min(0.9, (e.clientY - r.top) / r.height));
+    $("#le-pos").value = y.toFixed(2); mudar("posicao", +y.toFixed(2));
+  };
+  $("#le-ok").onclick = () => salvarEditor(null).then(() => aviso("Estilo da legenda salvo. Gere a prévia para ver em movimento."));
+  $("#le-padrao").onclick = async () => {
+    try { await api("/api/legenda_padrao", { estilo: s }); aviso("Pronto: os próximos vídeos já saem com esta legenda."); }
+    catch (err) { aviso(err.message, "erro"); }
+  };
+  previa();
+}
+
 function desenharForm() {
   const box = $("#tl-form");
   if (!ed.sel) { box.innerHTML = '<p class="dica">Toque num clipe ou numa marca da linha do tempo para editar, ou adicione um efeito no ponto do vídeo.</p>'; return; }
   if (ed.sel.tipo === "leg") return formLegenda(box);
+  if (ed.sel.tipo === "legestilo") return formEstiloLegenda(box);
   if (formExtra(box)) return;
   if (ed.sel.tipo === "som") {
     const s = ed.sons[ed.sel.i];
@@ -784,7 +865,9 @@ async function salvarEditor(depois) {
     await api("/api/dados", { p: atual, dados: { efeitos, mensagens, versoes, selo: $("#ed-selo").value,
       cta_antecipado: $("#ed-cta").value, fechamento: fech, sons: ed.sons.filter((x) => x.nome),
       sfx_automaticos: $("#tl-sfx-auto").checked, audio, cor: Object.keys(ed.cor).length ? ed.cor : null,
-      musica_licenciada: ed.licenca || null, correcoes: Object.keys(ed.correcoes || {}).length ? ed.correcoes : {}, ...extra } });
+      musica_licenciada: ed.licenca || null, correcoes: Object.keys(ed.correcoes || {}).length ? ed.correcoes : {}, ...extra,
+      ...(ed.legEstiloMudou ? { legendas: { ...(typeof ed.proj.legendas === "object" && ed.proj.legendas ? ed.proj.legendas : {}), ...ed.legEstilo, ativo: true } } : {}) } });
+    ed.legEstiloMudou = false;
     ed.efeitos = efeitos;
     sujar(false);
     if (pendentes) $("#ed-status").textContent = "Salvo (efeito sem tipo escolhido ficou de fora).";

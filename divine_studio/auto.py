@@ -159,7 +159,8 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
     pode_transcrever = transcrever_fn is not None
     if com_fala and pode_transcrever and p["template"] != "tv":
         p["corte_limpo"] = True
-        p["legendas"] = True
+        # legenda da fala sempre ligada; o estilo ajustado no painel (posição, tamanho, fonte, cor) é mantido
+        p["legendas"] = {**p["legendas"], "ativo": True} if isinstance(p.get("legendas"), dict) else True
         p["audio"] = {**(p.get("audio") or {}), "original": True, "trilha": True}
     elif com_fala:
         p["corte_limpo"] = False

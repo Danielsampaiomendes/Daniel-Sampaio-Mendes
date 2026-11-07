@@ -531,7 +531,8 @@ def dados_projeto(nome: str) -> dict:
             pass
     ed = load("edicao")
     return {"projeto": d, "referencia": f"saida/{previas[0].name}" if previas else None, "duracao_base": dur,
-            "legendas_blocos": _blocos_legenda(pasta, d), "legendas_ligadas": bool(d.get("legendas")),
+            "legendas_blocos": _blocos_legenda(pasta, d), "legendas_ligadas": _leg_ativas(d),
+            "legenda_estilo": _leg_estilo(d),
             "clipes_info": clipes, "linhas": linhas, "atencao": _atencao_v1(pasta),
             "filtros": {k: v["nome"] for k, v in (ed.get("filtros") or {}).items()},
             "transicoes": {k: v["nome"] for k, v in (ed.get("transicoes") or {}).items()},
@@ -591,6 +592,76 @@ def acao_bruto(nome: str, arquivo: str, acao: str) -> dict:
         salvar_dados(nome, {"brutos_fora": fora, "clipes": sem_ele})
         return {"ok": True, "msg": f"Guardado em {alvo.relative_to(pasta)} (nada foi apagado)."}
     raise ValueError("ação desconhecida")
+
+
+def _leg_ativas(d: dict) -> bool:
+    from .legendas import ativas
+    return ativas(d)
+
+
+def _leg_estilo(d: dict) -> dict:
+    """Estilo efetivo da legenda (padrão do app + padrão salvo + o do projeto), só o que o painel ajusta."""
+    from .legendas import EDITAVEIS, _cfg
+    from .fonts import marca
+    c = _cfg(d)
+    out = {k: c.get(k) for k in EDITAVEIS if c.get(k) is not None}
+    out.setdefault("fonte", marca("legenda"))
+    return out
+
+
+def fontes_legenda() -> list:
+    from .fonts import pasta_fontes
+    pasta = pasta_fontes()
+    nomes = sorted(p.name for p in pasta.glob("*.ttf")) if pasta.exists() else []
+    return [{"arquivo": n, "nome": re.sub(r"(?<=[a-z])(?=[A-Z])", " ", n.rsplit(".", 1)[0].split("[")[0])
+             .replace("-", " ").replace("_", " ")} for n in nomes]
+
+
+def previa_legenda(nome: str, t: float, estilo: dict, texto: str = "") -> bytes:
+    """Um quadro real do vídeo no instante t com a legenda no estilo pedido (prévia instantânea, sem render)."""
+    import io
+    from PIL import Image
+    from .config import cor
+    from .legendas import EDITAVEIS, aplicar_correcoes, camadas
+    pasta = _pasta(nome)
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    W, H = 1080, 1920
+    fundo = None
+    base = pasta / "trabalho" / "base.mov"
+    if base.exists():
+        try:
+            r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(0.0, t):.2f}", "-i", str(base), "-frames:v", "1",
+                                "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}",
+                                "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True, timeout=20)
+            if r.stdout:
+                fundo = Image.open(io.BytesIO(r.stdout)).convert("RGBA")
+        except (OSError, subprocess.SubprocessError):
+            fundo = None
+    if fundo is None:
+        fundo = Image.new("RGBA", (W, H), cor("fundo") + (255,))
+    leg = {**(d.get("legendas") if isinstance(d.get("legendas"), dict) else {}),
+           **{k: v for k, v in (estilo or {}).items() if k in EDITAVEIS}}
+    proj = {**d, "legendas": leg}
+    pal = []
+    arq = pasta / "trabalho" / "fala_base.json"
+    if arq.exists() and not texto:
+        try:
+            pal = aplicar_correcoes(json.loads(arq.read_text(encoding="utf-8")), d.get("correcoes"))
+        except ValueError:
+            pal = []
+    if not pal:
+        ws = (texto or "Sua legenda aparece aqui").split()
+        pal = [{"texto": w, "inicio": t + i * 0.3, "fim": t + i * 0.3 + 0.25} for i, w in enumerate(ws)]
+    cs, _ = camadas(proj, pal, W, H, 10 ** 6)
+    if cs:
+        import numpy as np
+        c = next((c for c in cs if c.t0 <= t < c.t1), None) or min(cs, key=lambda c: abs(c.t0 - t))
+        alfa = np.clip(c.alpha, 1e-6, 1)
+        rgba = np.concatenate([np.clip(c.rgb_p / alfa, 0, 255), c.alpha * 255], axis=2).astype("uint8")
+        fundo.alpha_composite(Image.fromarray(rgba, "RGBA"), (max(0, c.x), max(0, c.y)))
+    out = io.BytesIO()
+    fundo.convert("RGB").resize((540, 960)).save(out, "JPEG", quality=82)
+    return out.getvalue()
 
 
 def _blocos_legenda(pasta: Path, d: dict) -> list:
@@ -1174,6 +1245,11 @@ class Painel(BaseHTTPRequestHandler):
                                    for h in sortear(int(q.get("n", 3)), tema=q.get("tema"))])
             if u.path == "/arquivo":
                 return self._arquivo(_arquivo_do_projeto(_pasta(q["p"]), q["f"]))
+            if u.path == "/api/fontes_legenda":
+                return self._json(fontes_legenda())
+            if u.path == "/legenda.jpg":
+                return self._bytes(previa_legenda(q["p"], float(q.get("t", 0)), json.loads(q.get("estilo") or "{}"),
+                                                  q.get("texto", "")[:80]), "image/jpeg")
             if u.path == "/api/tira":
                 return self._arquivo(tira_miniaturas(q["p"], q["f"], int(q.get("n", 24))))
             return self._erro("não encontrado", 404)
@@ -1353,6 +1429,9 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json({"ok": True})
             if u.path == "/api/duplicar":
                 return self._json({"nome": duplicar(dados["p"])})
+            if u.path == "/api/legenda_padrao":
+                from .legendas import salvar_padrao
+                return self._json(salvar_padrao(dados.get("estilo") or {}))
             if u.path == "/api/excluir":
                 if _job_do_projeto(dados["p"]):
                     raise ValueError("espere a tarefa deste projeto terminar")

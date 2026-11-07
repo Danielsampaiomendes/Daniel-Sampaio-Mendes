@@ -631,3 +631,14 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 #lista li .lixo:hover { opacity: 1; }
 @media (hover: none) { #lista li .lixo { opacity: .55; } }
 .pp-alerta { border-left: 3px solid var(--erro); padding: 6px 10px; background: #e0866f15; border-radius: 6px; }
+
+/* estilo da legenda (posição, tamanho, fonte e cor, como no CapCut) */
+.le-grade { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 14px; align-items: start; }
+.le-previa img { width: 100%; aspect-ratio: 9 / 16; border-radius: 10px; background: #000; cursor: crosshair; display: block; }
+.le-campos label { display: block; margin-bottom: 8px; }
+.le-rotulo { font-size: .85em; opacity: .8; margin: 6px 0 4px; }
+.le-cores { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+.le-cor { width: 26px; height: 26px; min-width: 0; padding: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); }
+.le-cor.sel { border-color: var(--dourado, #CCBD91); box-shadow: 0 0 0 2px rgba(204,189,145,.45); }
+.le-cor-livre { width: 30px; height: 28px; padding: 0; border: none; background: none; }
+@media (max-width: 640px) { .le-grade { grid-template-columns: 1fr; } .le-previa img { max-width: 220px; margin: 0 auto; } }

@@ -6,10 +6,11 @@ Liga no projeto.yaml com `legendas: true` (ou um dicionário com ajustes, ver co
 """
 from __future__ import annotations
 
+import json
 import re
 
 from .compositor import Camada
-from .config import cor, load
+from .config import ROOT, cor, load
 from .corte import normalizar
 from .fonts import marca
 from .text import Estilo, render
@@ -19,8 +20,29 @@ CONECTIVOS = {"a", "o", "as", "os", "e", "de", "da", "do", "das", "dos", "em", "
               "uma", "que", "por", "para", "pra", "com", "se", "ao", "sua", "seu", "meu", "minha"}
 
 
+PADRAO = ROOT / "projetos" / ".legenda_padrao.json"      # estilo salvo no painel ("usar nos próximos vídeos")
+EDITAVEIS = ("posicao", "tamanho", "fonte", "cor", "cor_chave", "caixa", "glow", "caixa_alta", "max_palavras",
+             "palavra_a_palavra", "opacidade_outras")
+
+
+def estilo_padrao() -> dict:
+    try:
+        d = json.loads(PADRAO.read_text(encoding="utf-8"))
+        return {k: v for k, v in d.items() if k in EDITAVEIS}
+    except (OSError, ValueError):
+        return {}
+
+
+def salvar_padrao(estilo: dict) -> dict:
+    d = {k: v for k, v in (estilo or {}).items() if k in EDITAVEIS}
+    PADRAO.parent.mkdir(exist_ok=True)
+    PADRAO.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+    return d
+
+
 def _cfg(projeto: dict) -> dict:
     c = dict(load("preferencias").get("legendas", {}))
+    c.update(estilo_padrao())
     p = projeto.get("legendas")
     if isinstance(p, dict):
         c.update(p)

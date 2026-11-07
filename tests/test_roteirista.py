@@ -31,3 +31,14 @@ def test_aplicar_regras():
     assert novo["versoes"][0]["hook"]
     assert novo["roteiro_automatico"]["fonte"] == "regras"
     assert all(e.get("na_fala") for e in novo.get("efeitos") or [])
+
+
+def test_estilo_legenda_padrao_e_projeto(tmp_path, monkeypatch):
+    from divine_studio import legendas
+    monkeypatch.setattr(legendas, "PADRAO", tmp_path / "padrao.json")
+    legendas.salvar_padrao({"posicao": 0.3, "cor": "#F7D046", "lixo": 1})
+    c = legendas._cfg({"legendas": {"tamanho": 80, "ativo": True}})
+    assert c["posicao"] == 0.3 and c["cor"] == "#F7D046" and c["tamanho"] == 80 and "lixo" not in c
+    cs, _ = legendas.camadas({"legendas": {"fonte": "Anton-Regular.ttf", "caixa": True}},
+                             [{"texto": "Oi", "inicio": 0, "fim": 0.4}], 1080, 1920, 10)
+    assert cs and abs((cs[0].y + cs[0].h / 2) - 1920 * 0.3) < 4

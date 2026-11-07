@@ -195,6 +195,13 @@ Com `ANTHROPIC_API_KEY` quem escreve é o Claude; sem ela, regras do app sobre a
 faster-whisper) o painel mostra um alerta: o ⟳ Atualizar instala sozinho. O botão **✦ Pedir a edição ao Claude** copia o pedido
 para colar no Claude (app do Mac ou Cowork), do mesmo jeito que você edita no chat.
 
+## Estilo da legenda (como no CapCut)
+
+Aba Edição, botão **Aa Estilo legenda** (ou "Aa estilo da legenda" ao tocar numa legenda da faixa): posição, tamanho, fonte,
+cor do texto, cor da palavra-chave, fundo, brilho, CAIXA ALTA e palavras por vez. O quadro ao lado é a legenda real no ponto
+da agulha; toque nele para pôr a legenda ali. **Aplicar e salvar** grava no `projeto.yaml` (`legendas: {...}`);
+**Usar nos próximos vídeos** vira o padrão da edição automática.
+
 ## Storyboard (antes do render)
 
 `python3 -m divine_studio storyboard <pasta>` (ou o botão **▦ Storyboard** no projeto) monta a edição em quadros reais, por cena e momento, sem renderizar nada (segundos). Cada quadro é exatamente o que vai sair naquele instante. Responda na aba Storyboard ou com `--responder`:
