@@ -174,9 +174,7 @@ async function abrir(nome) {
   $$(".formatos input").forEach((c) => c.disabled = c.value === dados.formato);
   $("#yaml").value = dados.yaml;
   $("#yaml-erro").textContent = dados.erro_yaml;
-  $("#brutos").innerHTML = dados.brutos.map((b) => `<li><span>${esc(b.nome)}</span>${b.no_projeto
-      ? '<span class="no">no projeto</span>' : `<button class="link" data-clipe="${esc(b.nome)}">usar como clipe</button>`}</li>`).join("");
-  $$("[data-clipe]").forEach((b) => b.onclick = () => usarClipe(b.dataset.clipe));
+  desenharBrutos();
   $("#relatorio").innerHTML = md(dados.relatorio);
   $("#cortes").innerHTML = md(dados.cortes);
   $("#legenda").textContent = dados.legenda || "A legenda sai sozinha na primeira prévia (ou clique em Gerar).";
@@ -238,6 +236,54 @@ $("#form-regra").onsubmit = async (e) => {
   try { await api("/api/regra", { texto }); $("#regra").value = ""; alert("Regra registrada para os próximos vídeos."); }
   catch (err) { alert(err.message); }
 };
+
+// ---------------------------------------------------------------- vídeos brutos: assistir, usar, tirar, descartar
+function desenharBrutos() {
+  const seg = (d) => d ? `${Math.floor(d / 60)}:${String(Math.round(d % 60)).padStart(2, "0")}` : "";
+  $("#brutos").innerHTML = dados.brutos.map((b) => `<li class="bruto ${b.fora ? "fora" : ""}" data-nome="${esc(b.nome)}">
+      <video preload="metadata" controls playsinline src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent("bruto/" + b.nome)}#t=0.5"></video>
+      <div class="bruto-info"><b title="${esc(b.nome)}">${esc(b.nome)}</b><span class="dica">${seg(b.duracao)}</span>
+        <span class="estado ${b.fora ? "fora" : "dentro"}">${b.fora ? "fora da edição" : "na edição"}</span></div>
+      <div class="bruto-acoes">${b.fora ? '<button data-b="usar" class="dourado">✓ Usar na edição</button>'
+        : '<button data-b="tirar">Tirar da edição</button>'}<button class="link" data-b="descartar">descartar</button></div></li>`).join("");
+  $$("#brutos [data-b]").forEach((bt) => bt.onclick = async () => {
+    const nome = bt.closest("[data-nome]").dataset.nome, acao = bt.dataset.b;
+    if (acao === "descartar" && !confirm(`Descartar ${nome}?\nEle vai para a pasta _arquivo do projeto (nada é apagado).`)) return;
+    try { const r = await api("/api/bruto", { p: atual, nome, acao }); aviso(r.msg); abrir(atual); }
+    catch (err) { aviso(err.message, "erro"); }
+  });
+  desenharProximoPasso();
+}
+
+// o que fazer agora (guia passo a passo do projeto)
+function desenharProximoPasso() {
+  const caixa = $("#proximo-passo"); if (!caixa) return;
+  const dentro = dados.brutos.filter((b) => !b.fora).length;
+  const previas = dados.saidas.filter((s) => s.previa).length, finais = dados.saidas.filter((s) => !s.previa).length;
+  let h;
+  if (!dados.brutos.length) {
+    h = `<b>1. Solte os vídeos brutos</b> no quadro acima (ou clique nele para escolher). Pode soltar vários de uma vez.`;
+  } else if (!previas && !finais) {
+    h = `<b>2. Assista cada vídeo</b> (play no cartão) e toque em <i>Tirar da edição</i> no que não quer usar.
+      <b>Depois, crie a edição:</b> ${dentro} vídeo(s) vão entrar.
+      <label class="check"><input type="checkbox" id="pp-epico" ${dados.epico ? "checked" : ""}> ✦ Vídeo Épico (3D, vertigem, chicote, cor de cinema)</label>
+      <button class="dourado" id="pp-auto">✦ Criar edição automática (3 prévias)</button>
+      <span class="dica">Leva alguns minutos: o app corta, põe hooks, textos, efeitos e som e gera as 3 versões.</span>`;
+  } else if (!finais) {
+    h = `<b>3. Veja as 3 prévias</b> na aba <a href="#" data-aba-link="versoes">Versões</a> e escolha a melhor.
+      Quer mudar algo? Use a aba <a href="#" data-aba-link="edicao">Edição</a> (efeitos, textos, linha do tempo) ou peça no
+      <a href="#" data-aba-link="storyboard">Storyboard</a> ("4B: troca o título por ...").
+      <b>4. Gostou?</b> Na aba Versões marque a melhor e toque em <i>Aprovar e exportar</i>.`;
+  } else {
+    h = `<b>Pronto!</b> A final está na aba <a href="#" data-aba-link="versoes">Versões</a> e em <i>Programação</i>, para postar ou agendar.`;
+  }
+  caixa.innerHTML = h;
+  const ep = $("#pp-epico");
+  if (ep) ep.onchange = () => api("/api/dados", { p: atual, dados: { ritmo: ep.checked ? "epico" : "viral", epico: null } })
+    .then(() => { dados.epico = ep.checked; aviso(ep.checked ? "Vídeo Épico ligado" : "Padrão viral luxo"); });
+  const au = $("#pp-auto"); if (au) au.onclick = () => rodar("auto");
+  $$("#proximo-passo [data-aba-link]").forEach((a) => a.onclick = (e) => { e.preventDefault(); $(`[data-aba="${a.dataset.abaLink}"]`).click(); });
+}
 
 // ---------------------------------------------------------------- envio dos brutos
 

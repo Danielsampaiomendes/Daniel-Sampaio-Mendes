@@ -609,3 +609,17 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
   .cc-ferramentas button { min-width: 62px; font-size: 11px; }
 }
 .cc-faixa.texto .tl-marca.hookb { background: #ccbd91; color: var(--fundo); font-weight: 600; cursor: pointer; }
+
+/* ---------------------------------------------------------------- vídeos brutos com player e próximo passo */
+.brutos { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.brutos li.bruto { display: grid; gap: 6px; background: var(--fundo); border: 1px solid var(--linha); border-radius: 12px; padding: 8px; }
+.brutos li.bruto video { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; background: #000; }
+.brutos li.bruto.fora { opacity: .55; }
+.bruto-info { display: grid; gap: 2px; font-size: 12px; }
+.bruto-info b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bruto-info .estado { font-size: 11px; color: var(--dourado); } .bruto-info .estado.fora { color: var(--apagado); }
+.bruto-acoes { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.bruto-acoes button { font-size: 12px; padding: 4px 8px; }
+.proximo-passo { margin-top: 12px; padding: 14px; border: 1px solid var(--dourado2); border-radius: 12px; background: #ccbd9110; display: grid; gap: 8px; line-height: 1.5; }
+.proximo-passo a { color: var(--dourado); }
+.proximo-passo button.dourado { justify-self: start; }

@@ -129,6 +129,18 @@ Saída de cada projeto:
 - `relatorio.md`: hook, código do banco, fontes, SFX, duração, tamanho e a linha de compliance de cada versão
 - `trabalho/V1_quadros.jpg`: folha de contato para conferir rápido
 
+## Primeiro vídeo (passo a passo)
+
+1. **Nova edição** (menu de cima) > **✦ Vídeo Épico** (ou **Vídeo (Reels)**). Escreva o tema e toque em **Criar**.
+2. Na aba **Projeto**, **solte os vídeos brutos** no quadro "Solte os vídeos aqui".
+3. Cada vídeo vira um cartão com player: **dê play** e toque em **Tirar da edição** no que não quer usar. **Descartar** guarda o arquivo em `_arquivo/bruto` (nada é apagado).
+4. No quadro **Próximo passo** (logo abaixo), confira **✦ Vídeo Épico** e toque em **✦ Criar edição automática (3 prévias)**. O app monta tudo e gera as 3 versões em alguns minutos (o andamento aparece na barra de tarefa).
+5. Aba **Versões**: assista às 3 prévias.
+6. Para mudar alguma coisa, você tem dois caminhos:
+   - aba **Edição**, na linha do tempo: arraste para percorrer, dois cliques para pôr efeito, texto ou som;
+   - **▦ Storyboard**: responda "4B: troca o título por ...".
+7. Gostou? Em **Versões**, aprove a melhor e exporte a final. Ela vai para **Programação**, para postar ou agendar.
+
 ## Laboratório viral (aprender e testar formatos)
 
 Menu **🧪 Laboratório viral**. A ideia: cada Reels é um teste de formato; o app mede, compara e decide o próximo.

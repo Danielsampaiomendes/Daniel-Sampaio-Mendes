@@ -124,7 +124,9 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
     from .pacote import recortar_miolo
     cfg = load("roteiros")
     pasta = projeto["_pasta"]
-    brutos = sorted(f for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO and not f.name.startswith("."))
+    fora = set(projeto.get("brutos_fora") or [])                   # os que você tirou da edição no painel
+    brutos = sorted(f for f in (pasta / "bruto").glob("*") if f.suffix.lower() in VIDEO and not f.name.startswith(".")
+                    and f.name not in fora)
     if not brutos:
         raise SystemExit("Nenhum vídeo em bruto/. Solte os vídeos no painel (ou copie para a pasta bruto/).")
     titulo = projeto.get("titulo") or pasta.name

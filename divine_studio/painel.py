@@ -415,7 +415,9 @@ def detalhe(nome: str) -> dict:
             "template": d.get("template", "divine"), "formato": d.get("formato", "reels"),
             "autorizacao_imagem": d.get("autorizacao_imagem", "pendente"),
             "versoes": [v.get("nome") for v in d.get("versoes") or []],
-            "brutos": [{"nome": b, "no_projeto": b in usados} for b in brutos], "saidas": saidas,
+            "brutos": [{"nome": b, "no_projeto": b in usados, "fora": b in (d.get("brutos_fora") or []),
+                        "duracao": _duracao_arquivo(pasta / "bruto" / b)} for b in brutos], "saidas": saidas,
+            "ritmo": d.get("ritmo"), "epico": d.get("ritmo") == "epico" or bool(d.get("epico")),
             "storyboard": bool(list((pasta / "trabalho").glob("storyboard_*.json"))) if (pasta / "trabalho").exists() else False,
             "storyboard_aprovado": (pasta / "trabalho" / "storyboard_aprovado.json").exists(),
             "fotos": sorted(f.name for f in (pasta / "bruto").glob("*") if f.suffix.lower() in
@@ -474,7 +476,7 @@ def _estilos_edicao() -> list:
     return estilos.lista()
 
 
-CAMPOS_EDITAVEIS = {"correcoes", "estilo_edicao", "efeitos_evitar", "formato_viral", "titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
+CAMPOS_EDITAVEIS = {"brutos_fora", "correcoes", "estilo_edicao", "efeitos_evitar", "formato_viral", "titulo", "template", "formato", "autorizacao_imagem", "selo", "cta_antecipado", "mensagens",
                     "fechamento", "versoes", "efeitos", "legendas", "corte_limpo", "posicao_texto", "legenda", "tv",
                     "tags", "formatos", "objetivo", "cards", "estilo", "fontes", "formula", "sons",
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
@@ -519,6 +521,42 @@ def dados_projeto(nome: str) -> dict:
             "corte_limpo": bool(d.get("corte_limpo")),
             "fechamento_s": float(load("preferencias")["fechamento"]["duracao_s"]),
             "intervalo_efeitos": float(load("efeitos").get("intervalo_minimo_s", 1.5))}
+
+
+def acao_bruto(nome: str, arquivo: str, acao: str) -> dict:
+    """Vídeo bruto: 'usar' na edição, 'tirar' da edição (fica na pasta) ou 'descartar' (vai para _arquivo/ do projeto)."""
+    import shutil as _sh
+    pasta = _pasta(nome)
+    arq = Path(arquivo).name
+    f = pasta / "bruto" / arq
+    if not f.exists():
+        raise ValueError("vídeo bruto não encontrado")
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    fora = [x for x in d.get("brutos_fora") or [] if x != arq]
+    clipes = [c for c in d.get("clipes") or [] if isinstance(c, dict)]
+    sem_ele = [c for c in clipes if str(c.get("arquivo", "")).split("/")[-1] != arq]
+    if acao == "usar":
+        novos = {"brutos_fora": fora}
+        reais = [c for c in clipes if c.get("arquivo") != "bruto/IMG_0001.MOV"]
+        if reais and len(sem_ele) == len(clipes):                  # edição já montada: entra no fim
+            novos["clipes"] = reais + [{"arquivo": f"bruto/{arq}", "foco": [0.5, 0.4]}]
+        salvar_dados(nome, novos)
+        return {"ok": True, "msg": "Vídeo na edição."}
+    if acao == "tirar":
+        salvar_dados(nome, {"brutos_fora": fora + [arq], "clipes": sem_ele})
+        return {"ok": True, "msg": "Fora da edição (o arquivo continua em bruto/)."}
+    if acao == "descartar":
+        destino = pasta / "_arquivo" / "bruto"
+        destino.mkdir(parents=True, exist_ok=True)
+        alvo = destino / arq
+        k = 2
+        while alvo.exists():
+            alvo = destino / f"{f.stem}-{k}{f.suffix}"
+            k += 1
+        _sh.move(str(f), str(alvo))
+        salvar_dados(nome, {"brutos_fora": fora, "clipes": sem_ele})
+        return {"ok": True, "msg": f"Guardado em {alvo.relative_to(pasta)} (nada foi apagado)."}
+    raise ValueError("ação desconhecida")
 
 
 def _blocos_legenda(pasta: Path, d: dict) -> list:
@@ -1304,6 +1342,8 @@ class Painel(BaseHTTPRequestHandler):
                     refs = list(d.get("clipes_referencia") or []) + refs
                 salvar_dados(dados["p"], {"clipes_referencia": refs})
                 return self._json({"ok": True})
+            if u.path == "/api/bruto":                 # usar / tirar da edição / descartar (vai para _arquivo/)
+                return self._json(acao_bruto(dados["p"], dados["nome"], dados["acao"]))
             if u.path == "/api/clipe":
                 pasta = _pasta(dados["p"])
                 texto = (pasta / "projeto.yaml").read_text(encoding="utf-8")
