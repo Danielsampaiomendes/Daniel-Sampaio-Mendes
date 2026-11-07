@@ -71,6 +71,7 @@ let tagFiltro = "", tipoFiltro = "";
 const CATEGORIAS = { video: "Vídeos", stories: "Stories", carrossel: "Carrosséis", post: "Posts", tv: "TV", antes_depois: "Antes e depois" };
 async function carregarLista() {
   const lista = await api("/api/projetos");
+  window._listaProjetos = lista;
   const filtro = $("#filtro").value.toLowerCase();
   const todas = [...new Set(lista.flatMap((p) => p.tags))].sort();
   $("#filtro-tags").innerHTML = todas.map((t) => `<button class="chip ${t === tagFiltro ? "ativo" : ""}" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
@@ -87,8 +88,10 @@ async function carregarLista() {
         <div class="t">${p.epico ? '<span class="epico">✦</span> ' : ""}${esc(p.titulo)}${p.conta && p.conta !== "dvmedicalspa" ? ` <span class="perfil">@${esc(p.conta)}</span>` : ""}${p.aprovado ? '<span class="selo">aprovado</span>' : ""}</div>
         <div class="m">${({ carrossel: "carrossel", post: "post", antes_depois: "antes e depois · uso interno", stories: "stories · " + esc(p.template), tv: "TV" })[p.categoria] || esc(p.template)} · ${p.brutos} bruto(s) · ${p.previas} prévia(s) · ${p.finais} final(is)</div>
         ${p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
+        <button class="lixo" data-excluir title="Excluir (vai para a Lixeira do Mac)">🗑</button>
       </li>`).join("") || '<li class="m">Nenhum projeto ainda.</li>';
   $$("#lista li[data-nome]").forEach((li) => li.onclick = () => abrir(li.dataset.nome));
+  $$("#lista [data-excluir]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); excluirProjeto(b.closest("li").dataset.nome); });
 }
 
 $("#filtro").oninput = carregarLista;
@@ -542,6 +545,18 @@ $("#b-duplicar").onclick = async () => {
   try { const r = await api("/api/duplicar", { p: atual }); await carregarLista(); abrir(r.nome); }
   catch (err) { alert(err.message); }
 };
+async function excluirProjeto(nome) {
+  const p = (window._listaProjetos || []).find((x) => x.nome === nome) || {};
+  if (!confirm(`Excluir "${p.titulo || nome}"?\nVai para a Lixeira do Mac (dá para recuperar até você esvaziar a Lixeira).`)) return;
+  try {
+    const r = await api("/api/excluir", { p: nome });
+    if (atual === nome) { atual = null; history.replaceState(null, "", "#"); document.body.classList.remove("projeto-aberto"); mostrarTela("projetos"); }
+    await carregarLista();
+    aviso(`Excluído: foi para a ${r.destino}.`);
+  } catch (err) { aviso(err.message, "erro"); }
+}
+$("#b-excluir").onclick = () => excluirProjeto(atual);
+
 $("#b-arquivar").onclick = async () => {
   if (!confirm("Excluir este projeto da lista?\nPor segurança ele não é apagado: vai para a pasta _arquivo/projetos/ (dá para recuperar).")) return;
   try {

@@ -625,3 +625,8 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .proximo-passo button.dourado { justify-self: start; }
 .versao-app { color: var(--apagado); font-size: 11px; }
 .renomeavel { cursor: pointer; } .renomeavel:hover::after { content: " ✎"; font-size: .6em; color: var(--dourado); }
+#lista li { position: relative; }
+#lista li .lixo { position: absolute; top: 8px; right: 8px; background: none; border: 0; padding: 2px 6px; font-size: 14px; opacity: 0; transition: opacity .15s; }
+#lista li:hover .lixo, #lista li.ativo .lixo { opacity: .7; }
+#lista li .lixo:hover { opacity: 1; }
+@media (hover: none) { #lista li .lixo { opacity: .55; } }

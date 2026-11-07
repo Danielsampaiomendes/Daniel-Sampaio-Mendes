@@ -247,6 +247,23 @@ def arquivar(nome: str) -> str:
     return str(destino.relative_to(ROOT))
 
 
+def excluir(nome: str) -> str:
+    """Excluir de verdade (projeto sem sentido): vai para a Lixeira do Mac (recupera até esvaziar).
+    Sem Lixeira (outro sistema), cai em _arquivo/projetos."""
+    import shutil as _sh
+    pasta = _pasta(nome)
+    lixeira = Path.home() / ".Trash"
+    if not lixeira.is_dir():
+        return arquivar(nome)
+    destino = lixeira / f"Divine Studio - {pasta.name}"
+    k = 2
+    while destino.exists():
+        destino = lixeira / f"Divine Studio - {pasta.name} {k}"
+        k += 1
+    _sh.move(str(pasta), destino)
+    return "Lixeira do Mac"
+
+
 def videos() -> list:
     """Biblioteca de vídeos: todo vídeo gerado ou importado, de todos os projetos, com o estado de cada um."""
     out = []
@@ -1324,6 +1341,10 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json({"ok": True})
             if u.path == "/api/duplicar":
                 return self._json({"nome": duplicar(dados["p"])})
+            if u.path == "/api/excluir":
+                if _job_do_projeto(dados["p"]):
+                    raise ValueError("espere a tarefa deste projeto terminar")
+                return self._json({"destino": excluir(dados["p"])})
             if u.path == "/api/arquivar":
                 if _job_do_projeto(dados["p"]):
                     raise ValueError("espere a tarefa deste projeto terminar")

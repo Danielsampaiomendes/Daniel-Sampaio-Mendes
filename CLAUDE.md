@@ -54,5 +54,5 @@ Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 
 - Um ajuste pedido em um vídeo vira regra para os próximos: registre em `docs/CONHECIMENTO_DIVINE.md` (seção "Regras aprendidas", com data).
 - Hook novo criado: acrescente em `docs/BANCO_HOOKS.md` com o próximo número livre e atualize o histórico de fontes e SFX.
 - Projeto novo: acrescente uma linha em `docs/MAPA_DO_REPOSITORIO.md`.
-- Não apagar nada: o que for descartado vai para `_arquivo/`.
+- Não apagar nada: o que for descartado vai para `_arquivo/`. Exceção pedida pelo Renato (07/11/2026): "🗑 Excluir projeto" no painel manda o projeto para a Lixeira do Mac (recuperável até esvaziar); "Arquivar" continua guardando em `_arquivo/projetos`.
 - Perguntar o mínimo: deduzir pelo repositório e entregar resultado.
