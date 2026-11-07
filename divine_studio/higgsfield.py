@@ -206,4 +206,6 @@ def instrucao_claude(ids: list | None = None) -> str:
         f"Fila: projetos/.higgsfield_fila.json ({len(pend)} pendente(s)):\n" + "\n".join(linhas or ["- (nenhum)"]) +
         f"\nTeto: até {orcamento()['por_video']:.0f} créditos por vídeo e {orcamento()['resta_semana']:.0f} restantes nesta semana. "
         "Antes de gerar, me mostre o custo em créditos de cada um e espere o meu ok. Quando ficar pronto, rode "
-        "`python3 -m divine_studio higgsfield pronto <id> <arquivo ou link>` para o resultado entrar no projeto.")
+        "`python3 -m divine_studio higgsfield pronto <id> <arquivo ou link>` para o resultado entrar no projeto. "
+        "Virality Predictor (análise, sem arquivo de volta): rode `python3 -m divine_studio higgsfield analise <id> "
+        "\"<nota, gancho, retenção, risco de queda e o que trocar>\"` para virar sugestão no projeto.")

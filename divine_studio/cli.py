@@ -330,6 +330,14 @@ def cmd_editar(a):
         voz, modo_voz = _voz_limpa(p, voz, base, trabalho)
     pendente = str(p.get("autorizacao_imagem", "pendente")).lower() not in ("sim", "nao_aparece", "proprio")
     resultado = []
+    plano = None
+    # prévias: cada versão num processo (usa os núcleos do Mac; 4 versões saem quase no tempo de 2)
+    import os as _os
+    filho = _os.environ.get("DIVINE_FILHO") == "1"
+    n_par = min(len(idx), max(1, (_os.cpu_count() or 2) // 2))
+    if a.rapido and not so_storyboard and not filho and n_par > 1:
+        resultado = _render_paralelo(pasta, [versoes[i].get("nome", f"V{i + 1}") for i in idx], n_par, trabalho)
+        idx = []
     for i in idx:
         v = versoes[i]
         nome = v.get("nome", f"V{i + 1}")
@@ -406,6 +414,11 @@ def cmd_editar(a):
     if so_storyboard:
         print(f"Storyboard pronto em {time.time() - t_ini:.0f}s. Responda 'aprovado' ou 'código: o que mudar'.")
         return
+    if filho:                                   # processo de uma versão: o principal junta tudo e faz o relatório
+        for r in resultado:
+            (trabalho / f"resultado_{r['nome']}.json").write_text(json.dumps(r, ensure_ascii=False, default=str),
+                                                                    encoding="utf-8")
+        return
     if p.get("legenda"):
         (saida / "legenda.txt").write_text(p["legenda"].strip() + "\n", encoding="utf-8")
     extras = [f"Voz: limpeza {modo_voz}"]
@@ -413,7 +426,7 @@ def cmd_editar(a):
         extras.append("Corte limpo: ver `trabalho/cortes.md`")
     if p.get("_fala"):
         extras.append(f"Fala transcrita: {len(p['_fala'])} palavras"
-                      + (" · legenda sincronizada na tela" if any(c.nome.startswith("legenda") for c in plano.camadas)
+                      + (" · legenda sincronizada na tela" if plano is None or any(c.nome.startswith("legenda") for c in plano.camadas)
                          else ""))
     _relatorio(p, resultado, linha_checklist(p, ach), ach, time.time() - t_ini, extras)
     if not a.teste and not a.rapido:
@@ -426,6 +439,47 @@ def cmd_editar(a):
     print(f"Pronto em {time.time() - t_ini:.0f}s. Relatório: {(pasta / 'relatorio.md').relative_to(ROOT)}")
 
 
+def _render_paralelo(pasta: Path, nomes: list, n_par: int, trabalho: Path) -> list:
+    """Renderiza as prévias em paralelo (um processo por versão) e devolve o resultado de cada uma, na ordem."""
+    import os
+    import subprocess
+    import threading
+    print(f"• Renderizando {len(nomes)} versões em paralelo ({n_par} de cada vez)…", flush=True)
+    for n in nomes:
+        (trabalho / f"resultado_{n}.json").unlink(missing_ok=True)
+    env = {**os.environ, "DIVINE_FILHO": "1", "PYTHONUNBUFFERED": "1"}
+    fila, trava, falhas = list(nomes), threading.Lock(), []
+
+    def trabalhar():
+        while True:
+            with trava:
+                if not fila:
+                    return
+                n = fila.pop(0)
+            proc = subprocess.Popen([sys.executable, "-u", "-m", "divine_studio", "editar", str(pasta), "--rapido",
+                                     "--versoes", n], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+            for linha in proc.stdout:
+                ln = linha.rstrip()
+                if ln.startswith(("  ✓", "• " + n, "  aviso", "  [", "  estilo", "  ritmo")) or "Erro" in ln or "erro" in ln:
+                    print(f"  [{n}] {ln.strip()}", flush=True)
+            if proc.wait() != 0:
+                falhas.append(n)
+
+    ts = [threading.Thread(target=trabalhar) for _ in range(n_par)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    if falhas:
+        raise SystemExit(f"A prévia de {', '.join(falhas)} parou com erro (veja o log acima).")
+    out = []
+    for n in nomes:
+        arq = trabalho / f"resultado_{n}.json"
+        if arq.exists():
+            out.append(json.loads(arq.read_text(encoding="utf-8")))
+    return out
+
+
 def cmd_higgsfield(a):
     from . import higgsfield as hf
     if a.acao == "fila":
@@ -433,6 +487,11 @@ def cmd_higgsfield(a):
             print(f"  {x['id']}  {x['status']:<9} {x['nome']:<22} {x['projeto']}  {x['entrada'].get('arquivo', '')}")
     elif a.acao == "instrucao":
         print(hf.instrucao_claude())
+    elif a.acao == "analise":                 # Virality Predictor: a leitura (texto) vira sugestão no projeto
+        if not (a.id and a.valor):
+            raise SystemExit('Use: higgsfield analise <id> "<o que o Virality Predictor disse>"')
+        r = hf.atualizar(a.id, status="pronto", analise=a.valor, **({"creditos": a.creditos} if a.creditos else {}))
+        print(f"✓ análise guardada em {r['projeto']} (aparece em Sugestões para a próxima)")
     elif a.acao == "pronto":
         if not (a.id and a.valor):
             raise SystemExit("Use: higgsfield pronto <id> <arquivo ou link>")
@@ -808,6 +867,7 @@ def cmd_auto(a):
     except Exception as e:
         print(f"  aviso: laboratório de formatos indisponível ({e})")
     chave, _ = auto.tema(novo.get("titulo", ""))
+    (p["_pasta"] / "trabalho" / "versao_ia.json").unlink(missing_ok=True)   # edição nova: a aposta IA é refeita
     arq = auto.salvar(p, novo)
     print(f"• Tema reconhecido: {chave} · template {novo['template']} · {len(novo['clipes'])} clipe(s) · "
           f"{len(novo['mensagens'])} mensagem(ns) · {len(novo['versoes'])} versão(ões)")
@@ -946,7 +1006,7 @@ def main(argv=None):
     s.add_argument("--arquivo", help="arquivo com o resultado colado (para 'colar')")
     s.set_defaults(f=cmd_radar)
     s = sub.add_parser("higgsfield", help="fila de pedidos do Higgsfield (o Claude executa com o conector)")
-    s.add_argument("acao", choices=["fila", "instrucao", "pronto", "status"])
+    s.add_argument("acao", choices=["fila", "instrucao", "pronto", "status", "analise"])
     s.add_argument("id", nargs="?")
     s.add_argument("valor", nargs="?", help="pronto: arquivo ou link do resultado · status: pendente|gerando|erro|cancelado")
     s.add_argument("--job", default="")

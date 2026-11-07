@@ -77,15 +77,33 @@ def _destacar(frase: str) -> str:
     if not ws:
         return frase
     n_dest = 2 if len(ws) >= 5 else 1
-    corpo, dest = ws[:-n_dest], ws[-n_dest:]
-    if len(ws) >= 6:
-        from .corte import normalizar
-        from .legendas import CONECTIVOS
-        meio = len(corpo) // 2 + (1 if len(corpo) % 2 else 0)
-        while meio > 1 and normalizar(corpo[meio - 1]) in CONECTIVOS:
-            meio -= 1         # a linha de cima não termina em "o", "de", "que"
-        corpo = corpo[:meio] + ["/"] + corpo[meio:]
-    titulo = " ".join(corpo + [f"*{' '.join(dest)}*"])
+    from .corte import normalizar
+    from .legendas import CONECTIVOS
+    # linhas equilibradas de até ~17 letras: nenhuma palavra fica sozinha numa linha e nenhuma linha termina
+    # em "a", "de", "que" (a quebra automática do texto deixava "gordura" sozinha)
+    total = len(" ".join(ws))
+    n_linhas = max(1, min(4, -(-total // 17))) if len(ws) >= 4 else 1
+    alvo = total / n_linhas
+    linhas, atual = [], []
+    for i, w in enumerate(ws):
+        atual.append(w)
+        resta = len(ws) - i - 1
+        if len(linhas) < n_linhas - 1 and len(" ".join(atual)) >= alvo - 3 and resta >= 2:
+            while len(atual) > 1 and normalizar(atual[-1]) in CONECTIVOS:
+                atual.pop()
+            linhas.append(atual)
+            atual = ws[sum(len(x) for x in linhas):i + 1]
+    linhas.append(atual)
+    marcadas = []
+    corte_dest = len(ws) - n_dest
+    k = 0
+    for ln in linhas:
+        out = []
+        for w in ln:
+            out.append(f"*{w}" if k == corte_dest else w)
+            k += 1
+        marcadas.append(" ".join(out))
+    titulo = " / ".join(marcadas) + "*"
     return titulo[0].upper() + titulo[1:]
 
 

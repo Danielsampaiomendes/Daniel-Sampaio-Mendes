@@ -1245,6 +1245,9 @@ class Painel(BaseHTTPRequestHandler):
                                    for h in sortear(int(q.get("n", 3)), tema=q.get("tema"))])
             if u.path == "/arquivo":
                 return self._arquivo(_arquivo_do_projeto(_pasta(q["p"]), q["f"]))
+            if u.path == "/api/sugestoes":
+                from . import sugestoes
+                return self._json(sugestoes.gerar(_pasta(q["p"]), q["p"]))
             if u.path == "/api/fontes_legenda":
                 return self._json(fontes_legenda())
             if u.path == "/legenda.jpg":
@@ -1557,6 +1560,21 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/referencias/incorporar":
                 from . import referencias
                 return self._json(referencias.incorporar(dados["nome"]))
+            if u.path == "/api/aprovar":             # um toque: aprova a versão (o app aprende) e exporta a final
+                from . import aprendizado
+                if _job_do_projeto(dados["p"]):
+                    raise ValueError("espere a tarefa deste projeto terminar")
+                pasta_ap = _pasta(dados["p"])
+                aprendizado.marcar(pasta_ap, dados["versao"], dados.get("arquivo"), gostei=True, validado=True,
+                                   status="aprovado")
+                return self._json({"job": iniciar(dados["p"], "final", [dados["versao"]])})
+            if u.path == "/api/sugestoes/ia":
+                from . import sugestoes
+                return self._json({"sugestoes": sugestoes.com_ia(_pasta(dados["p"]))})
+            if u.path == "/api/sugestoes/higgsfield":
+                from . import higgsfield as hf, sugestoes
+                ped = sugestoes.pedir_higgsfield(dados["p"], _pasta(dados["p"]), dados["arquivo"])
+                return self._json({"pedido": ped, "instrucao": hf.instrucao_claude([ped["id"]])})
             if u.path == "/api/publicacao":
                 from . import aprendizado
                 campos = {k: v for k, v in (dados.get("campos") or {}).items()

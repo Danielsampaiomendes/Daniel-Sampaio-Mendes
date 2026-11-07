@@ -2,14 +2,32 @@
 
 Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 3 versões prontas para postar, aplicando sozinha a marca, o template suave/glamour, o rodízio de fontes e SFX, a trilha original e o revisor de compliance.
 
+## Começar a usar (modo simples, 07/11/2026)
+
+1. Dois cliques em `Divine Studio.command`. Na primeira vez depois desta atualização ele prepara o Python próprio do app
+   (Python 3.12 em `.venv`, porque o Python do Xcode é antigo) e instala a transcrição: leva alguns minutos. Se aparecer
+   aviso, feche e abra de novo.
+2. Tela inicial: **solte o vídeo bruto** no quadro (escreva o tema se quiser). O app cria o projeto, envia, transcreve,
+   corta, escreve hooks e textos pela sua fala, põe legenda e gera as versões V1, V2, V3 e IA (a aposta do app).
+3. No projeto, assista e toque em **✓ Aprovar esta** na melhor. O app exporta a final e guarda o que você gostou
+   (fontes, hook, sons, duração): as próximas edições e a versão IA puxam para isso.
+4. **Postar**: Baixar o vídeo, Copiar a legenda do post, ✓ Já postei (com o link, o app aprende com as visualizações).
+5. **💡 Para a próxima ficar ainda melhor**: o que regravar ou trocar na fala (abertura lenta, apresentação antes do
+   assunto, sem pedido no final), o que cortar e o que já funcionou com você. **✦ Pedir mais ideias ao Claude** (com a
+   chave da API) e **🔮 Análise de viralidade (Higgsfield)**: copia o pedido para colar no Claude, que roda o Virality
+   Predictor e devolve a leitura para o projeto.
+
+Ajustes finos: aba **Ajustar** (linha do tempo, textos, **Aa Estilo legenda**). Laboratório, Radar, Crescimento, IA,
+Referências, Imagens, TV, Storyboard e o projeto.yaml continuam no app, em **⋯ Mais ferramentas** (topo).
+
+Prévias em paralelo: cada versão renderiza num processo (metade dos núcleos do Mac), então as 4 saem perto do tempo de 2.
+
 ## Instalação no Mac (uma vez)
 
 ```bash
 cd "~/Documents/Claude/Projects/Divine Medical Spa Marketing"
 brew install ffmpeg                       # se ainda não tiver
-pip3 install -r requirements.txt
-bash Biblioteca_Fontes/baixar_fontes.sh   # 33 fontes
-pip3 install faster-whisper               # transcrição local (corte limpo e legenda da fala)
+# o Divine Studio.command faz tudo sozinho (Python 3.12 em .venv, bibliotecas, transcrição e 86 fontes)
 python3 -m divine_studio verificar        # confere tudo
 ```
 

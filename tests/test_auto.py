@@ -27,7 +27,13 @@ def test_roteiros_passam_no_revisor():
 
 
 def test_destaque_e_quebra_sem_conectivo():
-    assert auto._destacar("Ele estimula o colágeno no seu tempo.") == "Ele estimula / o colágeno no *seu tempo*"
+    t = auto._destacar("Ele estimula o colágeno no seu tempo.")
+    assert t.endswith("*seu tempo*")
+    linhas = [x.replace("*", "").strip() for x in t.split(" / ")]
+    assert len(linhas) >= 2 and all(len(x) <= 20 for x in linhas)
+    assert not any(x.split()[-1].lower() in ("o", "a", "de", "que", "no") for x in linhas[:-1])
+    t = auto._destacar("Você sabia que a gordura nos braços não sai só com treino?")
+    assert all(len(x.replace("*", "").strip()) <= 22 for x in t.split(" / "))
     assert auto._destacar("A pele responde.") == "A pele *responde*"
 
 

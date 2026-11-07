@@ -21,17 +21,18 @@
   <div class="sub">edição de vídeo · Divine Medical Spa <span id="versao-app" class="versao-app"></span></div>
   <nav class="menu">
     <button data-tela="inicio" class="ativa"><i>⌂</i>Início</button>
-    <button data-tela="nova" class="m-nova"><i>＋</i>Nova edição</button>
-    <button data-tela="projetos"><i>▤</i>Projetos</button>
-    <button data-tela="galeria"><i>▶</i>Vídeos</button>
-    <button data-tela="lab"><i>🧪</i>Laboratório viral</button>
-    <button data-tela="crescimento"><i>↗</i>Crescimento</button>
-    <button data-tela="programacao"><i>◷</i>Programação</button>
-    <button data-tela="ia"><i>✦</i>Ideias e IA</button>
-    <button data-tela="referencias"><i>◎</i>Referências</button>
-    <button data-tela="biblioteca"><i>▣</i>Imagens</button>
-    <button id="b-tv" title="Divine TV: os vídeos da TV passando em loop (abre em outra aba)"><i>📺</i>TV</button>
-    <button id="b-celular" title="Abrir no iPhone"><i>📱</i>iPhone</button>
+    <button data-tela="nova" class="m-nova"><i>＋</i>Novo vídeo</button>
+    <button data-tela="projetos"><i>▤</i>Meus vídeos</button>
+    <button data-tela="galeria" class="so-avancado"><i>▶</i>Vídeos</button>
+    <button data-tela="lab" class="so-avancado"><i>🧪</i>Laboratório viral</button>
+    <button data-tela="crescimento" class="so-avancado"><i>↗</i>Crescimento</button>
+    <button data-tela="programacao"><i>◷</i>Postar</button>
+    <button data-tela="ia" class="so-avancado"><i>✦</i>Ideias e IA</button>
+    <button data-tela="referencias" class="so-avancado"><i>◎</i>Referências</button>
+    <button data-tela="biblioteca" class="so-avancado"><i>▣</i>Imagens</button>
+    <button id="b-tv" class="so-avancado" title="Divine TV: os vídeos da TV passando em loop (abre em outra aba)"><i>📺</i>TV</button>
+    <button id="b-celular" class="so-avancado" title="Abrir no iPhone"><i>📱</i>iPhone</button>
+    <button id="b-modo" title="Mostrar ou esconder as ferramentas avançadas (Laboratório, Radar, IA, TV...)"><i>⋯</i><span>Mais ferramentas</span></button>
     <button id="b-atualizar" title="Baixar a versão nova do GitHub e reiniciar o app"><i>⟳</i>Atualizar</button>
   </nav>
 </header>
@@ -52,7 +53,17 @@
         <div><h1 id="ini-ola">Olá, Renato</h1>
           <p class="pasta">O que vamos criar hoje? Escolha o tipo, solte os vídeos e o app monta as 3 versões.</p></div>
       </div>
-      <div class="atalhos" id="ini-atalhos"></div>
+      <div class="cartao ini-rapido" id="ini-rapido">
+        <label class="ini-soltar" id="ini-soltar">
+          <strong>⬆ Solte aqui o vídeo bruto</strong>
+          <span>ou toque para escolher (.mov, .mp4). Pode ser mais de um. O app corta, escreve os textos pela sua fala, põe legenda e entrega 3 versões.</span>
+          <input type="file" id="ini-arquivos" multiple accept="video/*" hidden>
+        </label>
+        <div class="linha ini-opcoes"><input id="ini-tema" placeholder="Sobre o que é o vídeo? (opcional, ex.: Endolaser nos braços)" autocomplete="off">
+          <label class="check"><input type="checkbox" id="ini-epico"> ✦ Vídeo Épico</label></div>
+        <div id="ini-envio" class="dica"></div>
+      </div>
+      <div class="atalhos so-avancado" id="ini-atalhos"></div>
       <div class="ini-grade">
         <div class="cartao"><div class="linha-titulo"><h2>Continuar de onde parou</h2><button class="link" data-ir="projetos">ver todos</button></div>
           <div id="ini-recentes" class="ini-recentes"></div></div>
@@ -72,8 +83,9 @@
       <div class="cabecalho"><div><h1>Nova edição</h1>
         <div class="pasta">Escolha o tipo, escreva o tema e pronto: o projeto já nasce no formato certo, com o padrão viral luxo.</div></div></div>
       <div class="tipos-edicao" id="tipos-edicao"></div>
-      <div class="cartao saude"><h2>Saúde do app</h2><ul id="saude" class="aprendi"></ul></div>
-      <div class="cartao importar">
+      <p class="dica so-simples">Carrossel, Stories, post, TV, cortes de vídeo longo e anúncio: toque em <b>⋯ Mais ferramentas</b> no topo.</p>
+      <div class="cartao saude so-avancado"><h2>Saúde do app</h2><ul id="saude" class="aprendi"></ul></div>
+      <div class="cartao importar so-avancado">
         <h2>Trazer o que já existe</h2>
         <p class="dica">Importa os vídeos brutos e editados da pasta <b>Divine Medical Spa Marketing</b>: cada tema vira um projeto,
           "Pronto para postar" vai para a Galeria e a Programação, e as legendas e copies vêm junto. Nada é apagado nem movido;
@@ -258,8 +270,8 @@
         </div>
         <div class="acoes">
           <button data-acao="auto" class="dourado" title="Monta o projeto sozinho a partir dos vídeos e gera as 3 prévias">✦ Edição automática</button>
-          <button id="b-storyboard" class="dourado" title="A edição em quadros reais, sem renderizar: aprove ou peça mudanças por código">▦ Storyboard</button>
-          <button data-acao="previa" title="Prévia rápida das versões com os ajustes atuais">▶ Gerar prévias</button>
+          <button id="b-storyboard" class="dourado so-avancado" title="A edição em quadros reais, sem renderizar: aprove ou peça mudanças por código">▦ Storyboard</button>
+          <button data-acao="previa" class="so-avancado" title="Prévia rápida das versões com os ajustes atuais">▶ Gerar prévias</button>
           <details class="mais"><summary>⋯ Mais</summary>
             <div class="mais-menu">
               <button data-acao="revisar" title="Compliance CFM/Anvisa e regras do Renato">Revisar textos (CFM/Anvisa)</button>
@@ -274,20 +286,21 @@
         </div>
       </div>
       <ol class="passos" id="p-passos"></ol>
-      <div id="p-pedidos"></div>
+      <div id="proximo-passo" class="proximo-passo"></div>
+      <div id="p-pedidos" class="so-avancado"></div>
 
       <nav class="abas">
-        <button data-aba="config" class="ativa">Projeto</button>
-        <button data-aba="edicao">Edição</button>
-        <button data-aba="ia">IA ✦</button>
-        <button data-aba="storyboard">Storyboard</button>
+        <button data-aba="config" class="ativa">Vídeo</button>
+        <button data-aba="edicao">Ajustar</button>
+        <button data-aba="ia" class="so-avancado">IA ✦</button>
+        <button data-aba="storyboard" class="so-avancado">Storyboard</button>
         <button data-aba="versoes">Versões <span id="n-versoes"></span></button>
-        <button data-aba="relatorio">Relatório e legenda</button>
+        <button data-aba="relatorio" class="so-avancado">Relatório e legenda</button>
       </nav>
 
       <div class="aba" id="aba-config">
         <div class="grade">
-          <div class="cartao">
+          <div class="cartao so-avancado">
             <h2>Ajustes rápidos</h2>
             <label>Template
               <select id="c-template"></select></label>
@@ -382,11 +395,10 @@
             </div>
             <div id="envio" class="envio"></div>
             <ul id="brutos" class="brutos"></ul>
-            <div id="proximo-passo" class="proximo-passo"></div>
           </div>
         </div>
 
-        <details class="cartao avancado"><summary>Avançado: arquivo do projeto e regras novas</summary>
+        <details class="cartao avancado so-avancado"><summary>Avançado: arquivo do projeto e regras novas</summary>
         <div>
           <div class="linha-titulo">
             <h2>projeto.yaml</h2>

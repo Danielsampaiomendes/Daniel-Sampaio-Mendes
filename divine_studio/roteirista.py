@@ -80,12 +80,18 @@ def _assunto(palavras: list, titulo: str) -> str:
     return chave
 
 
+def _sem_marca(t: str) -> str:
+    return re.sub(r"[^a-z0-9à-ú ]", "", re.sub(r"[*/]", " ", str(t)).lower()).split().__str__()
+
+
 def planejar_regras(projeto: dict, palavras: list) -> dict:
     """Sem IA: hooks, mensagens e efeitos tirados da própria fala."""
     from .auto import mensagens_da_fala
     chave = _assunto(palavras, projeto.get("titulo", ""))
-    ganchos = ganchos_da_fala(palavras, 3)
     msgs = mensagens_da_fala(palavras, chave, 3)
+    na_tela = {_sem_marca(m["titulo"]) for m in msgs}
+    # o hook não repete uma mensagem que já vai aparecer no meio; se faltar frase boa, a versão fica com o hook do banco
+    ganchos = [g for g in ganchos_da_fala(palavras, 8) if _sem_marca(g[0]["titulo"]) not in na_tela][:3]
     efeitos = []
     for fr in frases(palavras):                                    # números e nomes de tecnologia ganham destaque
         f = fr["texto"]

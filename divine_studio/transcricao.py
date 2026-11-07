@@ -128,6 +128,9 @@ def transcrever(arquivo: Path, pasta_cache: Path, motor: str | None = None, refa
     from .ingest import probe
     if not probe(Path(arquivo))["audio"]:
         return []                       # vídeo sem som: sem fala
+    teste = os.environ.get("DIVINE_TRANSCRICAO_TESTE")      # só para testes de ponta a ponta (sem baixar modelo)
+    if teste and Path(teste).exists():
+        return json.loads(Path(teste).read_text(encoding="utf-8"))
     m = motor_disponivel(motor or cfg.get("motor", "auto"))
     if not m:
         raise SystemExit("Nenhum motor de transcrição disponível. Opções:\n"

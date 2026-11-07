@@ -270,23 +270,74 @@ function desenharProximoPasso() {
     const ef = dados.entende_fala || {};
     const alerta = !ef.transcricao ? `<div class="pp-alerta">⚠ <b>O app ainda não entende a sua fala</b> (falta a transcrição): a edição sai com textos genéricos.
         Toque em <b>⟳ Atualizar</b> (ele instala sozinho) ou no Terminal: <code>pip3 install faster-whisper</code>.</div>`
-      : !ef.ia ? `<div class="dica">A fala é transcrita e vira legenda, ganchos e mensagens. Para o Claude escrever as 3 versões
+      : !ef.ia ? `<div class="dica so-avancado">A fala é transcrita e vira legenda, ganchos e mensagens. Para o Claude escrever as 3 versões
         (como no chat), ligue a IA com a chave da API (Ideias e IA) ou use o botão <b>Pedir a edição ao Claude</b> abaixo.</div>` : "";
-    h = alerta + `<b>2. Assista cada vídeo</b> (play no cartão) e toque em <i>Tirar da edição</i> no que não quer usar.
-      <b>Depois, crie a edição:</b> ${dentro} vídeo(s) vão entrar.
-      <label class="check"><input type="checkbox" id="pp-epico" ${dados.epico ? "checked" : ""}> ✦ Vídeo Épico (3D, vertigem, chicote, cor de cinema)</label>
-      <button class="dourado" id="pp-auto">✦ Criar edição automática (3 prévias)</button>
-      <span class="dica">Leva alguns minutos: o app transcreve a fala, corta, escreve hooks e textos sobre o que você falou, põe efeitos e som e gera as 3 versões.</span>
-      <button id="pp-claude">✦ Pedir a edição ao Claude (como no chat)</button>`;
+    h = (dados.job || jobAtivo) ? `<div class="pp-rodando"><span class="giro"></span><div><b>Editando o seu vídeo…</b><br>
+        <span class="dica">O app está transcrevendo a fala, cortando as pausas, escrevendo os textos e gerando as versões. Leva alguns minutos;
+        pode sair desta tela, o aviso chega quando ficar pronto.</span></div></div>`
+      : alerta + `<div><b>2. Crie a edição</b> <span class="dica">${dentro} vídeo(s) vão entrar. Quer deixar algum de fora? Toque em <i>Tirar da edição</i> no cartão do vídeo, mais abaixo.</span></div>
+      <div class="pp-linha"><button class="dourado" id="pp-auto">✦ Criar edição automática</button>
+        <label class="check"><input type="checkbox" id="pp-epico" ${dados.epico ? "checked" : ""}> ✦ Vídeo Épico (mais intenso)</label></div>
+      <div class="dica">O app transcreve a sua fala, corta, escreve hooks e textos sobre o que você falou, põe legenda, efeitos e som e gera as versões.</div>
+      <div class="so-avancado"><button id="pp-claude">✦ Pedir a edição ao Claude (como no chat)</button></div>`;
   } else if (!finais) {
-    h = `<b>3. Veja as 3 prévias</b> na aba <a href="#" data-aba-link="versoes">Versões</a> e escolha a melhor.
-      Quer mudar algo? Use a aba <a href="#" data-aba-link="edicao">Edição</a> (efeitos, textos, linha do tempo) ou peça no
-      <a href="#" data-aba-link="storyboard">Storyboard</a> ("4B: troca o título por ...").
-      <b>4. Gostou?</b> Na aba Versões marque a melhor e toque em <i>Aprovar e exportar</i>.`;
+    h = `<b>3. Assista e aprove a melhor</b> <span class="dica">Um toque em <i>Aprovar esta</i>: o app exporta a final e aprende o que você gostou.
+      Quer mudar algo antes? Aba <a href="#" data-aba-link="edicao">Ajustar</a> (textos, legenda, efeitos).</span>
+      ${dados.autorizacao_imagem === "pendente" ? `<div class="pp-linha"><b>Quem aparece no vídeo?</b>
+        <select id="pp-autoriz"><option value="">escolha…</option><option value="proprio">Só a equipe Divine (Dr. Daniel, George, eu)</option>
+        <option value="sim">Paciente, com autorização assinada</option><option value="nao_aparece">Ninguém aparece</option></select>
+        <span class="dica">(compliance: sem isso a final sai marcada "autorização pendente")</span></div>` : ""}
+      <div class="pp-versoes">${ultimasPrevias().map((s) => `<div class="pp-v" data-v="${esc(s.versao)}" data-arq="${esc(s.arquivo)}">
+        <video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(s.arquivo)}" controls playsinline preload="metadata"></video>
+        <b>${esc(s.versao)}${s.versao === "IA" ? " · a aposta do app" : ""}</b>
+        <button class="dourado" data-aprovar>✓ Aprovar esta</button></div>`).join("")}</div>`;
   } else {
-    h = `<b>Pronto!</b> A final está na aba <a href="#" data-aba-link="versoes">Versões</a> e em <i>Programação</i>, para postar ou agendar.`;
+    const fin = dados.saidas.filter((s) => !s.previa).sort((a, b) => b.quando - a.quando)[0];
+    const pub = (dados.publicacoes || []).find((p) => p.versao === fin.versao) || {};
+    h = `<b>4. Postar</b> <span class="dica">${pub.status === "postado" ? "Postado ✓" : "A final está pronta. Baixe, copie a legenda e poste."}</span>
+      <div class="pp-postar"><video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(fin.arquivo)}" controls playsinline preload="metadata"></video>
+        <div class="pp-postar-acoes">
+          <button class="dourado" id="pp-baixar">⤓ Baixar o vídeo ${esc(fin.versao)}</button>
+          <button id="pp-legenda">📋 Copiar a legenda do post</button>
+          <button id="pp-postei">${pub.status === "postado" ? "✓ Postado" : "✓ Já postei"}</button>
+          <button class="link" id="pp-outra">aprovar outra versão</button>
+        </div></div>
+      <div class="pp-sug" id="pp-sug"><b>💡 Para a próxima ficar ainda melhor</b><span class="dica"> carregando…</span></div>`;
+    setTimeout(() => carregarSugestoes(fin), 0);
   }
   caixa.innerHTML = h;
+  const az = $("#pp-autoriz");
+  if (az) az.onchange = async () => {
+    if (!az.value) return;
+    try { await api("/api/campo", { p: atual, campo: "autorizacao_imagem", valor: az.value }); dados.autorizacao_imagem = az.value; aviso("Anotado."); }
+    catch (err) { aviso(err.message, "erro"); }
+  };
+  $$("#proximo-passo [data-aprovar]").forEach((b) => b.onclick = async () => {
+    if ($("#pp-autoriz") && !$("#pp-autoriz").value && !confirm("Você não disse quem aparece no vídeo: a final vai sair marcada como \"autorização pendente\". Continuar?")) return;
+    const c = b.closest(".pp-v");
+    try {
+      const r = await api("/api/aprovar", { p: atual, versao: c.dataset.v, arquivo: c.dataset.arq });
+      aviso(`${c.dataset.v} aprovada: exportando a final. O app guardou o que você gostou.`);
+      acompanhar(r.job, "Exportando a final");
+    } catch (err) { aviso(err.message, "erro"); }
+  });
+  $$("#proximo-passo video").forEach((v) => v.onplay = () => $$("#proximo-passo video").forEach((o) => o !== v && o.pause()));
+  if ($("#pp-baixar")) {
+    const fin = dados.saidas.filter((s) => !s.previa).sort((a, b) => b.quando - a.quando)[0];
+    $("#pp-baixar").onclick = () => salvarNaGaleria(`/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(fin.arquivo)}`, fin.arquivo.split("/").pop());
+    $("#pp-legenda").onclick = async () => {
+      const t = dados.legenda || "";
+      if (!t) return aviso("A legenda do post ainda não foi gerada.", "erro");
+      try { await navigator.clipboard.writeText(t); aviso("Legenda copiada: cole no Instagram."); } catch (e) { prompt("Copie a legenda:", t); }
+    };
+    $("#pp-postei").onclick = async () => {
+      const link = prompt("Link do post (opcional, ajuda o app a aprender com as visualizações):", "");
+      if (link === null) return;
+      await marcarPub(fin.versao, { status: "postado", link: link || undefined, rede: "instagram" }, fin.arquivo);
+      aviso("Marcado como postado."); abrir(atual);
+    };
+    $("#pp-outra").onclick = () => $('[data-aba="versoes"]').click();
+  }
   const ep = $("#pp-epico");
   if (ep) ep.onchange = () => api("/api/dados", { p: atual, dados: { ritmo: ep.checked ? "epico" : "viral", epico: null } })
     .then(() => { dados.epico = ep.checked; aviso(ep.checked ? "Vídeo Épico ligado" : "Padrão viral luxo"); });
@@ -302,6 +353,39 @@ function desenharProximoPasso() {
     catch (e) { prompt("Copie e cole no Claude:", t); }
   };
   $$("#proximo-passo [data-aba-link]").forEach((a) => a.onclick = (e) => { e.preventDefault(); $(`[data-aba="${a.dataset.abaLink}"]`).click(); });
+}
+
+function ultimasPrevias() {
+  const vistos = new Set();
+  return dados.saidas.filter((s) => s.previa).sort((a, b) => b.quando - a.quando)
+    .filter((s) => (vistos.has(s.versao) ? false : vistos.add(s.versao)))
+    .sort((a, b) => a.versao.localeCompare(b.versao));
+}
+
+async function carregarSugestoes(fin) {
+  const box = $("#pp-sug"); if (!box) return;
+  let r = { sugestoes: [] };
+  try { r = await api("/api/sugestoes?p=" + encodeURIComponent(atual)); } catch (e) { /* segue */ }
+  const item = (s) => `<li class="sug-${esc(s.tipo)}"><b>${esc(s.titulo)}</b>${s.fonte ? ` <small>(${esc(s.fonte)})</small>` : ""}<br><span>${esc(s.texto)}</span></li>`;
+  box.innerHTML = `<b>💡 Para a próxima ficar ainda melhor</b>
+    <ul class="sug-lista">${r.sugestoes.map(item).join("") || "<li>Nada importante a mudar: a fala e a edição estão no padrão. Siga gravando!</li>"}</ul>
+    <div class="linha"><button id="sug-ia">✦ Pedir mais ideias ao Claude</button>
+      <button id="sug-hf" title="O Virality Predictor do Higgsfield lê o vídeo e prevê gancho, retenção e risco de queda">🔮 Análise de viralidade (Higgsfield)</button></div>`;
+  $("#sug-ia").onclick = async () => {
+    $("#sug-ia").disabled = true; $("#sug-ia").textContent = "Pensando…";
+    try {
+      const x = await api("/api/sugestoes/ia", { p: atual });
+      box.querySelector(".sug-lista").insertAdjacentHTML("beforeend", x.sugestoes.map(item).join(""));
+      $("#sug-ia").textContent = "✓ Ideias do Claude na lista";
+    } catch (err) { aviso(err.message, "erro"); $("#sug-ia").disabled = false; $("#sug-ia").textContent = "✦ Pedir mais ideias ao Claude"; }
+  };
+  $("#sug-hf").onclick = async () => {
+    try {
+      const x = await api("/api/sugestoes/higgsfield", { p: atual, arquivo: fin.arquivo });
+      try { await navigator.clipboard.writeText(x.instrucao); } catch (e) { prompt("Copie e cole no Claude:", x.instrucao); }
+      aviso("Pedido copiado: cole no Claude (com o Higgsfield conectado). A leitura volta para cá como sugestão.");
+    } catch (err) { aviso(err.message, "erro"); }
+  };
 }
 
 // ---------------------------------------------------------------- envio dos brutos
@@ -479,11 +563,15 @@ function acompanhar(job, titulo) {
       avisarFim(titulo, e.estado === "ok");
       $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
       if (atual) abrir(atual);
-      if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) $('[data-aba="versoes"]').click();
+      const simples = document.body.classList.contains("simples");
+      if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) {
+        if (simples) { $('[data-aba="config"]').click(); $("#proximo-passo").scrollIntoView({ behavior: "smooth" }); setTimeout(() => { if (!jobAtivo) $("#tarefa").hidden = true; }, 4000); }
+        else $('[data-aba="versoes"]').click();
+      }
       if (e.acao === "storyboard" && typeof carregarStoryboard === "function") { $('[data-aba="storyboard"]').click(); carregarStoryboard(); }
       if (e.estado === "ok" && (e.acao.startsWith("formatos") || e.acao === "cortes" || e.acao === "pacote")) carregarLista();
       if (e.estado === "ok" && e.acao === "cortes") alert("Cortes prontos: estão na lista de projetos, logo abaixo deste vídeo.");
-      if (e.estado === "ok" && e.acao === "final") setTimeout(() => abrirConversa((e.versoes && e.versoes[0]) || "V1").catch(() => {}), 1200);
+      if (e.estado === "ok" && e.acao === "final" && !simples) setTimeout(() => abrirConversa((e.versoes && e.versoes[0]) || "V1").catch(() => {}), 1200);
       if (e.estado === "ok" && (e.acao === "cortar" || e.acao === "legenda")) $('[data-aba="relatorio"]').click();
       if (e.estado === "ok" && ["revisar", "legenda", "cortar"].includes(e.acao)) setTimeout(() => { if (!jobAtivo) $("#tarefa").hidden = true; }, 6000);
     }
@@ -517,6 +605,13 @@ function desenharPassos() {
     ["Escolher e exportar", finais > 0, "versoes", finais ? `${finais} final(is)` : "aprove a melhor"],
     ["Postar", postado, "programacao", postado ? "postado ✓" : "agende ou marque Postei"],
   ];
+  if (document.body.classList.contains("simples")) {
+    passos.splice(0, passos.length,
+      ["Vídeo bruto", brutos > 0, "config", brutos ? `${brutos} enviado(s)` : "solte o vídeo"],
+      ["Edição automática", previas > 0 || finais > 0, "config", previas ? "versões prontas" : "um toque"],
+      ["Aprovar a melhor", finais > 0, "config", finais ? "final exportada ✓" : "assista e aprove"],
+      ["Postar", postado, "config", postado ? "postado ✓" : "baixe e poste"]);
+  }
   const atualIdx = passos.findIndex((p) => !p[1]);
   $("#p-passos").innerHTML = passos.map(([n, ok, aba, sub], i) => `<li class="${ok ? "feito" : ""} ${i === atualIdx ? "agora" : ""}" data-aba-ir="${aba}">
       <b>${ok ? "✓" : i + 1}</b><span>${n}<small>${esc(sub)}</small></span></li>`).join("");

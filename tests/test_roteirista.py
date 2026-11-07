@@ -53,3 +53,16 @@ def test_tem_fala_pela_transcricao(tmp_path):
     palavras = [{"texto": "oi", "inicio": i * 0.5, "fim": i * 0.5 + 0.3} for i in range(15)]
     assert auto.tem_fala(v, lambda f: palavras)
     assert not auto.tem_fala(v, lambda f: [])
+
+
+def test_sugestoes_da_fala():
+    from divine_studio import sugestoes
+    fala = _pal([("Oi gente, eu sou o Doutor Daniel e hoje eu vou falar de Endolaser.", 0.0),
+                 ("O Endolaser age por dentro da pele com fibra fina.", 6.0),
+                 ("Ele aquece a gordura e estimula o colágeno.", 10.0)])
+    s = sugestoes.da_fala(fala)
+    titulos = " ".join(x["titulo"] for x in s)
+    assert "apresentação" in titulos            # abre com "oi, eu sou": sugere começar pelo assunto
+    assert "pedido" in titulos                  # termina sem CTA falado
+    assert not sugestoes.da_fala(FALA) or all("apresentação" not in x["titulo"] for x in sugestoes.da_fala(FALA))
+    assert sugestoes.da_fala([])[0]["titulo"] == "Ligue a transcrição"

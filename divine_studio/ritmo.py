@@ -138,6 +138,8 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
     # fim: pausa dramática antes do CTA/fechamento
     if cfg.get("antes_do_cta"):
         ef = dict(cfg["antes_do_cta"])
+        if projeto.get("_fala") and ef.get("tipo") == "congelar":   # vídeo falado: congelar trava a boca com a voz correndo
+            ef = {"tipo": "zoom_batida", "som": ef.get("som")}
         por(ef, fim - float(ef.get("duracao", 1.5)) - 0.4)
     # cortes entre takes: transição em chicote (épico)
     trans = list(cfg.get("nos_cortes") or [])

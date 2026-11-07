@@ -147,8 +147,9 @@ const EDICOES = [
   ["antes_depois", "◫", "Antes e depois", "Uso interno em consulta (nunca postar): fotos padronizadas em TV, Stories e Feed.", "ex.: Bumbum Up"],
 ];
 
+const ESSENCIAIS = ["video", "epico"];
 let montarNovaEdicao = function () {
-  $("#tipos-edicao").innerHTML = EDICOES.map(([k, ic, nome, txt, ex]) => `<form class="tipo-edicao ${k === "epico" ? "epico" : ""}" data-tipo="${k}">
+  $("#tipos-edicao").innerHTML = EDICOES.map(([k, ic, nome, txt, ex]) => `<form class="tipo-edicao ${k === "epico" ? "epico" : ""} ${ESSENCIAIS.includes(k) ? "" : "so-avancado"}" data-tipo="${k}">
       <div class="ic">${ic}</div><h2>${nome}</h2><p>${txt}</p>
       <div class="linha"><input placeholder="${esc(ex)}" autocomplete="off"><button class="dourado" type="submit">Criar</button></div></form>`).join("");
   $$(".tipo-edicao").forEach((f) => f.onsubmit = async (e) => {
@@ -162,6 +163,21 @@ let montarNovaEdicao = function () {
   });
 };
 $("#b-nova").onclick = () => mostrarTela("nova");
+
+// modo simples (padrão): só o caminho bruto → edição → aprovar → postar; o resto em "Mais ferramentas"
+function aplicarModo() {
+  let av = false;
+  try { av = localStorage.getItem("ds_avancado") === "1"; } catch (e) { /* sem armazenamento */ }
+  document.body.classList.toggle("simples", !av);
+  const b = $("#b-modo"); if (b) b.querySelector("span").textContent = av ? "Modo simples" : "Mais ferramentas";
+}
+$("#b-modo").onclick = () => {
+  let av = false;
+  try { av = localStorage.getItem("ds_avancado") === "1"; localStorage.setItem("ds_avancado", av ? "0" : "1"); } catch (e) { /* segue */ }
+  aplicarModo();
+  if (typeof dados !== "undefined" && dados && atual && !$("#projeto").hidden) abrir(atual);
+};
+aplicarModo();
 
 // ---------------------------------------------------------------- Galeria (só peças validadas)
 
@@ -288,6 +304,35 @@ $("#gal-ordem").onchange = () => window.carregarGaleria();
 $("#gal-agrupar").onchange = () => window.carregarGaleria();
 
 // ---------------------------------------------------------------- Início
+// um passo só: soltou o vídeo bruto, o app cria o projeto, envia e já começa a edição automática
+async function edicaoRapida(arquivos) {
+  arquivos = [...arquivos].filter((f) => f.type.startsWith("video") || /\.(mov|mp4|m4v)$/i.test(f.name));
+  if (!arquivos.length) return aviso("Escolha um vídeo (.mov ou .mp4).", "erro");
+  const d = new Date();
+  const titulo = $("#ini-tema").value.trim() || `Vídeo ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`;
+  const msg = $("#ini-envio");
+  try {
+    const { nome } = await api("/api/nova_edicao", { tipo: $("#ini-epico").checked ? "epico" : "video", titulo });
+    for (const [k, f] of arquivos.entries()) {
+      msg.textContent = `Enviando ${f.name} (${k + 1} de ${arquivos.length}, ${(f.size / 1e6).toFixed(0)} MB)…`;
+      const r = await fetch(`/api/upload?p=${encodeURIComponent(nome)}&nome=${encodeURIComponent(f.name)}`, { method: "POST", body: f });
+      if (!r.ok) throw new Error((await r.json()).erro || "falha no envio");
+    }
+    msg.textContent = "Enviado. Começando a edição automática…";
+    const { job } = await api("/api/acao", { p: nome, acao: "auto" });
+    await carregarLista(); mostrarTela("projetos"); await abrir(nome);
+    acompanhar(job, "Edição automática: transcrevendo, cortando e montando as 3 versões");
+    msg.textContent = "";
+  } catch (err) { msg.textContent = ""; aviso(err.message, "erro"); }
+}
+(() => {
+  const z = $("#ini-soltar"); if (!z) return;
+  $("#ini-arquivos").onchange = (e) => edicaoRapida(e.target.files);
+  ["dragenter", "dragover"].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); z.classList.add("sobre"); }));
+  ["dragleave", "drop"].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); z.classList.remove("sobre"); }));
+  z.addEventListener("drop", (e) => edicaoRapida(e.dataTransfer.files));
+})();
+
 async function carregarInicio() {
   const h = new Date().getHours();
   $("#ini-ola").textContent = (h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite") + ", Renato";

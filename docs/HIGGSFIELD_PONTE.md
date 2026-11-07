@@ -31,5 +31,7 @@ O Divine Studio monta os pedidos; o Claude, com o conector do Higgsfield, execut
   Só pessoas da equipe com autorização de imagem.
 - Ao postar algo gerado por IA, ligar o rótulo "Feito com IA" do Instagram.
 - Sem logos de outras marcas. Formato vertical 9:16 por padrão.
-- Virality Predictor: registre a nota no projeto (`trabalho/higgsfield_viralidade.json`) para o Laboratório comparar com
-  o resultado real depois de postar.
+- Virality Predictor: rode `python3 -m divine_studio higgsfield analise <id> "<nota, força do gancho, retenção, onde a
+  atenção cai e o que trocar na fala ou na edição>"`. A leitura aparece no projeto, em "💡 Para a próxima ficar ainda
+  melhor", junto com as sugestões do app. Registre também a nota em `trabalho/higgsfield_viralidade.json` para o
+  Laboratório comparar com o resultado real depois de postar.

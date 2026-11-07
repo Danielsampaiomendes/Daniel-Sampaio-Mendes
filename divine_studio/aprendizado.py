@@ -207,6 +207,12 @@ def versao_ia(projeto: dict, versoes: list, fontes_escolhidas: list) -> dict | N
         porque.append(f"fontes {fonte}, as que mais funcionaram com você")
     else:
         porque.append(f"fontes {fonte} (ainda sem histórico: ela entra para testar)")
+    if projeto.get("roteiro_automatico"):
+        # edição pela fala: a aposta usa a frase mais forte do próprio vídeo (V1) com o acabamento que mais funciona
+        falado = next((v.get("hook") for v in versoes if isinstance(v.get("hook"), list) and v.get("hook")), None)
+        if falado:
+            porque.append("hook: a frase mais forte da sua própria fala")
+            return {"nome": "IA", "fontes": fonte, "porque": porque, "hook": [dict(b) for b in falado]}
     tipo_bom = melhor("hook_tipo", ["curiosidade", "negativo", "positivo"], prefs)
     usados = {v.get("hook_id") for v in versoes if v.get("hook_id")}
     cands = [h for h in sortear(9, tema=projeto.get("titulo"), semente=7, excluir=usados) if h["tipo"] == tipo_bom]
