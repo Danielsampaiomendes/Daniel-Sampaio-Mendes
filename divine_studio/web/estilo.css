@@ -624,3 +624,4 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .proximo-passo a { color: var(--dourado); }
 .proximo-passo button.dourado { justify-self: start; }
 .versao-app { color: var(--apagado); font-size: 11px; }
+.renomeavel { cursor: pointer; } .renomeavel:hover::after { content: " ✎"; font-size: .6em; color: var(--dourado); }

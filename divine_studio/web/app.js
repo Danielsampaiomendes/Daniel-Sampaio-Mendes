@@ -527,12 +527,23 @@ function avisarFim(titulo, ok) {
   try { const a = new Audio("/sfx.wav?nome=ding_suave_a"); a.volume = 0.35; a.play().catch(() => {}); } catch (e) { /* sem som */ }
 }
 
+async function renomear() {
+  const novo = prompt("Novo nome do projeto:", dados.titulo || "");
+  if (!novo || !novo.trim() || novo.trim() === dados.titulo) return;
+  try {
+    await api("/api/dados", { p: atual, dados: { titulo: novo.trim() } });
+    aviso("Projeto renomeado."); await carregarLista(); abrir(atual);
+  } catch (err) { aviso(err.message, "erro"); }
+}
+$("#b-renomear").onclick = renomear;
+$("#p-titulo").onclick = renomear;
+
 $("#b-duplicar").onclick = async () => {
   try { const r = await api("/api/duplicar", { p: atual }); await carregarLista(); abrir(r.nome); }
   catch (err) { alert(err.message); }
 };
 $("#b-arquivar").onclick = async () => {
-  if (!confirm("Tirar este projeto da lista? Ele não é apagado: vai para _arquivo/projetos/.")) return;
+  if (!confirm("Excluir este projeto da lista?\nPor segurança ele não é apagado: vai para a pasta _arquivo/projetos/ (dá para recuperar).")) return;
   try {
     const r = await api("/api/arquivar", { p: atual });
     atual = null; history.replaceState(null, "", "#"); await carregarLista();
