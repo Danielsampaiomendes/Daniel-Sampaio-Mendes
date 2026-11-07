@@ -20,7 +20,17 @@ from .config import ROOT, load
 HDR_TRANSFERS = {"arib-std-b67", "smpte2084"}
 
 
+def com_threads(cmd: list) -> list:
+    """FFmpeg com o limite de threads da prévia em paralelo (DIVINE_FFMPEG_THREADS); sem limite, igual."""
+    import os
+    n = os.environ.get("DIVINE_FFMPEG_THREADS")
+    if n and cmd and str(cmd[0]).endswith("ffmpeg") and "-threads" not in cmd and len(cmd) > 2:
+        return [*cmd[:-1], "-threads", n, cmd[-1]]
+    return cmd
+
+
 def rodar(cmd: list, silencioso: bool = True) -> subprocess.CompletedProcess:
+    cmd = com_threads(cmd)
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         raise SystemExit("Erro no FFmpeg:\n" + " ".join(map(str, cmd))[:600] + "\n" + r.stderr[-2500:])

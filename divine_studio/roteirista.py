@@ -68,7 +68,11 @@ def ganchos_da_fala(palavras: list, n: int = 3) -> list:
         p += 1.0 * bool(re.search(r"\d", nf))
         p += 1.2 * bool(re.search(r"\b(nunca|pare|erro|errado|segredo|ninguém|ninguem|verdade|mito|cuidado|não é)\b", nf))
         p += 1.0 * (k == 0)                                       # quem abre o vídeo já costuma ser o gancho
-        p -= 1.5 * bool(re.search(r"\b(agende|segue|link|direct|whatsapp)\b", nf))
+        if re.search(r"\b(agende|agenda|marque|segue|siga|link|direct|whatsapp|salva|salve|comenta)\b", nf):
+            continue                                              # frase de pedido (CTA) fica para o final, nunca é hook
+        from .sugestoes import ABERTURA_FRACA
+        if ABERTURA_FRACA.search(f) or re.search(r"\b(eu sou|meu nome|hoje eu vou|vou te explicar)\b", nf):
+            continue                                              # apresentação ("eu sou o Dr. ...") não prende ninguém
         cand.append((p, k, f))
     escolhidos = [f for _, _, f in sorted(cand, reverse=True)[:n]]
     return [[{"titulo": _destacar(f)}] for f in escolhidos]
@@ -92,6 +96,12 @@ def planejar_regras(projeto: dict, palavras: list) -> dict:
     na_tela = {_sem_marca(m["titulo"]) for m in msgs}
     # o hook não repete uma mensagem que já vai aparecer no meio; se faltar frase boa, a versão fica com o hook do banco
     ganchos = [g for g in ganchos_da_fala(palavras, 8) if _sem_marca(g[0]["titulo"]) not in na_tela][:3]
+    # poucas frases fortes: a versão usa uma mensagem da fala como hook (e a edição tira essa mensagem do meio dela),
+    # melhor do que um hook genérico do banco que não tem nada a ver com o vídeo
+    for m in msgs:
+        if len(ganchos) >= 3:
+            break
+        ganchos.append([{"titulo": m["titulo"]}])
     efeitos = []
     for fr in frases(palavras):                                    # números e nomes de tecnologia ganham destaque
         f = fr["texto"]

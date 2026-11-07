@@ -89,10 +89,11 @@ def renderizar(base: Path, plano, W: int, H: int, fps: int, mix_wav: Path, saida
     bw, bh = base_tamanho or (W, H)
     dec = _Leitor(base, bw, bh)
     outros = [_Leitor(a, w, h) for a, w, h in (extras or [])]
-    enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
+    from .ingest import com_threads
+    enc = subprocess.Popen(com_threads(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
                             "-r", str(fps), "-i", "-", "-i", str(mix_wav), "-map", "0:v", "-map", "1:a",
                             "-c:v", "libx264", "-preset", "veryfast", "-crf", "12", "-pix_fmt", "yuv420p",
-                            "-c:a", "pcm_s16le", "-shortest", str(saida)], stdin=subprocess.PIPE)
+                            "-c:a", "pcm_s16le", "-shortest", str(saida)]), stdin=subprocess.PIPE)
     fech = {"fundo": None}
     t_ini = time.time()
     for i in range(n):

@@ -344,6 +344,10 @@ def cmd_editar(a):
         print(f"• {nome}: fontes {fontes[i]} · SFX {'+'.join(sfx_a[i])} / {'+'.join(sfx_t[i])} / {'+'.join(sfx_f[i])}")
         from . import estilos
         pv, v = estilos.aplicar(p, v, dur)                      # estilo de edição (config/estilos.yaml)
+        if isinstance(v.get("hook"), list) and pv.get("mensagens"):   # a frase que virou hook não se repete no meio
+            from .roteirista import _sem_marca
+            ganchos_v = {_sem_marca(b.get("titulo", "")) for b in v["hook"]}
+            pv = {**pv, "mensagens": [m for m in pv["mensagens"] if _sem_marca(m.get("titulo", "")) not in ganchos_v]}
         if pv.get("_estilo"):
             print(f"  estilo de edição: {pv['_estilo']}")
         plano = tmpl.montar(pv, v, fontes[i], dur, W, H, sfx_a[i], sfx_f[i], sfx_t[i])
@@ -447,7 +451,11 @@ def _render_paralelo(pasta: Path, nomes: list, n_par: int, trabalho: Path) -> li
     print(f"• Renderizando {len(nomes)} versões em paralelo ({n_par} de cada vez)…", flush=True)
     for n in nomes:
         (trabalho / f"resultado_{n}.json").unlink(missing_ok=True)
-    env = {**os.environ, "DIVINE_FILHO": "1", "PYTHONUNBUFFERED": "1"}
+    # cada processo com a sua fatia de núcleos: sem isso as threads de cálculo (numpy) se atropelam e tudo fica lento
+    fatia = str(max(1, (os.cpu_count() or 2) // n_par))
+    env = {**os.environ, "DIVINE_FILHO": "1", "PYTHONUNBUFFERED": "1", "OMP_NUM_THREADS": fatia,
+           "OPENBLAS_NUM_THREADS": fatia, "MKL_NUM_THREADS": fatia, "VECLIB_MAXIMUM_THREADS": fatia,
+           "NUMEXPR_NUM_THREADS": fatia, "DIVINE_FFMPEG_THREADS": fatia}
     fila, trava, falhas = list(nomes), threading.Lock(), []
 
     def trabalhar():

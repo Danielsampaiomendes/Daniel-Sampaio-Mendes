@@ -288,14 +288,14 @@ function desenharProximoPasso() {
         <option value="sim">Paciente, com autorização assinada</option><option value="nao_aparece">Ninguém aparece</option></select>
         <span class="dica">(compliance: sem isso a final sai marcada "autorização pendente")</span></div>` : ""}
       <div class="pp-versoes">${ultimasPrevias().map((s) => `<div class="pp-v" data-v="${esc(s.versao)}" data-arq="${esc(s.arquivo)}">
-        <video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(s.arquivo)}" controls playsinline preload="metadata"></video>
-        <b>${esc(s.versao)}${s.versao === "IA" ? " · a aposta do app" : ""}</b>
+        <video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(s.arquivo)}#t=1" controls playsinline preload="metadata"></video>
+        <b>${esc(s.versao)}${s.versao === "IA" ? " · a aposta do app (tenta superar as outras)" : ""}</b>
         <button class="dourado" data-aprovar>✓ Aprovar esta</button></div>`).join("")}</div>`;
   } else {
     const fin = dados.saidas.filter((s) => !s.previa).sort((a, b) => b.quando - a.quando)[0];
     const pub = (dados.publicacoes || []).find((p) => p.versao === fin.versao) || {};
     h = `<b>4. Postar</b> <span class="dica">${pub.status === "postado" ? "Postado ✓" : "A final está pronta. Baixe, copie a legenda e poste."}</span>
-      <div class="pp-postar"><video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(fin.arquivo)}" controls playsinline preload="metadata"></video>
+      <div class="pp-postar"><video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(fin.arquivo)}#t=1" controls playsinline preload="metadata"></video>
         <div class="pp-postar-acoes">
           <button class="dourado" id="pp-baixar">⤓ Baixar o vídeo ${esc(fin.versao)}</button>
           <button id="pp-legenda">📋 Copiar a legenda do post</button>
@@ -359,7 +359,7 @@ function ultimasPrevias() {
   const vistos = new Set();
   return dados.saidas.filter((s) => s.previa).sort((a, b) => b.quando - a.quando)
     .filter((s) => (vistos.has(s.versao) ? false : vistos.add(s.versao)))
-    .sort((a, b) => a.versao.localeCompare(b.versao));
+    .sort((a, b) => (a.versao === "IA") - (b.versao === "IA") || a.versao.localeCompare(b.versao));
 }
 
 async function carregarSugestoes(fin) {
