@@ -81,3 +81,6 @@ projetos/.legenda_padrao.json
 # testes de ponta a ponta do Claude (vídeo sintético) e trava do registro
 _arquivo/testes/
 projetos/.registro.lock
+
+# torneio de agentes (/arena)
+.arena/
