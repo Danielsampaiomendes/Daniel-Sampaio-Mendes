@@ -22,6 +22,24 @@ Referências, Imagens, TV, Storyboard e o projeto.yaml continuam no app, em **�
 
 Prévias em paralelo: cada versão renderiza num processo (metade dos núcleos do Mac), então as 4 saem perto do tempo de 2.
 
+## No iPhone (08/11/2026)
+
+O app roda no Mac; o iPhone é o controle. O `Divine Studio.command` já abre liberado para o iPhone.
+
+1. No Mac, toque em **📱 iPhone** no topo do painel: aparece um **QR code**. Aponte a Câmera do iPhone (mesmo Wi-Fi).
+   O endereço usa o nome do Mac (`http://<nome-do-mac>.local:8765`), então não muda quando o roteador troca o IP.
+2. Primeira vez: digite o código de 6 dígitos. Depois, **Compartilhar ⬆ > Adicionar à Tela de Início**: vira um app.
+3. Solte o vídeo (barra de progresso; deixe a tela acesa até terminar), aprove, toque em **Baixar** (abre o vídeo:
+   Compartilhar > Salvar Vídeo vai para o Fotos) e **Copiar a legenda** (funciona no Safari mesmo sem https).
+4. Fechou o Safari no meio da edição? Ao voltar, a tela atualiza sozinha com o que ficou pronto.
+
+O Mac não dorme enquanto o painel está aberto (`caffeinate`; a tela pode apagar), então o iPhone sempre alcança o Mac e
+as automações continuam. **Fora de casa (4G):** mande o vídeo para `Google Drive > Divine Studio > Entrada` pelo app do
+Drive: o Mac cria o projeto, edita pela fala e gera as versões sozinho (automação "Vídeo do celular já sai editado");
+quando voltar ao Wi-Fi, é só aprovar. Para abrir o painel na rua, instale o **Tailscale** (grátis) no Mac e no iPhone:
+o painel mostra o endereço dele também. Aviso no celular quando a edição termina ainda não existe (precisaria de https);
+dá para ligar a regra "Avisar no Zapier" para mandar um WhatsApp.
+
 ## Instalação no Mac (uma vez)
 
 ```bash

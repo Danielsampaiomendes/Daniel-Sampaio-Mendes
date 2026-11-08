@@ -121,7 +121,7 @@ $("#cr-exportar").onclick = async () => {
     acompanhar(r.job, post ? "Exportando o post" : "Exportando o carrossel");
   } catch (err) { alert(err.message); }
 };
-$("#cr-copiar").onclick = async () => { await navigator.clipboard.writeText($("#cr-legenda").textContent); $("#cr-copiar").textContent = "Copiado"; setTimeout(() => $("#cr-copiar").textContent = "Copiar", 1500); };
+$("#cr-copiar").onclick = async () => { await copiar($("#cr-legenda").textContent); $("#cr-copiar").textContent = "Copiado"; setTimeout(() => $("#cr-copiar").textContent = "Copiar", 1500); };
 
 
 $$("[data-crfmt]").forEach((c) => c.onchange = async () => {

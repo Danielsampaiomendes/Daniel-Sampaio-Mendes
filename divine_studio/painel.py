@@ -61,6 +61,65 @@ def ip_da_rede() -> str:
         s.close()
 
 
+def nome_do_mac() -> str:
+    """Nome do Mac na rede (Bonjour): http://<nome>.local:8765 vale mesmo quando o IP do Wi-Fi muda."""
+    if sys.platform != "darwin":
+        return ""
+    try:
+        r = subprocess.run(["scutil", "--get", "LocalHostName"], capture_output=True, text=True, timeout=5)
+        return r.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def ip_tailscale() -> str:
+    """IP do Tailscale (acesso fora de casa, se o Renato instalar o app gratuito no Mac e no iPhone)."""
+    import shutil as _sh
+    exe = _sh.which("tailscale") or ("/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+                                     if Path("/Applications/Tailscale.app").exists() else None)
+    if not exe:
+        return ""
+    try:
+        r = subprocess.run([exe, "ip", "-4"], capture_output=True, text=True, timeout=5)
+        return r.stdout.split()[0] if r.returncode == 0 and r.stdout.strip() else ""
+    except (OSError, subprocess.SubprocessError, IndexError):
+        return ""
+
+
+def enderecos(porta: int) -> list:
+    """Endereços para abrir no iPhone, do melhor para o pior."""
+    out = []
+    nome = nome_do_mac()
+    if nome:
+        out.append({"url": f"http://{nome}.local:{porta}", "onde": "no Wi-Fi de casa ou da clínica (não muda nunca)"})
+    out.append({"url": f"http://{ip_da_rede()}:{porta}", "onde": "no mesmo Wi-Fi (muda se o roteador trocar o IP)"})
+    ts = ip_tailscale()
+    if ts:
+        out.append({"url": f"http://{ts}:{porta}", "onde": "fora de casa, pelo Tailscale (4G ou outro Wi-Fi)"})
+    return out
+
+
+def qr_svg(texto: str) -> bytes:
+    """QR code para o iPhone ler com a câmera (biblioteca segno; sem ela, o painel mostra só o endereço)."""
+    import io
+    import segno
+    buf = io.BytesIO()
+    segno.make(texto, error="m").save(buf, kind="svg", scale=6, border=2, dark="#12110F", light="#F5F4F1")
+    return buf.getvalue()
+
+
+def manter_acordado() -> None:
+    """Mac acordado enquanto o painel está aberto: o iPhone alcança o Mac e as automações continuam rodando.
+    A tela pode apagar; só o descanso automático do Mac fica suspenso (caffeinate termina junto com o painel)."""
+    if sys.platform != "darwin":
+        return
+    try:
+        subprocess.Popen(["caffeinate", "-i", "-s", "-w", str(os.getpid())], stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
 PAGINA_ENTRAR = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Divine Studio</title>
 <link rel="apple-touch-icon" href="/icone-180.png"><link rel="stylesheet" href="/estilo.css"></head>
@@ -1165,8 +1224,15 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json(ler(_pasta(q["p"])))
             if u.path == "/api/diagnostico":
                 return self._json(diagnostico())
+            if u.path == "/qr.svg":
+                try:
+                    return self._bytes(qr_svg(q.get("u", "")[:300]), "image/svg+xml")
+                except ImportError:
+                    return self._erro("QR indisponível (falta a biblioteca segno)", 404)
             if u.path == "/api/celular":
-                return self._json({"ativo": bool(Painel.codigo), "endereco": f"http://{ip_da_rede()}:{self.server.server_address[1]}",
+                porta_ = self.server.server_address[1]
+                return self._json({"ativo": bool(Painel.codigo), "endereco": f"http://{ip_da_rede()}:{porta_}",
+                                   "enderecos": enderecos(porta_),
                                    "codigo": Painel.codigo if self.client_address[0] in LOCAIS else None})
             if u.path == "/api/videos":
                 return self._json(videos())
@@ -1696,10 +1762,13 @@ def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
     except Exception as e:
         print(f"  aviso: automações desligadas ({e})")
     srv = ThreadingHTTPServer(("0.0.0.0" if celular else "127.0.0.1", porta), Painel)
+    manter_acordado()
     url = f"http://127.0.0.1:{porta}"
     print(f"Painel do Divine Studio em {url}  (Ctrl+C para fechar)")
     if celular:
-        print(f"\n  iPhone (mesma rede Wi-Fi): abra no Safari  http://{ip_da_rede()}:{porta}")
+        print("\n  iPhone: abra no Safari (ou aponte a câmera para o QR em 📱 iPhone, no painel do Mac)")
+        for e in enderecos(porta):
+            print(f"    {e['url']}   {e['onde']}")
         print(f"  Código de acesso: {Painel.codigo}")
         print("  Depois: Compartilhar > Adicionar à Tela de Início. O Mac precisa ficar ligado com esta janela aberta.\n")
     if abrir:

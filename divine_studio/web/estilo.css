@@ -624,7 +624,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--dourado2); } input
 .proximo-passo > * + * { margin-top: 10px; }
 .proximo-passo .pp-linha { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .pp-rodando { display: flex; gap: 12px; align-items: center; }
-.pp-rodando .giro { width: 22px; height: 22px; border: 3px solid #ccbd9140; border-top-color: var(--dourado); border-radius: 50%; animation: giro 1s linear infinite; }
+.pp-rodando .giro { flex-shrink: 0; width: 22px; height: 22px; border: 3px solid #ccbd9140; border-top-color: var(--dourado); border-radius: 50%; animation: giro 1s linear infinite; }
 @keyframes giro { to { transform: rotate(360deg); } }
 .proximo-passo a { color: var(--dourado); }
 .proximo-passo button.dourado { justify-self: start; }
@@ -675,3 +675,19 @@ body.simples .so-avancado { display: none !important; }
 .ini-opcoes { margin-top: 12px; gap: 12px; align-items: center; }
 .ini-opcoes input[type=text], .ini-opcoes #ini-tema { flex: 1; min-width: 220px; }
 body:not(.simples) .so-simples { display: none !important; }
+
+/* iPhone: o painel abre no Safari pelo Wi-Fi do Mac */
+.iphone .so-mac { display: none !important; }
+.barra-envio { height: 8px; border-radius: 6px; background: #ccbd9126; overflow: hidden; margin: 8px 0; }
+.barra-envio i { display: block; height: 100%; background: var(--dourado, #CCBD91); transition: width .3s; }
+.celular-modal { max-width: 460px; }
+.celular-qr { display: block; width: 220px; height: 220px; margin: 10px auto; border-radius: 12px; background: #F5F4F1; }
+.celular-passos { padding-left: 20px; margin: 8px 0; line-height: 1.5; }
+.iphone .pp-v video, .iphone .pp-postar video { max-height: 70vh; }
+.iphone input, .iphone select, .iphone textarea { font-size: 16px; }   /* sem o zoom automático do Safari ao tocar no campo */
+
+/* modo simples: a tarefa mostra só o que importa (título, tempo e barra); o registro técnico em "detalhes" */
+body.simples .tarefa:not(.com-detalhes) #t-log { display: none; }
+body:not(.simples) #t-detalhes { display: none; }
+.tarefa-topo #t-detalhes { margin-left: auto; }
+.tarefa-topo #t-detalhes + #t-fechar { margin-left: 0; }

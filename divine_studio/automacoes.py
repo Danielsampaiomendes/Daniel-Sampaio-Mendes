@@ -104,6 +104,10 @@ def _fazer(acao: str, alvo: str, regra: dict, e: dict, iniciar=None) -> str:
         nome = entrada.processar(Path(alvo))
         e.setdefault("_projetos_novos", []).append(nome)
         return f"projeto {nome}"
+    if acao == "previas":                  # o vídeo que chegou pelo celular já sai com as versões prontas para aprovar
+        if iniciar is None:
+            return "sem painel aberto: gere as prévias no projeto"
+        return f"prévias em andamento ({iniciar(alvo, 'previa')})"
     if acao == "storyboard":
         if iniciar is None:
             return "sem painel aberto: rode o storyboard no projeto"

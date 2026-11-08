@@ -14,6 +14,42 @@ async function api(caminho, corpo) {
   return j;
 }
 
+const NO_IPHONE = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+if (NO_IPHONE) document.documentElement.classList.add("iphone");
+
+// copiar texto: área de transferência moderna quando o Safari deixa (https); senão, o jeito clássico (funciona no iPhone)
+async function copiar(texto) {
+  texto = String(texto ?? "");
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(texto); return true; }
+  } catch (e) { /* tenta o clássico */ }
+  const ta = document.createElement("textarea");
+  ta.value = texto; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;font-size:16px";
+  document.body.appendChild(ta);
+  const sel = document.getSelection(); const antes = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+  ta.focus(); ta.select(); ta.setSelectionRange(0, texto.length);
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+  ta.remove(); if (antes && sel) { sel.removeAllRanges(); sel.addRange(antes); }
+  if (!ok) throw new Error("não deu para copiar");
+  return true;
+}
+
+// envio de arquivo com barra de progresso (vídeo do iPhone pode ter centenas de MB)
+function enviarArquivo(projeto, f, aoProgresso) {
+  return new Promise((ok, falha) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", `/api/upload?p=${encodeURIComponent(projeto)}&nome=${encodeURIComponent(f.name)}`);
+    x.upload.onprogress = (e) => { if (e.lengthComputable && aoProgresso) aoProgresso(e.loaded / e.total); };
+    x.onload = () => {
+      let j = {}; try { j = JSON.parse(x.responseText || "{}"); } catch (e) { /* sem corpo */ }
+      if (x.status >= 200 && x.status < 300) ok(j); else falha(new Error(j.erro || `falha no envio (${x.status})`));
+    };
+    x.onerror = () => falha(new Error("o envio caiu. No iPhone, deixe a tela acesa e o Safari aberto até terminar."));
+    x.send(f);
+  });
+}
+
 // avisos discretos no canto (no lugar das janelas que travam a tela); toque para fechar
 const _alertaNativo = window.alert.bind(window);
 function aviso(msg, tipo = "") {
@@ -146,7 +182,7 @@ async function abrir(nome) {
         <button data-copiar="${k}">Copiar texto principal</button></details>`).join("");
     $$("[data-copiar]").forEach((b) => b.onclick = async () => {
       const t = an.copy[+b.dataset.copiar].texto_principal;
-      try { await navigator.clipboard.writeText(t); b.textContent = "Copiado ✓"; } catch (e) { prompt("Copie:", t); }
+      try { await copiar(t); b.textContent = "Copiado ✓"; } catch (e) { prompt("Copie:", t); }
     });
   }
   $("#react-cartao").hidden = !dados.react;
@@ -328,7 +364,7 @@ function desenharProximoPasso() {
     $("#pp-legenda").onclick = async () => {
       const t = dados.legenda || "";
       if (!t) return aviso("A legenda do post ainda não foi gerada.", "erro");
-      try { await navigator.clipboard.writeText(t); aviso("Legenda copiada: cole no Instagram."); } catch (e) { prompt("Copie a legenda:", t); }
+      try { await copiar(t); aviso("Legenda copiada: cole no Instagram."); } catch (e) { prompt("Copie a legenda:", t); }
     };
     $("#pp-postei").onclick = async () => {
       const link = prompt("Link do post (opcional, ajuda o app a aprender com as visualizações):", "");
@@ -349,7 +385,7 @@ function desenharProximoPasso() {
 3. Escreva o projeto.yaml com 3 versões que tenham tudo a ver com a fala: hooks tirados do que eu falo, mensagens com na_fala,
    efeitos com na_fala só onde reforçam a fala, legenda do post, corte_limpo e legendas ligados. Compliance CFM/Anvisa.
 4. Rode o storyboard (python3 -m divine_studio storyboard projetos/${atual}) e me mostre os quadros para eu aprovar.`;
-    try { await navigator.clipboard.writeText(t); aviso("Copiado: cole no Claude (app do Mac ou Cowork) com a pasta do Divine Studio liberada."); }
+    try { await copiar(t); aviso("Copiado: cole no Claude (app do Mac ou Cowork) com a pasta do Divine Studio liberada."); }
     catch (e) { prompt("Copie e cole no Claude:", t); }
   };
   $$("#proximo-passo [data-aba-link]").forEach((a) => a.onclick = (e) => { e.preventDefault(); $(`[data-aba="${a.dataset.abaLink}"]`).click(); });
@@ -382,7 +418,7 @@ async function carregarSugestoes(fin) {
   $("#sug-hf").onclick = async () => {
     try {
       const x = await api("/api/sugestoes/higgsfield", { p: atual, arquivo: fin.arquivo });
-      try { await navigator.clipboard.writeText(x.instrucao); } catch (e) { prompt("Copie e cole no Claude:", x.instrucao); }
+      try { await copiar(x.instrucao); } catch (e) { prompt("Copie e cole no Claude:", x.instrucao); }
       aviso("Pedido copiado: cole no Claude (com o Higgsfield conectado). A leitura volta para cá como sugestão.");
     } catch (err) { aviso(err.message, "erro"); }
   };
@@ -399,10 +435,10 @@ zona.addEventListener("drop", (e) => enviar([...e.dataTransfer.files]));
 
 async function enviar(arquivos) {
   for (const f of arquivos) {
-    $("#envio").textContent = `Enviando ${f.name} (${(f.size / 1e6).toFixed(0)} MB)…`;
-    const r = await fetch(`/api/upload?p=${encodeURIComponent(atual)}&nome=${encodeURIComponent(f.name)}`,
-      { method: "POST", body: f });
-    if (!r.ok) { const j = await r.json(); alert(`${f.name}: ${j.erro}`); }
+    const mb = (f.size / 1e6).toFixed(0);
+    try {
+      await enviarArquivo(atual, f, (x) => { $("#envio").textContent = `Enviando ${f.name}: ${Math.round(x * 100)}% de ${mb} MB${NO_IPHONE ? " · deixe a tela acesa" : ""}`; });
+    } catch (err) { alert(`${f.name}: ${err.message}`); }
   }
   $("#envio").textContent = arquivos.length ? `${arquivos.length} arquivo(s) enviados para bruto/.` : "";
   abrir(atual);
@@ -485,8 +521,9 @@ async function salvarNaGaleria(url, nome) {
       if (navigator.canShare({ files: [arquivo] })) return await navigator.share({ files: [arquivo], title: nome });
     }
   } catch (e) { if (e.name === "AbortError") return; }
-  if (/iPhone|iPad/.test(navigator.userAgent)) {
+  if (NO_IPHONE) {
     window.open(url, "_blank");      // no Safari: botão compartilhar > Salvar vídeo
+    aviso("No vídeo que abriu: toque em Compartilhar (⬆) e depois em Salvar Vídeo. Ele vai para o app Fotos.");
     return;
   }
   const a = document.createElement("a"); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
@@ -509,7 +546,7 @@ $$(".abas button").forEach((b) => b.onclick = () => {
 $$("[data-acao]").forEach((b) => b.onclick = () => rodar(b.dataset.acao));
 
 $("#b-copiar").onclick = async () => {
-  await navigator.clipboard.writeText($("#legenda").textContent);
+  await copiar($("#legenda").textContent);
   $("#b-copiar").textContent = "Copiado";
   setTimeout(() => $("#b-copiar").textContent = "Copiar", 1500);
 };
@@ -532,6 +569,13 @@ async function rodar(acao, versoes) {
     acompanhar(r.job, NOMES[acao] || acao);
   } catch (err) { alert(err.message); }
 }
+
+$("#t-detalhes").onclick = () => $("#tarefa").classList.toggle("com-detalhes");
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (atual && !$("#projeto").hidden && !jobAtivo) abrir(atual).catch(() => {});
+});
 
 function acompanhar(job, titulo) {
   jobAtivo = job;

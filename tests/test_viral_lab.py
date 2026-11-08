@@ -189,3 +189,19 @@ def test_tiktok_pkce_e_envio_rascunho(tmp_path, monkeypatch):
     assert r == {"publish_id": "P1", "modo": "rascunho"}
     assert pedidos[0][0] == "post/publish/inbox/video/init/" and pedidos[0][1]["source_info"]["video_size"] == 1000
     assert subidas == [("https://up", 1000, 1)]
+
+
+def test_automacao_video_do_celular_ja_sai_editado():
+    from divine_studio import automacoes
+    regra = next(r for r in automacoes._cfg()["regras"] if r["quando"] == "projeto_novo")
+    assert regra["fazer"] == ["previas"]
+    chamadas = []
+    msg = automacoes._fazer("previas", "2026-11-08_x", regra, {}, iniciar=lambda n, a: chamadas.append((n, a)) or "job1")
+    assert chamadas == [("2026-11-08_x", "previa")] and "job1" in msg
+
+
+def test_painel_enderecos_e_qr():
+    from divine_studio import painel
+    es = painel.enderecos(8765)
+    assert es and all(e["url"].startswith("http://") and e["url"].endswith(":8765") for e in es)
+    assert painel.qr_svg("http://teste.local:8765").startswith(b"<?xml") or b"<svg" in painel.qr_svg("http://x")

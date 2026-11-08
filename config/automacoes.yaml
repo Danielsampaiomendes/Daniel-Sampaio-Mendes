@@ -9,6 +9,7 @@
 #   toda_semana       uma vez por semana (dia e hora abaixo)
 # Ações (fazer):
 #   analisar_entrada  cria o projeto e a proposta viral de cada vídeo novo
+#   previas           gera as versões em vídeo do projeto (aprove pelo iPhone com um toque)
 #   storyboard        gera o storyboard do projeto (nada é renderizado; você aprova)
 #   publicar          publica nas redes da peça (Instagram; TikTok vai como rascunho, ver tiktok.modo)
 #   puxar_metricas    busca as métricas do Instagram e do TikTok (alimenta o Laboratório)
@@ -18,7 +19,7 @@
 
 regras:
   - {nome: "Vídeo novo vira proposta viral", quando: video_novo, fazer: [analisar_entrada], ligado: true}
-  - {nome: "Proposta pronta gera storyboard", quando: projeto_novo, fazer: [storyboard], ligado: true}
+  - {nome: "Vídeo do celular já sai editado (versões para aprovar)", quando: projeto_novo, fazer: [previas], ligado: true}
   - {nome: "Postar no horário agendado", quando: hora_de_postar, fazer: [publicar], ligado: true}
   - {nome: "Métricas 24h depois", quando: depois_24h, fazer: [puxar_metricas], ligado: true}
   - {nome: "Métricas 7 dias depois", quando: depois_7d, fazer: [puxar_metricas], ligado: true}

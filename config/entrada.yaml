@@ -9,5 +9,5 @@ pastas:
   - "~/Google Drive/Meu Drive/Divine Studio/Entrada"
 estavel_s: 60          # só pega o arquivo parado há 60 s (o Drive ainda pode estar baixando)
 template: divine       # template das edições que nascem da entrada
-storyboard: true       # já gera o storyboard depois de montar
+storyboard: false      # as versões em vídeo saem pela automação "Vídeo do celular já sai editado"
 conta: dvmedicalspa    # perfil padrão (troque no projeto se for para o @drdanielmendess)

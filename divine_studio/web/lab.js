@@ -159,7 +159,7 @@ $("#rd-missao").onclick = () => {
     else aviso("Aberto ao lado. Deixe o Divine Studio na metade esquerda da tela.");
   };
   m.querySelector("[data-copiar]").onclick = async () => {
-    try { await navigator.clipboard.writeText(m.querySelector("#rd-texto-missao").value); aviso("Missão copiada: cole no Claude no Chrome"); }
+    try { await copiar(m.querySelector("#rd-texto-missao").value); aviso("Missão copiada: cole no Claude no Chrome"); }
     catch (e) { m.querySelector("#rd-texto-missao").select(); }
   };
   montar();

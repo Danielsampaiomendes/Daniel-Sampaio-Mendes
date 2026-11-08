@@ -48,4 +48,5 @@ echo "Abrindo o painel em $URL"
 echo "Deixe esta janela aberta enquanto usa. Para fechar o app: Ctrl + C (ou feche esta janela)."
 echo
 echo "Python: $("$PY" --version 2>&1)"
-exec "$PY" -m divine_studio painel --porta "$PORTA"
+# --celular: o iPhone entra pelo Wi-Fi com o código de 6 dígitos (o painel mostra o QR em 📱 iPhone)
+exec "$PY" -m divine_studio painel --porta "$PORTA" --celular

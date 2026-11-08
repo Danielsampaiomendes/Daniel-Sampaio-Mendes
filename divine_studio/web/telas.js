@@ -99,7 +99,7 @@ async function carregarProgramacao() {
     if (b.dataset.a === "legenda") {
       const d = await api("/api/projeto?p=" + encodeURIComponent(p.projeto));
       if (!d.legenda) return alert("Este projeto ainda não tem legenda (gere em Relatório e legenda).");
-      try { await navigator.clipboard.writeText(d.legenda); b.textContent = "Copiada ✓"; }
+      try { await copiar(d.legenda); b.textContent = "Copiada ✓"; }
       catch (e) { prompt("Copie a legenda:", d.legenda); }
       return;
     }
@@ -169,7 +169,8 @@ function aplicarModo() {
   let av = false;
   try { av = localStorage.getItem("ds_avancado") === "1"; } catch (e) { /* sem armazenamento */ }
   document.body.classList.toggle("simples", !av);
-  const b = $("#b-modo"); if (b) b.querySelector("span").textContent = av ? "Modo simples" : "Mais ferramentas";
+  const b = $("#b-modo");
+  if (b) b.querySelector("span").textContent = NO_IPHONE ? (av ? "Simples" : "Mais") : (av ? "Modo simples" : "Mais ferramentas");
 }
 $("#b-modo").onclick = () => {
   let av = false;
@@ -314,9 +315,11 @@ async function edicaoRapida(arquivos) {
   try {
     const { nome } = await api("/api/nova_edicao", { tipo: $("#ini-epico").checked ? "epico" : "video", titulo });
     for (const [k, f] of arquivos.entries()) {
-      msg.textContent = `Enviando ${f.name} (${k + 1} de ${arquivos.length}, ${(f.size / 1e6).toFixed(0)} MB)…`;
-      const r = await fetch(`/api/upload?p=${encodeURIComponent(nome)}&nome=${encodeURIComponent(f.name)}`, { method: "POST", body: f });
-      if (!r.ok) throw new Error((await r.json()).erro || "falha no envio");
+      const mb = (f.size / 1e6).toFixed(0);
+      await enviarArquivo(nome, f, (x) => {
+        msg.innerHTML = `<div class="barra-envio"><i style="width:${Math.round(x * 100)}%"></i></div>
+          Enviando ${esc(f.name)} (${k + 1} de ${arquivos.length}): ${Math.round(x * 100)}% de ${mb} MB${NO_IPHONE ? "<br><b>Deixe a tela acesa e o Safari aberto até terminar.</b>" : ""}`;
+      });
     }
     msg.textContent = "Enviado. Começando a edição automática…";
     const { job } = await api("/api/acao", { p: nome, acao: "auto" });
@@ -378,11 +381,21 @@ $("#b-celular").onclick = async () => {
   const c = await api("/api/celular").catch(() => ({}));
   const m = document.createElement("div");
   m.className = "modal";
-  m.innerHTML = `<div class="cartao" style="max-width:440px"><h2>📱 Abrir no iPhone</h2>${c.ativo
-    ? `<p>No Safari do iPhone, no <b>mesmo Wi-Fi</b>:</p><p class="endereco">${esc(c.endereco)}</p>
-       ${c.codigo ? `<p>Código de acesso: <b class="endereco">${esc(c.codigo)}</b></p>` : ""}
-       <p class="dica">Depois: Compartilhar > Adicionar à Tela de Início. O Mac precisa ficar ligado com o painel aberto.</p>`
-    : `<p>O painel está aberto só neste Mac. Feche e abra com <b>Divine Studio iPhone.command</b>: ele mostra o endereço e o código para o celular.</p>`}
+  const lista = c.enderecos || (c.endereco ? [{ url: c.endereco, onde: "no mesmo Wi-Fi" }] : []);
+  const principal = lista[0];
+  m.innerHTML = `<div class="cartao celular-modal"><h2>📱 Abrir no iPhone</h2>${c.ativo && principal
+    ? `<ol class="celular-passos">
+         <li>iPhone no <b>mesmo Wi-Fi</b> do Mac. Abra a <b>Câmera</b> e aponte para o código:</li>
+       </ol>
+       <img class="celular-qr" src="/qr.svg?u=${encodeURIComponent(principal.url)}" alt="" onerror="this.remove()">
+       <p class="endereco">${esc(principal.url)}</p>
+       ${c.codigo ? `<p>Código de acesso (só na primeira vez): <b class="endereco">${esc(c.codigo)}</b></p>` : ""}
+       <ol class="celular-passos" start="2"><li>No Safari: <b>Compartilhar ⬆ > Adicionar à Tela de Início</b>. Vira um app com o ícone da Divine.</li>
+         <li>Pronto: solte o vídeo bruto, aprove e poste pelo iPhone. As versões saem no Mac, que fica acordado enquanto o painel está aberto.</li></ol>
+       ${lista.length > 1 ? `<details><summary class="dica">Outros endereços</summary>${lista.slice(1).map((e) => `<p class="dica"><b>${esc(e.url)}</b> · ${esc(e.onde)}</p>`).join("")}</details>` : ""}
+       <p class="dica">Fora de casa (4G): mande o vídeo para a pasta <b>Divine Studio/Entrada</b> do Google Drive pelo app do Drive.
+         O Mac edita sozinho e as versões esperam você aprovar. Para abrir o painel na rua, instale o Tailscale (grátis) no Mac e no iPhone.</p>`
+    : `<p>O painel está aberto só neste Mac. Feche esta janela do Terminal e abra de novo o <b>Divine Studio.command</b>: ele já libera o iPhone.</p>`}
     <button class="dourado" data-f>Fechar</button></div>`;
   document.body.appendChild(m);
   m.onclick = (e) => { if (e.target === m || e.target.dataset.f !== undefined) m.remove(); };
