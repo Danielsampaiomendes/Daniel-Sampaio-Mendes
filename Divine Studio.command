@@ -23,8 +23,10 @@ fi
 # Atualiza pelo GitHub (guarda em _arquivo/ qualquer arquivo seu que fosse trocado), prepara o Python próprio do
 # app (.venv, Python 3.12: o do Xcode é antigo demais para a IA) e instala só o que mudou, uma biblioteca por vez.
 if [ "$1" != "--sem-atualizar" ]; then
-  python3 divine_studio/atualizar.py --sem-painel || echo "  (seguindo com a versão que já está no Mac)"
+  python3 divine_studio/atualizar.py --sem-painel 2>/dev/null || echo "  (seguindo com a versão que já está no Mac)"
 fi
+# de novo, agora com o código que acabou de chegar: Python do app, bibliotecas e situação da transcrição
+python3 divine_studio/atualizar.py --so-python 2>/dev/null
 PY=python3
 [ -x .venv/bin/python ] && PY=.venv/bin/python
 if ! "$PY" -c "import PIL, numpy, yaml" >/dev/null 2>&1; then

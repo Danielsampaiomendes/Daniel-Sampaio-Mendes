@@ -1318,6 +1318,8 @@ class Painel(BaseHTTPRequestHandler):
                                    for h in sortear(int(q.get("n", 3)), tema=q.get("tema"))])
             if u.path == "/arquivo":
                 return self._arquivo(_arquivo_do_projeto(_pasta(q["p"]), q["f"]))
+            if u.path == "/api/fala":
+                return self._json(_entende_fala())
             if u.path == "/api/sugestoes":
                 from . import sugestoes
                 return self._json(sugestoes.gerar(_pasta(q["p"]), q["p"]))

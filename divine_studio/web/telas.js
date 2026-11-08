@@ -321,6 +321,17 @@ async function edicaoRapida(arquivos) {
           Enviando ${esc(f.name)} (${k + 1} de ${arquivos.length}): ${Math.round(x * 100)}% de ${mb} MB${NO_IPHONE ? "<br><b>Deixe a tela acesa e o Safari aberto até terminar.</b>" : ""}`;
       });
     }
+    // sem a transcrição a edição sai genérica: instala primeiro e a edição começa sozinha quando o painel reabrir
+    const fala = await api("/api/fala").catch(() => ({ transcricao: true }));
+    if (!fala.transcricao) {
+      try { localStorage.setItem("ds_auto_depois", nome); } catch (e) { /* segue */ }
+      if (fala.precisa_reiniciar) { msg.textContent = "Reabrindo o painel no Python novo; a edição começa sozinha…"; return reabrirPainel(); }
+      msg.textContent = "Antes de editar: instalando a transcrição (uma vez só, 2 a 5 minutos). A edição começa sozinha depois.";
+      const { job } = await api("/api/acao", { p: nome, acao: "instalar_fala" });
+      await carregarLista(); mostrarTela("projetos"); await abrir(nome);
+      acompanhar(job, "Instalando a transcrição (uma vez só); depois a edição começa sozinha");
+      return;
+    }
     msg.textContent = "Enviado. Começando a edição automática…";
     const { job } = await api("/api/acao", { p: nome, acao: "auto" });
     await carregarLista(); mostrarTela("projetos"); await abrir(nome);
@@ -334,6 +345,22 @@ async function edicaoRapida(arquivos) {
   ["dragenter", "dragover"].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); z.classList.add("sobre"); }));
   ["dragleave", "drop"].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); z.classList.remove("sobre"); }));
   z.addEventListener("drop", (e) => edicaoRapida(e.dataTransfer.files));
+})();
+
+// depois de instalar a transcrição o painel reabre: a edição que ficou esperando começa sozinha
+(async () => {
+  let nome = null;
+  try { nome = localStorage.getItem("ds_auto_depois"); } catch (e) { return; }
+  if (!nome) return;
+  const fala = await api("/api/fala").catch(() => null);
+  if (!fala || !fala.transcricao) return;
+  try { localStorage.removeItem("ds_auto_depois"); } catch (e) { /* segue */ }
+  try {
+    const { job } = await api("/api/acao", { p: nome, acao: "auto" });
+    mostrarTela("projetos"); await abrir(nome);
+    acompanhar(job, "Edição automática: transcrevendo, cortando e montando as versões");
+    aviso("Transcrição pronta ✓ Começou a edição do seu vídeo.");
+  } catch (err) { aviso(err.message, "erro"); }
 })();
 
 async function carregarInicio() {

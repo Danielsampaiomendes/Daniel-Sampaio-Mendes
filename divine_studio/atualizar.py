@@ -159,8 +159,9 @@ def _instalar(py: str, pacotes: list) -> bool:
         cmd = [*uv, "pip", "install", "--python", py, "-q", *pacotes]
     else:
         no_venv = ".venv" in py
-        cmd = [py, "-m", "pip", "install", "-q", *([] if no_venv else ["--user"]), *pacotes]
-    return subprocess.run(cmd).returncode == 0
+        cmd = [py, "-m", "pip", "install", "-q", "--disable-pip-version-check", *([] if no_venv else ["--user"]), *pacotes]
+    # sem a parede vermelha do pip na janela: quem falhou aparece numa linha só, no resumo
+    return subprocess.run(cmd, capture_output=True).returncode == 0
 
 
 def dependencias(pasta: Path) -> str | None:
@@ -184,7 +185,16 @@ def dependencias(pasta: Path) -> str | None:
         marca.write_text(h)
         return "Bibliotecas atualizadas."
     nomes = ", ".join(f.split(">")[0].split("=")[0] for f in falhas)
-    return f"Aviso: não instalou {nomes}. O resto foi instalado e o app abre normalmente."
+    return (f"Aviso: não instalou {nomes} neste Python. O resto foi instalado e o app abre normalmente"
+            + ("; no painel, toque em \"Instalar a transcrição agora\"." if "faster" in nomes else "."))
+
+
+def situacao_fala(pasta: Path) -> str:
+    """Uma linha para a janela do Terminal: o app entende a fala ou não."""
+    py = python_do_app(pasta)
+    ok = subprocess.run([py, "-c", "import faster_whisper"], capture_output=True).returncode == 0
+    return ("Transcrição: ✓ pronta (o app entende a sua fala)" if ok else
+            "Transcrição: ✗ falta. No painel, abra o projeto e toque em \"Instalar a transcrição agora\".")
 
 
 def fontes(pasta: Path) -> str | None:
@@ -217,8 +227,14 @@ def fechar_painel(porta: int = PORTA) -> bool:
 def main(argv=None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     sem_painel = "--sem-painel" in args
+    so_python = "--so-python" in args
     args = [a for a in args if not a.startswith("--")]
     pasta = Path(args[0]).expanduser() if args else Path(__file__).resolve().parent.parent
+    if so_python:                       # chamado de novo pelo .command, já com o código novo que acabou de baixar
+        for msg in (preparar_python(pasta), dependencias(pasta), situacao_fala(pasta)):
+            if msg:
+                print("  " + msg, flush=True)
+        return 0
     print("Divine Studio: procurando atualização...")
     r = atualizar(pasta)
     print("  " + r["msg"])

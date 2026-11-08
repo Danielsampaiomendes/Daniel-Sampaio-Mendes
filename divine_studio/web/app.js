@@ -386,6 +386,7 @@ function desenharProximoPasso() {
     pi.closest(".pp-alerta").innerHTML = `<div class="pp-rodando"><span class="giro"></span><div><b>Instalando a transcrição…</b><br>
       <span class="dica">2 a 5 minutos. Deixe o Mac ligado; o painel reabre sozinho quando terminar. Só depois crie a edição.</span></div></div>`;
     const au2 = $("#pp-auto"); if (au2) au2.disabled = true;
+    if (!previas && !finais) { try { localStorage.setItem("ds_auto_depois", atual); } catch (e) { /* segue */ } }
     rodar("instalar_fala");
   };
   const pr = $("#pp-reiniciar"); if (pr) pr.onclick = () => reabrirPainel();
