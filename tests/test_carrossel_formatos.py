@@ -31,7 +31,8 @@ def test_todos_os_layouts_desenham(estilo):
         assert carrossel.desenhar(p, i).size == (1080, 1350)
 
 
-def test_exportar_gera_pngs_zip_e_legenda(tmp_path):
+def test_exportar_gera_pngs_zip_e_legenda(tmp_path, monkeypatch):
+    monkeypatch.setattr(carrossel, "ROOT", tmp_path)          # a entrega do teste não vai para entregas/ de verdade
     p = {"tipo": "carrossel", "titulo": "Queda de cabelo", "estilo": "divine", "formula": "mito_verdade",
          "cards": carrossel.rascunho("Queda de cabelo", "mito_verdade"), "conteudo_medico": True,
          "autorizacao_imagem": "nao_aparece"}

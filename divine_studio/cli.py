@@ -488,6 +488,11 @@ def _render_paralelo(pasta: Path, nomes: list, n_par: int, trabalho: Path) -> li
     return out
 
 
+def cmd_instalar_fala(a):
+    from . import instalar_fala
+    raise SystemExit(instalar_fala.main())
+
+
 def cmd_higgsfield(a):
     from . import higgsfield as hf
     if a.acao == "fila":
@@ -1013,6 +1018,9 @@ def main(argv=None):
     s.add_argument("--rede", default="instagram")
     s.add_argument("--arquivo", help="arquivo com o resultado colado (para 'colar')")
     s.set_defaults(f=cmd_radar)
+    s = sub.add_parser("instalar-fala", help="instala a transcrição no Python próprio do app (.venv)")
+    s.add_argument("projeto", nargs="?")
+    s.set_defaults(f=cmd_instalar_fala)
     s = sub.add_parser("higgsfield", help="fila de pedidos do Higgsfield (o Claude executa com o conector)")
     s.add_argument("acao", choices=["fila", "instrucao", "pronto", "status", "analise"])
     s.add_argument("id", nargs="?")

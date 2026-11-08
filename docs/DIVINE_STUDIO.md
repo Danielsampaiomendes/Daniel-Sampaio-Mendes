@@ -22,6 +22,15 @@ Referências, Imagens, TV, Storyboard e o projeto.yaml continuam no app, em **�
 
 Prévias em paralelo: cada versão renderiza num processo (metade dos núcleos do Mac), então as 4 saem perto do tempo de 2.
 
+## "O app ainda não entende a sua fala" (08/11/2026)
+
+Aparece quando a transcrição não está no Python que roda o painel. No projeto, toque em **⬇ Instalar a transcrição
+agora** (ou `python3 -m divine_studio instalar-fala`): o app arranja o uv (pelo pip ou pelo instalador oficial), cria o
+Python 3.12 do app em `.venv` (sem uv, usa o Python do Homebrew), instala as bibliotecas uma por uma, baixa o modelo de
+fala e **reabre o painel sozinho** no Python novo. Daí em diante o painel sempre abre nele, mesmo que o
+`Divine Studio.command` comece pelo Python do Mac. Se parar com erro, a janela da tarefa mostra cada passo: mande um
+print. Alternativa sem instalar nada: transcrição na nuvem com `ASSEMBLYAI_API_KEY`.
+
 ## No iPhone (08/11/2026)
 
 O app roda no Mac; o iPhone é o controle. O `Divine Studio.command` já abre liberado para o iPhone.

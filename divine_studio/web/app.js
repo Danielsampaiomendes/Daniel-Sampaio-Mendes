@@ -300,13 +300,17 @@ function desenharProximoPasso() {
   const dentro = dados.brutos.filter((b) => !b.fora).length;
   const previas = dados.saidas.filter((s) => s.previa).length, finais = dados.saidas.filter((s) => !s.previa).length;
   let h;
+  const ef = dados.entende_fala || {};
+  const alertaFala = ef.transcricao ? "" : (ef.precisa_reiniciar
+      ? `<div class="pp-alerta">✓ A transcrição já está instalada no Python novo do app. Falta só reabrir o painel nele.
+          <div class="pp-linha"><button class="dourado" id="pp-reiniciar">↻ Reabrir o painel agora</button></div></div>`
+      : `<div class="pp-alerta">⚠ <b>O app ainda não entende a sua fala</b> (falta a transcrição), então a edição sai com textos genéricos.
+          <div class="pp-linha"><button class="dourado" id="pp-instalar">⬇ Instalar a transcrição agora</button>
+          <span class="dica">Uma vez só: 2 a 5 minutos, precisa de internet. O painel reabre sozinho no fim.${previas || finais ? " Depois, toque em ✦ Edição automática de novo." : ""}</span></div></div>`);
   if (!dados.brutos.length) {
     h = `<b>1. Solte os vídeos brutos</b> no quadro acima (ou clique nele para escolher). Pode soltar vários de uma vez.`;
   } else if (!previas && !finais) {
-    const ef = dados.entende_fala || {};
-    const alerta = !ef.transcricao ? `<div class="pp-alerta">⚠ <b>O app ainda não entende a sua fala</b> (falta a transcrição): a edição sai com textos genéricos.
-        Toque em <b>⟳ Atualizar</b> (ele instala sozinho) ou no Terminal: <code>pip3 install faster-whisper</code>.</div>`
-      : !ef.ia ? `<div class="dica so-avancado">A fala é transcrita e vira legenda, ganchos e mensagens. Para o Claude escrever as 3 versões
+    const alerta = alertaFala ? "" : !ef.ia ? `<div class="dica so-avancado">A fala é transcrita e vira legenda, ganchos e mensagens. Para o Claude escrever as 3 versões
         (como no chat), ligue a IA com a chave da API (Ideias e IA) ou use o botão <b>Pedir a edição ao Claude</b> abaixo.</div>` : "";
     h = (dados.job || jobAtivo) ? `<div class="pp-rodando"><span class="giro"></span><div><b>Editando o seu vídeo…</b><br>
         <span class="dica">O app está transcrevendo a fala, cortando as pausas, escrevendo os textos e gerando as versões. Leva alguns minutos;
@@ -341,7 +345,7 @@ function desenharProximoPasso() {
       <div class="pp-sug" id="pp-sug"><b>💡 Para a próxima ficar ainda melhor</b><span class="dica"> carregando…</span></div>`;
     setTimeout(() => carregarSugestoes(fin), 0);
   }
-  caixa.innerHTML = h;
+  caixa.innerHTML = (dados.job || jobAtivo ? "" : alertaFala) + h;
   const az = $("#pp-autoriz");
   if (az) az.onchange = async () => {
     if (!az.value) return;
@@ -378,6 +382,13 @@ function desenharProximoPasso() {
   if (ep) ep.onchange = () => api("/api/dados", { p: atual, dados: { ritmo: ep.checked ? "epico" : "viral", epico: null } })
     .then(() => { dados.epico = ep.checked; aviso(ep.checked ? "Vídeo Épico ligado" : "Padrão viral luxo"); });
   const au = $("#pp-auto"); if (au) au.onclick = () => rodar("auto");
+  const pi = $("#pp-instalar"); if (pi) pi.onclick = () => {
+    pi.closest(".pp-alerta").innerHTML = `<div class="pp-rodando"><span class="giro"></span><div><b>Instalando a transcrição…</b><br>
+      <span class="dica">2 a 5 minutos. Deixe o Mac ligado; o painel reabre sozinho quando terminar. Só depois crie a edição.</span></div></div>`;
+    const au2 = $("#pp-auto"); if (au2) au2.disabled = true;
+    rodar("instalar_fala");
+  };
+  const pr = $("#pp-reiniciar"); if (pr) pr.onclick = () => reabrirPainel();
   const pc = $("#pp-claude"); if (pc) pc.onclick = async () => {
     const t = `Edite o vídeo do projeto projetos/${atual} do Divine Studio, do mesmo jeito que você edita aqui no chat.
 1. Leia o CLAUDE.md e as skills divine-* (vídeo, sequência de gravação, modelos de Reels).
@@ -577,6 +588,17 @@ document.addEventListener("visibilitychange", () => {
   if (atual && !$("#projeto").hidden && !jobAtivo) abrir(atual).catch(() => {});
 });
 
+// painel reabre no Python novo (depois de instalar a transcrição) e a página volta sozinha
+async function reabrirPainel() {
+  aviso("Reabrindo o painel no Python novo…");
+  try { await api("/api/reiniciar", {}); } catch (e) { /* o painel caiu para reabrir */ }
+  const esperar = async (n) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    try { await api("/api/projetos"); location.reload(); } catch (e) { if (n > 0) esperar(n - 1); else aviso("O painel não voltou: abra de novo o Divine Studio.command no Mac.", "erro"); }
+  };
+  esperar(20);
+}
+
 function acompanhar(job, titulo) {
   jobAtivo = job;
   $("#tarefa").hidden = false;
@@ -616,6 +638,8 @@ function acompanhar(job, titulo) {
       if (e.estado === "ok" && (e.acao.startsWith("formatos") || e.acao === "cortes" || e.acao === "pacote")) carregarLista();
       if (e.estado === "ok" && e.acao === "cortes") alert("Cortes prontos: estão na lista de projetos, logo abaixo deste vídeo.");
       if (e.estado === "ok" && e.acao === "final" && !simples) setTimeout(() => abrirConversa((e.versoes && e.versoes[0]) || "V1").catch(() => {}), 1200);
+      if (e.estado === "ok" && e.acao === "instalar_fala") { aviso("Transcrição instalada ✓"); reabrirPainel(); }
+      if (e.estado === "erro" && e.acao === "instalar_fala") { $("#tarefa").classList.add("com-detalhes"); aviso("A instalação parou: o passo a passo está na janela da tarefa. Mande um print para o Claude.", "erro"); }
       if (e.estado === "ok" && (e.acao === "cortar" || e.acao === "legenda")) $('[data-aba="relatorio"]').click();
       if (e.estado === "ok" && ["revisar", "legenda", "cortar"].includes(e.acao)) setTimeout(() => { if (!jobAtivo) $("#tarefa").hidden = true; }, 6000);
     }

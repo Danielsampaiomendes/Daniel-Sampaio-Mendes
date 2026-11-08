@@ -612,9 +612,16 @@ def versao_app() -> dict:
 
 
 def _entende_fala() -> dict:
-    from . import assistente
-    from .transcricao import motor_disponivel
-    return {"transcricao": bool(motor_disponivel()), "ia": assistente.disponivel()[0]}
+    from . import assistente, instalar_fala
+    return {**instalar_fala.estado(), "ia": assistente.disponivel()[0]}
+
+
+def reiniciar_no_python_do_app(porta: int, celular: bool) -> None:
+    """Reabre o painel no Python próprio do app (.venv), onde a transcrição foi instalada."""
+    from . import atualizar as _at
+    py = _at.python_do_app(ROOT)
+    args = [py, "-m", "divine_studio", "painel", "--porta", str(porta), "--sem-navegador"] + (["--celular"] if celular else [])
+    threading.Timer(0.8, lambda: (os.chdir(ROOT), os.execv(args[0], args))).start()
 
 
 def acao_bruto(nome: str, arquivo: str, acao: str) -> dict:
@@ -976,7 +983,7 @@ ACOES = {
     "previa": ["editar", "--rapido"], "final": ["editar"], "pacote": ["pacote"], "auto": ["auto", "--previa"],
     "formatos": ["formatos"], "formatos_final": ["formatos", "--final"], "carrossel": ["carrossel", "exportar"],
     "post": ["post", "exportar"], "antesdepois": ["antesdepois", "exportar"], "cortes": ["cortes"],
-    "storyboard": ["storyboard"],
+    "storyboard": ["storyboard"], "instalar_fala": ["instalar-fala"],
 }
 
 
@@ -1712,12 +1719,18 @@ class Painel(BaseHTTPRequestHandler):
                 elif r["aplicados"]:
                     r["job"] = iniciar(nome, "storyboard", dados.get("versoes"))
                 return self._json(r)
+            if u.path == "/api/reiniciar":           # depois de instalar a transcrição: painel no Python novo
+                reiniciar_no_python_do_app(self.server.server_address[1], bool(self.codigo))
+                return self._json({"reiniciando": True})
             if u.path == "/api/atualizar":           # baixa a versão nova e reinicia este painel
                 from . import atualizar as _at
                 r = _at.atualizar(ROOT)
                 _at.preparar_python(ROOT)
                 d = _at.dependencias(ROOT)
                 _at.fontes(ROOT)
+                from . import instalar_fala as _if
+                if _if.estado()["precisa_reiniciar"]:       # o Python novo ficou pronto: o painel passa para ele
+                    r = {**r, "ok": True, "mudou": True, "msg": (r.get("msg") or "") + " Transcrição instalada."}
                 if r["ok"] and r.get("mudou"):
                     porta = self.server.server_address[1]
                     py = _at.python_do_app(ROOT)
@@ -1746,7 +1759,20 @@ def _iniciar_seguro(nome: str, acao: str) -> str:
     return "projeto ocupado"
 
 
+def _ir_para_python_do_app() -> None:
+    """Aberto pelo Python antigo do Mac, mas o Python do app (.venv) já existe e está completo: troca para ele."""
+    from . import atualizar as _at, instalar_fala
+    if instalar_fala.no_python_do_app() or os.environ.get("DIVINE_SEM_VENV") == "1":
+        return
+    py = _at.python_do_app(ROOT)
+    if py == sys.executable or not instalar_fala._ok_import(py, "PIL, numpy, yaml"):
+        return
+    print(f"  Abrindo no Python do Divine Studio ({py})", flush=True)
+    os.execv(py, [py, "-m", "divine_studio", *sys.argv[1:]])
+
+
 def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
+    _ir_para_python_do_app()
     try:                                   # kit de sons virais (cria os que faltam, rápido)
         from .config import ROOT as _R, load as _L
         from .sfx_viral import garantir

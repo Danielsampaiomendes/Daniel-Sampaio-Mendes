@@ -115,7 +115,9 @@ def _versao(py: str) -> tuple:
 
 def _uv() -> list:
     """Comando do uv (instalador rápido), onde estiver: neste Python, no python3 do Mac ou no PATH."""
-    for cmd in ([sys.executable, "-m", "uv"], [shutil.which("python3") or "python3", "-m", "uv"], [shutil.which("uv") or "uv"]):
+    casa = Path.home()
+    for cmd in ([sys.executable, "-m", "uv"], [shutil.which("python3") or "python3", "-m", "uv"], [shutil.which("uv") or "uv"],
+                [str(casa / ".local" / "bin" / "uv")], [str(casa / ".cargo" / "bin" / "uv")], ["/opt/homebrew/bin/uv"]):
         try:
             if subprocess.run([*cmd, "--version"], capture_output=True, timeout=30).returncode == 0:
                 return cmd
@@ -137,13 +139,15 @@ def preparar_python(pasta: Path) -> str | None:
     print("  Preparando o Python do Divine Studio (só na primeira vez, leva 1 ou 2 minutos)...", flush=True)
     if not _tem_uv():
         subprocess.run([sys.executable, "-m", "pip", "install", "--user", "-q", "uv"], capture_output=True)
+    if not _tem_uv() and shutil.which("curl"):            # pip do Xcode antigo demais: instalador oficial do uv
+        subprocess.run("curl -LsSf https://astral.sh/uv/install.sh | sh", shell=True, capture_output=True)
     if not _tem_uv():
-        return "Aviso: não consegui preparar o Python novo (seguindo com o do Mac; a IA pode ficar desligada)."
+        return "Aviso: não consegui preparar o Python novo agora. No painel, toque em \"Instalar a transcrição agora\" (mostra cada passo)."
     r = subprocess.run([*_uv(), "venv", "--seed", "--python", "3.12", str(pasta / ".venv")],
                        capture_output=True, text=True)
     if r.returncode != 0:
         shutil.rmtree(pasta / ".venv", ignore_errors=True)
-        return "Aviso: não consegui preparar o Python novo (seguindo com o do Mac; a IA pode ficar desligada)."
+        return "Aviso: não consegui preparar o Python novo agora. No painel, toque em \"Instalar a transcrição agora\" (mostra cada passo)."
     (pasta / ".divine_studio_req.sha").unlink(missing_ok=True)       # instala tudo no Python novo
     return "Python 3.12 do Divine Studio pronto."
 

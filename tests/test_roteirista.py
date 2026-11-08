@@ -66,3 +66,11 @@ def test_sugestoes_da_fala():
     assert "pedido" in titulos                  # termina sem CTA falado
     assert not sugestoes.da_fala(FALA) or all("apresentação" not in x["titulo"] for x in sugestoes.da_fala(FALA))
     assert sugestoes.da_fala([])[0]["titulo"] == "Ligue a transcrição"
+
+
+def test_estado_da_transcricao_e_comando():
+    from divine_studio import instalar_fala
+    e = instalar_fala.estado()
+    assert {"transcricao", "no_python_do_app", "venv_com_fala", "precisa_reiniciar"} <= set(e)
+    from divine_studio import painel
+    assert painel.ACOES["instalar_fala"] == ["instalar-fala"]
