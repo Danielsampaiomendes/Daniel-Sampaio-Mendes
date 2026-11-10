@@ -778,6 +778,25 @@ def _previas_por_versao(previas: list) -> dict:
     return out
 
 
+def estudio_config() -> dict:
+    """config/estudio.yaml, só com os efeitos e sons que existem de verdade (um nome errado no YAML não quebra a tela)."""
+    from .efeitos import catalogo
+    try:
+        cfg = dict(load("estudio"))
+    except FileNotFoundError:
+        cfg = {}
+    tipos = {c["tipo"]: c for c in catalogo()}
+    kit = ROOT / "Biblioteca_SFX" / "1_kit_original_divine"
+    cfg["efeitos_rapidos"] = [{**e, "rotulo": e.get("rotulo") or tipos[e["tipo"]]["nome"]}
+                              for e in cfg.get("efeitos_rapidos") or [] if isinstance(e, dict) and e.get("tipo") in tipos]
+    cfg["sons_rapidos"] = [n for n in cfg.get("sons_rapidos") or [] if (kit / f"{n}.wav").exists()]
+    cfg["agentes"] = [a for a in cfg.get("agentes") or [] if isinstance(a, dict) and a.get("chave") and a.get("nome")]
+    cfg.setdefault("abrir_sozinho", True)
+    cfg.setdefault("largura_minima", 1100)
+    cfg["previa_automatica"] = {"ligada_por_padrao": False, "espera_s": 4, **(cfg.get("previa_automatica") or {})}
+    return cfg
+
+
 def _atencao_v1(pasta: Path) -> dict:
     from . import atencao
     for v in ("V1", "TV", "IA"):
@@ -1243,7 +1262,7 @@ class Painel(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._arquivo(WEB / "index.html")
-            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/storyboard.js", "/lab.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
+            if u.path in ("/app.js", "/editor.js", "/carrossel.js", "/telas.js", "/ia.js", "/biblioteca.js", "/storyboard.js", "/lab.js", "/estudio.js", "/estilo.css", "/logo.jpg", "/icone-64.png", "/icone-180.png",
                           "/manifest.json"):
                 return self._arquivo(WEB / u.path.lstrip("/"))
             if u.path == "/api/versao":
@@ -1418,6 +1437,8 @@ class Painel(BaseHTTPRequestHandler):
                                    for h in sortear(int(q.get("n", 3)), tema=q.get("tema"))])
             if u.path == "/arquivo":
                 return self._arquivo(_arquivo_do_projeto(_pasta(q["p"]), q["f"]))
+            if u.path == "/api/estudio":            # a tela Estúdio: agentes, efeitos e sons rápidos (config/estudio.yaml)
+                return self._json(estudio_config())
             if u.path == "/api/fala":
                 return self._json(_entende_fala())
             if u.path == "/api/sugestoes":

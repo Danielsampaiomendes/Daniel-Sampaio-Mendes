@@ -2,6 +2,35 @@
 
 Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 3 versões prontas para postar, aplicando sozinha a marca, o template suave/glamour, o rodízio de fontes e SFX, a trilha original e o revisor de compliance.
 
+## Estúdio: a tela de edição profissional no computador (10/11/2026)
+
+Inspirada nos editores com agentes trabalhando ao vivo. Abre sozinha quando você abre um vídeo no computador (tela com
+pelo menos 1100 px); no iPhone continua a tela simples. O botão **▣ Estúdio**, no alto do projeto, liga e desliga, e
+**◧ Tela simples** volta ao passo a passo (o app lembra a sua escolha).
+
+- **Barra de cima**: os 8 agentes da edição (Transcrição, Roteirista, Cortes, Legendas, Ritmo e SFX, Compliance,
+  Previsão, Render). Durante uma tarefa eles acendem conforme agem. Ao lado: **⚡ Prévia automática**, Salvar,
+  **✦ Edição automática** e **✓ Aprovar esta** (aprova a versão que está no monitor e exporta a final).
+- **Mídia** (esquerda): as versões V1, V2, V3 e IA com capa e "de 100 pessoas, quantas chegam ao fim" (toque para pôr
+  no monitor), os vídeos brutos (soltar, usar, tirar, descartar) e **Efeitos · SFX**: botões que põem um efeito
+  equilibrado ou um som exatamente na agulha.
+- **Fonte e Atividade dos agentes**: o vídeo bruto e o registro do que cada agente fez, linha por linha, ao vivo
+  durante a tarefa; parado, mostra o resumo da edição (blocos de legenda, efeitos, travas de compliance, previsão).
+- **Programa** (centro): o vídeo da versão com timecode. Enquanto toca, etiquetas coloridas mostram qual agente agiu
+  naquele instante (hook, texto, efeito do ritmo, legenda, ponto "!").
+- **Scopes**: forma de onda (luz), vetorscópio (cor, com a linha do tom de pele) e nível do som, medidos do vídeo de
+  verdade enquanto toca. **Retenção prevista** da versão com a agulha andando junto, as zonas de risco e a frase
+  "De 100 pessoas…". **Pontos !**: a lista da versão; um toque leva ao segundo e abre a correção.
+- **Inspetor** (direita): **Ajuste** (o que você tocou na linha do tempo), **Cor e áudio**, **Textos** (hook e fontes
+  por versão, mensagens, fechamento) e **Aprovar e postar** (o passo a passo e o cartão de aprovar e postar). Quando
+  uma prévia termina, ele abre sozinho em "Aprovar e postar".
+- **Linha do tempo** (embaixo): a mesma de antes (Vídeo, Texto, Legendas, Efeitos, Áudio, "!"), com as ferramentas.
+- **⚡ Prévia automática**: ligada, cada ajuste na linha do tempo espera 4 s parado, salva e gera a prévia só da versão
+  que está no monitor (mais rápida que as 3). Fica desligada até você ligar.
+
+Regras da tela em `config/estudio.yaml` (largura mínima, efeitos e sons rápidos, agentes, espera da prévia automática).
+Nada muda no que é exportado: o Estúdio só reorganiza as mesmas ferramentas.
+
 ## Pontos "!" na linha do tempo, previsão de público e dublagem de trecho (08/11/2026)
 
 - **"!" na linha do tempo** (aba Ajustar) e no cartão de cada versão do passo 3: cada ponto mostra o segundo, o

@@ -1,0 +1,35 @@
+# Estúdio: a tela de edição profissional do projeto (computador), inspirada nos editores com agentes ao vivo.
+# Mídia à esquerda, monitor no centro, agentes trabalhando, análise (scopes, atenção, previsão) e inspetor à direita,
+# linha do tempo embaixo. No iPhone e em telas estreitas continua o modo simples.
+# Tudo que muda o comportamento da tela fica aqui (regra do projeto: nada escondido no código).
+
+# abre sozinho no computador quando a tela tem pelo menos esta largura (px); o botão "▣ Estúdio" liga e desliga
+abrir_sozinho: true
+largura_minima: 1100
+
+# prévia automática: depois de mexer na linha do tempo, espera estes segundos parado, salva e gera a prévia
+# só da versão que está na linha do tempo (mais rápido que as 3)
+previa_automatica:
+  ligada_por_padrao: false
+  espera_s: 4
+
+# botões rápidos "Efeitos · SFX" (entram na agulha). Só efeitos equilibrados: nada de efeito aleatório
+efeitos_rapidos:
+  - {tipo: frame_titulo, rotulo: "Título de capítulo"}
+  - {tipo: queda_letras, rotulo: "Texto de impacto"}
+  - {tipo: zoom_batida, rotulo: "Zoom na batida"}
+  - {tipo: contador, rotulo: "Número que sobe"}
+  - {tipo: balao, rotulo: "Balão de comentário"}
+  - {tipo: luz_dourada, rotulo: "Luz dourada"}
+sons_rapidos: [pop_suave_a, ding_suave_a, brilho_dourado_a, impacto_grave_suave_a, camera_shutter_a]
+
+# os agentes que trabalham na edição: nome, cor e as palavras do registro da tarefa que mostram que ele está agindo
+agentes:
+  - {chave: fala, nome: "Transcrição", cor: "#6FC3E0", palavras: [transcri, fala, palavra, whisper, assemblyai]}
+  - {chave: roteiro, nome: "Roteirista", cor: "#CCBD91", palavras: [hook, roteir, mensag, gancho, chamada, cta]}
+  - {chave: corte, nome: "Cortes", cor: "#E0A86F", palavras: [corte, pausa, clipe, take, silêncio]}
+  - {chave: legenda, nome: "Legendas", cor: "#B79CF0", palavras: [legenda]}
+  - {chave: ritmo, nome: "Ritmo e SFX", cor: "#E07FB8", palavras: [efeito, ritmo, zoom, sfx, som, trilha]}
+  - {chave: compliance, nome: "Compliance", cor: "#E0866F", palavras: [compliance, revis, cfm, anvisa, proib]}
+  - {chave: previsao, nome: "Previsão", cor: "#A9C49A", palavras: [atenção, atencao, previs, alerta, retenção]}
+  - {chave: render, nome: "Render", cor: "#8FB0F0", palavras: [render, prévia, previa, final, export, ffmpeg, versão, versao]}
