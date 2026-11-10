@@ -85,7 +85,8 @@ def criar(projeto: str, tipo: str, alvo: str, arquivo: str = "", t: float | None
             destino = pasta / "bruto" / f"quadro_{slug(it['nome'], 20)}_{int((t or 1) * 10):04d}.jpg"
             quadro(f, float(t if t is not None else 1.0), destino)
             f = destino
-        entrada = {"arquivo": str(f.relative_to(pasta)), "tipo": "foto" if f.suffix.lower() in IMAGEM else "video"}
+        entrada = {"arquivo": str(f.relative_to(pasta)), "tipo": "foto" if f.suffix.lower() in IMAGEM else "video",
+                   "mtime": round(f.stat().st_mtime, 1)}      # a leitura vale só para ESTE render (alertas.py confere)
     elif tipo != "modelo":
         raise ValueError("escolha a foto ou o clipe do projeto que vai para o Higgsfield")
     pedido = {"id": uuid.uuid4().hex[:8], "projeto": projeto, "tipo": tipo, "alvo": alvo, "nome": it["nome"],
@@ -208,4 +209,5 @@ def instrucao_claude(ids: list | None = None) -> str:
         "Antes de gerar, me mostre o custo em créditos de cada um e espere o meu ok. Quando ficar pronto, rode "
         "`python3 -m divine_studio higgsfield pronto <id> <arquivo ou link>` para o resultado entrar no projeto. "
         "Virality Predictor (análise, sem arquivo de volta): rode `python3 -m divine_studio higgsfield analise <id> "
-        "\"<nota, gancho, retenção, risco de queda e o que trocar>\"` para virar sugestão no projeto.")
+        "'<JSON>'` com o JSON {\"nota\": ..., \"gancho\": \"...\", \"retencao\": \"...\", \"trocar\": \"...\", "
+        "\"quedas\": [{\"t\": <segundo>, \"motivo\": \"...\"}]}: as quedas viram ! na linha do tempo.")

@@ -6,11 +6,18 @@ erros:
     padrao: '\d+\s*%'
     motivo: "CFM 2.336/2023: sem percentuais de resultado. Percentual de tempo (ex.: 4% do dia) só com 'permitir_percentual: true' no projeto."
   - id: prazo_garantido
-    padrao: '\b(em|após|depois de)\s+\d+\s+(dias?|semanas?|meses|sessões?)\b.{0,30}\b(resultado|some|desaparece|elimina|perde)'
+    padrao: '\b(em|após|depois de)\s+\d+\s+(dias?|semanas?|meses|sess(ão|ao|ões|oes)|aplica(ç|c)(ão|ao|ões|oes))\b.{0,30}\b(resultado|some|desaparece|elimina|perde)'
     motivo: "CFM: sem prazo garantido de resultado."
   - id: promessa
     padrao: '\b(garantid[oa]s?|definitiv[oa]s?|milagros[oa]s?|elimina(r)? de vez|resultado imediato|100\s*%|sem dor nenhuma|zero dor)\b'
     motivo: "CFM: sem promessa de resultado ou sensacionalismo."
+  # Como a FALA é falada (o transcritor escreve números por extenso e a ordem das palavras muda): 08/11/2026
+  - id: percentual_falado
+    padrao: '\b(\d+|uma?|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|doze|quinze|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem)(\s+e\s+\w+)?\s+por\s*cento\b'
+    motivo: "CFM 2.336/2023: sem percentuais de resultado (também falado, ex.: 'oitenta por cento')."
+  - id: promessa_direta_falada
+    padrao: '\bvoc[êe] vai (perder|emagrecer|eliminar|secar|reduzir|queimar|derreter)\s+(at[ée]\s+|uns\s+|umas\s+|mais de\s+)?(\d+|uma?|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|doze|quinze|vinte|trinta)\s*(kg|kgs|quilos?|quilinhos?|kilos?|cm|cent[íi]metros?|medidas?|manequins?|n[úu]meros?|tamanhos?)\b'
+    motivo: "CFM: promessa de resultado em quantidade ('você vai perder 5 kg'). Tire a frase ou duble sem ela."
   - id: comparacao
     padrao: '\b(melhor (clínica|médico|resultado) (de|do|da)|mais resultado que|comigo você vai ter muito mais)\b'
     motivo: "CFM: sem comparação com outros profissionais."
@@ -33,6 +40,107 @@ erros:
     padrao: '\b(?i:comenta(r)?)\s+((?i:a palavra)\s+)?["“]?[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9]+["”]?(?=\s|$|[.!,:])'
     sensivel_maiusculas: true
     motivo: "Regra de out/2026: nunca pedir para comentar uma palavra. Use envio, seguir, direct ou WhatsApp."
+
+# Só para a FALA (08/11/2026, revisão). Antes de conferir, os números falados viram algarismos (`numeros`):
+# "em duas semanas" e "em 2 semanas" dão o MESMO nível. Cada lista de palavras (prazo, verbo de resultado, alvo de
+# tratamento) mora em `vocabulario`, num lugar só, e as regras usam <nome> para chamá-la.
+#
+# Vermelho (`erros` acima e `fala.erros`): não existe frase correta com essa forma; trava sem "Conferi".
+# Laranja (`fala.confirmar`, e o vermelho rebaixado por `fala.rebaixar`): pode ser promessa ou informação correta
+# ("o inchaço some em uma semana", "o exame sai em dois dias"). Segura o ✓ Aprovar, a final e o postar até você tocar
+# em "✓ Conferi: é informação, não promessa" (fica anotado com a data), tirar a frase ou dublar sem ela.
+fala:
+  juntar_pausa_ate_s: 1.5        # também confere a frase junto com a seguinte (promessa cortada por uma pausa)
+  numeros: {um: 1, uma: 1, dois: 2, duas: 2, "três": 3, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8,
+            nove: 9, dez: 10, onze: 11, doze: 12, treze: 13, catorze: 14, quatorze: 14, quinze: 15, dezesseis: 16,
+            dezessete: 17, dezoito: 18, dezenove: 19, vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50,
+            sessenta: 60, setenta: 70, oitenta: 80, noventa: 90, cem: 100}
+  vocabulario:
+    # prazo: "em 2 semanas", "com 3 sessões", "na primeira sessão", "já na primeira aplicação", "na hora"
+    # "em 21 dias", "em apenas 2 sessões", "em poucas semanas", "depois de algumas sessões" (08/11/2026: quantidade vaga e
+    # "apenas/só" entre a preposição e a unidade também são prazo)
+    tempo: '\b(?:(?:em|ap[óo]s|depois de|com|dentro de|j[áa] na|j[áa] no|logo na|logo no|na|no|at[ée])\s+(?:(?:apenas|s[óo]|somente|menos de|mais de|at[ée])\s+)?(?:\d+|primeira|segunda|terceira|primeiro|segundo|terceiro|poucas?|poucos|algumas?|alguns|umas?|uns|v[áa]rias|v[áa]rios)\s+(?:dias?|semanas?|m[êe]s|meses|sess(?:ão|ao|ões|oes)|aplica(?:ç|c)(?:ão|ao|ões|oes))|(?:\d+|poucas?|poucos|algumas?|alguns)\s+(?:dias?|semanas?|m[êe]s|meses|sess(?:ão|ao|ões|oes)|aplica(?:ç|c)(?:ão|ao|ões|oes))\s+(?:depois|mais tarde|e|j[áa])|(?:^|[.!?]\s*)(?:\d+|poucas?|algumas?)\s+(?:sess(?:ão|ao|ões|oes)|aplica(?:ç|c)(?:ão|ao|ões|oes))|em pouco tempo|em pouqu[íi]ssimo tempo|rapidinho|rapidamente|em instantes|da noite para o dia|de um dia para o outro|na hora|no mesmo dia|de primeira|logo de cara|imediatamente)\b'
+    verbo_resultado: '\b(?:perde[rm]?|perder|perdeu|emagrece[rm]?|emagrecer|elimina[rm]?|eliminar|some[mn]?|sumir|sumiu|desaparece[rm]?|desaparecer|desapareceu|acaba[mr]?(?!\s+(?:aparecendo|ficando|sendo|virando|voltando|de\b))|acabou|sai|saem|sair|seca[rm]?|secar|desincha[rm]?|derrete[rm]?|afina[rm]?|diminui[rm]?|diminuir|reduz|reduzem|reduzir|clareia[rm]?|clarear|melhora[rm]?|melhorar|resolve[rm]?|vai embora|v[ãa]o embora|v[êe]|ver|nota[rm]?|notar|aparece[rm]?|resultados?)\b'
+    # o que o tratamento promete mudar (não entra efeito do pós: inchaço, roxo, vermelhidão; esses estão nas exceções)
+    alvo: '\b(?:gordura|gordurinhas?|barriga|barriguinha|manchas?|melasma|celulite|papada|flacidez|rugas?|culote|pochete|quilos?|quilinhos?|kg|peso|estrias?|cicatriz(?:es)?|acne|espinhas?|pelos?|olheiras?|diferen[çc]a|resultados?|medidas?|manequins?|cent[íi]metros|cm)\b'
+    # "ter/ver resultado", "o resultado aparece": o resultado como promessa direta (uma palavra só faz verbo e alvo)
+    tem_resultado: '\b(?:tem|ter|ter[áa]|vai ter|v[êe]|ver|vai ver|nota|notar|sente|sentir|aparece|aparecem|chega|chegam)\s+(?:j[áa]\s+)?(?:o\s+|um\s+|os\s+|algum\s+|seu\s+|o seu\s+)?resultados?\b|\bresultados?\s+(?:j[áa]\s+)?(?:aparece|aparecem|vem|v[êe]m|chega|chegam)\b'
+    de_vez: '\b(?:some[mn]?|sumir|sai|saem|sair|desaparece[mr]?|vai embora|v[ãa]o embora|acaba[mr]?|elimina[rm]?)\s+de vez\b'
+    # 08/11/2026 (revisão): o resultado prometido no próprio corpo, sem dizer o alvo ("em uma semana você emagrece")
+    verbo_corpo: '\b(?:emagrece[rm]?|emagreceu|emagrecer|emagrecendo|perde[rm]?\s+peso|perdeu\s+peso|perder\s+peso|rejuvenesce[rm]?|rejuvenesceu|rejuvenescer)\b'
+    # transformação prometida: "dez anos mais jovem", "outra pessoa" (só com prazo ou com "você fica/está/sai")
+    transformacao: '\b(?:\d+\s+anos\s+mais\s+(?:jovem|jovens|nov[ao]s?)|\d+\s+anos\s+a\s+menos|mais\s+jovem|mais\s+jovens|outra\s+pessoa|outra\s+mulher|nova\s+mulher|irreconhec[íi]vel|irreconhec[íi]veis)\b'
+    permanente: '\b(?:permanentes?|para sempre|pra sempre|vital[íi]ci[ao]s?|etern[ao]s?)\b'
+    perfeito: '\b(?:pele|corpo|rosto|barriga|bumbum|bra[çc]os?|pernas?|abd[ôo]men|coxas?|culote|papada)\s+(?:\w+\s+)?(?:perfeit[ao]s?|impec[áa]ve(?:l|is)|lisinh[ao]s?|sem\s+(?:nenhuma\s+)?(?:ruga|rugas|mancha|manchas|celulite|estrias?|flacidez|gordura))\b'
+  # palavra que, DENTRO do trecho que casou, mostra que não é resultado de tratamento (exame, consulta, efeito do
+  # pós-procedimento): esse trecho não vira "!". Só vale dentro do trecho, nunca na frase inteira.
+  excecoes: '\b(exames?|consultas?|retorno|revis[ãa]o|agendamento|tirar? (as |duas |três |tres |2 |3 )?medidas|medir|incha[çc]o|roxo|roxinho|roxid[ãa]o|hematomas?|vermelhid[ãa]o|ard[êe]ncia|casquinhas?|crostas?)\b'
+  excecao_vale_para: [prazo_garantido, prazo_resultado_falado, prazo_resultado_direto, resultado_de_vez, prazo_corpo]   # vermelhas de prazo também respeitam as exceções
+  erros:
+    - id: prazo_resultado_falado
+      todos: ['<tempo>', '<verbo_resultado>', '<alvo>']        # as três na mesma frase, em qualquer ordem
+      motivo: "CFM: sem prazo garantido de resultado ('na primeira sessão a gordura some', 'em quinze dias você vê a diferença'). Tire a frase ou duble sem o prazo."
+    - id: prazo_resultado_direto
+      padrao: '<tempo>[^.!?]{0,60}(?:<tem_resultado>)|(?:<tem_resultado>)[^.!?]{0,60}<tempo>'
+      motivo: "CFM: sem prazo garantido de resultado ('na primeira sessão você já tem resultado'). Tire a frase ou duble sem o prazo."
+    - id: resultado_de_vez
+      todos: ['<alvo>', '<de_vez>']
+      motivo: "CFM: sem promessa de resultado definitivo ('a gordura some de vez'). Tire a frase ou duble sem ela."
+    # 08/11/2026 (revisão): jeitos comuns de prometer que escapavam
+    - id: prazo_corpo
+      todos: ['<tempo>', '<verbo_corpo>']
+      motivo: "CFM: sem prazo garantido de resultado ('em uma semana você emagrece', 'em três sessões você rejuvenesce'). Tire a frase ou duble sem o prazo."
+    - id: promessa_transformacao
+      padrao: '\b\d+\s+anos\s+(?:mais\s+(?:jovem|jovens|nov[ao]s?)|a\s+menos)\b|<tempo>[^.!?]{0,60}<transformacao>|\bvoc[êe]\s+(?:j[áa]\s+)?(?:vai\s+|v[ãa]o\s+)?(?:fica|ficar|est[áa]|estar|sai|sair|vira|virar|parece|parecer)\b[^.!?]{0,30}<transformacao>'
+      motivo: "CFM: sem promessa de transformação ('dez anos mais jovem', 'você vai sair outra pessoa'). Tire a frase ou duble sem ela."
+    - id: resultado_permanente
+      todos: ['<alvo>', '<permanente>']
+      motivo: "CFM: sem promessa de resultado permanente ('o resultado é permanente', 'a gordura não volta nunca mais'). Tire a frase ou duble sem ela."
+    - id: promessa_perfeicao
+      padrao: '\bvoc[êe]\b[^.!?]{0,40}<perfeito>'
+      motivo: "CFM: sem promessa de resultado perfeito ('você vai sair com a pele perfeita'). Tire a frase ou duble sem ela."
+  # vermelho que vira laranja quando o contexto mostra frase correta (nunca some sozinho: alguém confere)
+  rebaixar:
+    - regra: promessa
+      antes: '\b(n[ãa]o|nenhum|nenhuma|nunca|sem|ningu[ée]m)\b(\s+\w+){0,3}\s+$'
+      por_que: "uma frase que NEGA a promessa ('nenhum tratamento tem resultado garantido', 'não é definitiva')"
+    - regra: [prazo_resultado_falado, prazo_resultado_direto, resultado_de_vez, prazo_corpo, promessa_transformacao, resultado_permanente, promessa_perfeicao]
+      antes: '\b(n[ãa]o|nenhum|nenhuma|nunca|ningu[ée]m)\b(\s+\w+){0,3}\s+$'
+      por_que: "uma frase que NEGA o prazo ('nenhum tratamento faz a gordura sumir em uma sessão')"
+    # a negação DENTRO do trecho: "a gordura não some em uma sessão", "o resultado não é permanente" (08/11/2026)
+    - regra: [prazo_resultado_falado, prazo_resultado_direto, resultado_de_vez, prazo_corpo, promessa_transformacao, resultado_permanente, promessa_perfeicao, prazo_garantido]
+      dentro: '\b(n[ãa]o|nunca|jamais|nenhum|nenhuma)\b'
+      por_que: "uma frase que NEGA o resultado ('a gordura não some em uma sessão')"
+    # quem DESMENTE a promessa: "é mito que...", "cuidado com quem promete que...", "desconfie de quem fala que...".
+    # Vale para tudo o que vem depois na mesma frase, MENOS quando um "mas", "porém", "aqui" ou "na Divine" volta a
+    # afirmar ("dizem que é mito, mas aqui em uma sessão a gordura some" continua vermelho). 08/11/2026
+    - regra: [prazo_resultado_falado, prazo_resultado_direto, resultado_de_vez, prazo_corpo, promessa_transformacao, resultado_permanente, promessa_perfeicao, prazo_garantido, promessa, promessa_direta_falada]
+      antes: '\b(mitos?|mentira|fake|lenda|n[ãa]o\s+[ée]\s+verdade|cuidado\s+com|desconfi[ea]|quem\s+(te\s+|lhe\s+)?(promete|prometer|fala|diz|garante|vende)|prometem|garantem|dizem\s+que|falam\s+que|n[ãa]o\s+acredit[ea]|n[ãa]o\s+existe)\b(?![^.!?]*\b(mas|por[ée]m|s[óo]\s+que|aqui|na\s+divine|com\s+a\s+gente|comigo|com\s+a\s+divine)\b)[^.!?]*$'
+      por_que: "uma frase que DESMENTE a promessa ('é mito que...', 'cuidado com quem promete que...')"
+    # avaliação e expectativa DENTRO do trecho: 'em 3 meses a gente refaz a avaliação para ver o resultado' (08/11/2026)
+    - regra: [prazo_resultado_falado, prazo_resultado_direto]
+      dentro: '\b(avalia(r|mos|ção|cao|ções|coes)?|reavalia(r|ção|cao)?|conversa(r|mos)?|expectativas?|o que esperar)\b'
+      por_que: "uma frase sobre avaliação ou expectativa, e não promessa"
+    - regra: antes_depois
+      depois: '^\s*d[aoe]s?\s+(sess|aplica|procedimento|tratamento|laser|cirurgia)'
+      por_que: "orientação de cuidado ('antes e depois da sessão, beba água'), e não foto de paciente"
+  confirmar:
+    - id: promessa_quantidade
+      padrao: '\b(perde[rm]?|perca|perdeu|emagrece[rm]?|emagrecer|elimina[rm]?|seca[rm]?|reduz(ir|em)?|tira[rm]?|queima[rm]?|derrete[rm]?|afina[rm]?|diminui[rm]?)\s+(at[ée]\s+|uns\s+|umas\s+|mais de\s+)?(\d+|meio)\s*(kg|kgs|quilos?|quilinhos?|kilos?|cm|cent[íi]metros?|medidas?|manequins?|n[úu]meros?|tamanhos?)\b|\b\d+\s*(kg|quilos?|quilinhos?|cm|manequins?|n[úu]meros?)\s+a menos\b'
+      motivo: "CFM: sem promessa de resultado em quantidade (quilos, centímetros, manequim). Se for só informação, confirme."
+    - id: prazo_garantido_falado
+      padrao: '<verbo_resultado>[^.!?]{0,80}<tempo>|<tempo>[^.!?]{0,80}<verbo_resultado>'
+      motivo: "CFM: sem prazo garantido de resultado. Se for informação (recuperação, retorno, exame), confirme."
+    - id: promessa_falada
+      padrao: '\b(nunca mais (volta|aparece|vai ter)|acaba(r)? (de vez )?com (a|o|as|os|essa|esse) (celulite|gordura|flacidez|mancha|manchas|ruga|rugas|papada|barriga)|sai(r)? (daqui )?(magr[ao]|sem (a |as )?(celulite|manchas?|rugas?|papada)))\b'
+      motivo: "CFM: sem promessa de resultado. Se não for promessa, confirme."
+    # 08/11/2026 (revisão): resultado afirmado sem prazo ("com o Endolaser a flacidez acaba", "a gordura some")
+    - id: resultado_sem_prazo
+      padrao: '\b(?:a|o|as|os|sua|seu|suas|seus|essa|esse)\s+<alvo>\s+(?:\w+\s+){0,2}?(?:some[mn]?|sumiu|sumir|desaparece[mr]?|desapareceu|acaba[mr]?|acabou|vai embora|v[ãa]o embora)\b(?!\s+(?:aparecendo|ficando|sendo|virando|voltando))'
+      motivo: "CFM: sem promessa de resultado ('a flacidez acaba', 'a gordura some'). Se a frase explica, desmente ou fala do pós, confirme."
+    - id: transformacao_falada
+      padrao: '\bvoc[êe]\b[^.!?]{0,30}<transformacao>'
+      motivo: "CFM: sem promessa de transformação. Se não for promessa, confirme."
 
 avisos:
   - id: travessao

@@ -181,6 +181,12 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
     if fala:
         a, b = a * 1.6, b * 1.6
         bt = None
+        eq = _cfg().get("equilibrio") or {}
+        if eq.get("so_frases_com_motivo", True) and not projeto.get("_estilo_meio"):
+            # equilíbrio: o efeito do meio nasce do que é dito (config/viral.yaml > equilibrio.por_motivo), sem sorteio
+            return sorted(out + _efeitos_pela_fala(fala, eq, lista, fim, por, versao, m, _giro(projeto, versao)),
+                          key=lambda e: e["inicio"])
+        teto = int(eq.get("max_por_10s", 2))
     t, k = (2.2 if m == "viral" else 1.4), 0
     anterior = ((cfg.get("abertura") or [{}])[-1]).get("tipo")
     while t < fim - 2.0 and lista:
@@ -204,11 +210,67 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
                 if abs(perto - t) > 1.2:
                     continue
                 t_ef = round(perto, 2)
+            if fala and sum(1 for e in out if abs(e["inicio"] - t_ef) < 5.0) >= teto:
+                continue                                # equilíbrio: já tem efeito suficiente nestes 10 s
             if por(ef, t_ef):
                 anterior, k, colocou = tipo, k + j + 1, True
                 break
         t += rnd.uniform(a, b) if colocou else 0.5
     return sorted(out, key=lambda e: e["inicio"])
+
+
+def _giro(projeto: dict, versao: dict | None) -> int:
+    """Posição da versão no projeto (V1 = 0, V2 = 1, V3 = 2, IA = 3...). Pelo lugar na lista, não pelos algarismos
+    do nome: "IA" e "TV" não têm número e copiavam a V1."""
+    nome = str((versao or {}).get("nome") or "V1")
+    nomes = [str(v.get("nome") or f"V{k + 1}") for k, v in enumerate(projeto.get("versoes") or [])]
+    if nome in nomes:
+        return nomes.index(nome)
+    import re as _re
+    return max(0, int(_re.sub(r"\D", "", nome) or 0) - 1)
+
+
+def _escolha(opcoes: list, giro: int, vez: int) -> int:
+    """Qual efeito do motivo usar na `vez`-ésima frase daquele motivo, nesta versão. Com 3 opções, V1, V2 e V3 nunca
+    usam o mesmo efeito na mesma frase ((vez + giro) muda de opção para cada versão), e a 4ª versão (IA) percorre as
+    opções em outra ordem. O mesmo motivo também alterna de efeito ao longo do vídeo. Sem sorteio."""
+    n = len(opcoes)
+    return (vez * (1 + giro // n) + giro) % n
+
+
+def _efeitos_pela_fala(fala: list, eq: dict, permitidos: list, fim: float, por, versao: dict | None, m: str,
+                       giro: int = 0) -> list:
+    """Vídeo falado: um efeito só no começo de uma frase com motivo, e o TIPO vem do motivo (pergunta aproxima,
+    alerta bate, virada muda a luz, dado foca). Entre os efeitos do motivo, a versão escolhe um por `_escolha`
+    (determinístico). `por` é o mesmo encaixe do resto do planejamento (respeita o que você pôs à mão e o que tirou)."""
+    import re as _re
+    from .roteirista import frases as _frases
+    regras = [(r.get("motivo", ""), _re.compile(r["padrao"], _re.I), list(r.get("efeitos") or []))
+              for r in eq.get("por_motivo") or [] if r.get("padrao")]
+    ok = set(permitidos or [])
+    teto = int(eq.get("max_por_10s", 2))
+    ini_min, fim_max = float(eq.get("longe_do_inicio_s", 2.0)), fim - float(eq.get("longe_do_fim_s", 2.5))
+    colocados, anterior, vezes = [], None, {}
+    for fr in _frases(fala):
+        t = round(float(fr["inicio"]), 2)
+        if t < ini_min or t > fim_max:
+            continue
+        regra = next(((mo, efs) for mo, pad, efs in regras if pad.search(fr["texto"].strip())), None)
+        if not regra:
+            continue
+        opcoes = [e for e in regra[1] if e in ok]
+        if not opcoes or sum(1 for c in colocados if abs(c - t) < 5.0) >= teto:
+            continue
+        vez = vezes.get(regra[0], 0)
+        vezes[regra[0]] = vez + 1
+        tipo = opcoes[_escolha(opcoes, giro, vez)]
+        ef = {"tipo": tipo, "motivo": regra[0]}
+        if tipo in ("zoom_digital", "congelar"):
+            ef["duracao"], ef["zoom"] = (1.6, 1.18) if m == "epico" else (2.0, 1.1)
+        if por(ef, t):
+            colocados.append(t)
+            anterior = tipo
+    return []                       # `por` já guardou cada efeito na lista do planejamento
 
 
 def intensidade_camera(projeto: dict, versao: dict | None = None) -> float:

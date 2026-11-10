@@ -321,6 +321,7 @@ function desenharProximoPasso() {
       <div class="dica">O app transcreve a sua fala, corta, escreve hooks e textos sobre o que você falou, põe legenda, efeitos e som e gera as versões.</div>
       <div class="so-avancado"><button id="pp-claude">✦ Pedir a edição ao Claude (como no chat)</button></div>`;
   } else if (!finais) {
+    const barrada = (v) => ((dados.publicacoes || []).find((p) => p.versao === v) || {}).aprovacao_barrada || "";
     h = `<b>3. Assista e aprove a melhor</b> <span class="dica">Um toque em <i>Aprovar esta</i>: o app exporta a final e aprende o que você gostou.
       Quer mudar algo antes? Aba <a href="#" data-aba-link="edicao">Ajustar</a> (textos, legenda, efeitos).</span>
       ${dados.autorizacao_imagem === "pendente" ? `<div class="pp-linha"><b>Quem aparece no vídeo?</b>
@@ -330,7 +331,13 @@ function desenharProximoPasso() {
       <div class="pp-versoes">${ultimasPrevias().map((s) => `<div class="pp-v" data-v="${esc(s.versao)}" data-arq="${esc(s.arquivo)}">
         <video src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(s.arquivo)}#t=1" controls playsinline preload="metadata"></video>
         <b>${esc(s.versao)}${s.versao === "IA" ? " · a aposta do app (tenta superar as outras)" : ""}</b>
-        <button class="dourado" data-aprovar>✓ Aprovar esta</button></div>`).join("")}</div>`;
+        <div class="pp-prev" data-prev="${esc(s.versao)}"></div>
+        <div class="pp-alertas" data-pontos="${esc(s.versao)}" hidden></div>
+        ${barrada(s.versao) ? `<div class="pp-barrada">A final da ${esc(s.versao)} não saiu: o revisor achou ${esc(barrada(s.versao))}. Ela não contou como aprovada. Resolva o ! e aprove de novo.</div>` : ""}
+        <button class="dourado" data-aprovar>✓ Aprovar esta</button></div>`).join("")}</div>
+      ${ef.transcricao && ef.preciso === false ? `<div class="pp-linha dica">A fala foi transcrita com o modelo rápido.
+        <button id="pp-fala-precisa">🎯 Transcrição mais precisa</button> baixa 1,6 GB uma vez (5 a 20 min, Mac ligado); vale para os próximos vídeos.</div>` : ""}`;
+    setTimeout(carregarPontos, 0);
   } else {
     const fin = dados.saidas.filter((s) => !s.previa).sort((a, b) => b.quando - a.quando)[0];
     const pub = (dados.publicacoes || []).find((p) => p.versao === fin.versao) || {};
@@ -357,14 +364,16 @@ function desenharProximoPasso() {
     const c = b.closest(".pp-v");
     try {
       const r = await api("/api/aprovar", { p: atual, versao: c.dataset.v, arquivo: c.dataset.arq });
-      aviso(`${c.dataset.v} aprovada: exportando a final. O app guardou o que você gostou.`);
+      aviso(`${c.dataset.v}: exportando a final. Assim que ela passar pelo revisor, conta como aprovada e o app aprende o que você gostou.`);
       acompanhar(r.job, "Exportando a final");
     } catch (err) { aviso(err.message, "erro"); }
   });
   $$("#proximo-passo video").forEach((v) => v.onplay = () => $$("#proximo-passo video").forEach((o) => o !== v && o.pause()));
   if ($("#pp-baixar")) {
     const fin = dados.saidas.filter((s) => !s.previa).sort((a, b) => b.quando - a.quando)[0];
-    $("#pp-baixar").onclick = () => salvarNaGaleria(`/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(fin.arquivo)}`, fin.arquivo.split("/").pop());
+    // baixar para postar é uma saída da final como o Publicar: a fala dela é lida uma vez antes (telas.js > leuAFala)
+    $("#pp-baixar").onclick = async () => { if (!(await leuAFala(atual, fin.versao, "salvar"))) return;
+      salvarNaGaleria(`/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(fin.arquivo)}`, fin.arquivo.split("/").pop()); };
     $("#pp-legenda").onclick = async () => {
       const t = dados.legenda || "";
       if (!t) return aviso("A legenda do post ainda não foi gerada.", "erro");
@@ -390,6 +399,7 @@ function desenharProximoPasso() {
     rodar("instalar_fala");
   };
   const pr = $("#pp-reiniciar"); if (pr) pr.onclick = () => reabrirPainel();
+  const fp = $("#pp-fala-precisa"); if (fp) fp.onclick = () => { fp.disabled = true; rodar("fala_precisa"); };
   const pc = $("#pp-claude"); if (pc) pc.onclick = async () => {
     const t = `Edite o vídeo do projeto projetos/${atual} do Divine Studio, do mesmo jeito que você edita aqui no chat.
 1. Leia o CLAUDE.md e as skills divine-* (vídeo, sequência de gravação, modelos de Reels).
@@ -408,6 +418,36 @@ function ultimasPrevias() {
   return dados.saidas.filter((s) => s.previa).sort((a, b) => b.quando - a.quando)
     .filter((s) => (vistos.has(s.versao) ? false : vistos.add(s.versao)))
     .sort((a, b) => (a.versao === "IA") - (b.versao === "IA") || a.versao.localeCompare(b.versao));
+}
+
+// passo 3: os pontos "!" e a previsão de público de CADA versão, para escolher e corrigir antes de aprovar
+async function carregarPontos() {
+  const cards = $$("[data-pontos]");
+  const [pv, ...als] = await Promise.all([
+    api("/api/previsao?p=" + encodeURIComponent(atual)).catch(() => ({})),
+    ...cards.map((c) => api(`/api/alertas?p=${encodeURIComponent(atual)}&v=${encodeURIComponent(c.dataset.pontos)}`).catch(() => null)),
+  ]);
+  $$("[data-prev]").forEach((el) => {
+    const x = pv[el.dataset.prev]; if (!x || !x.frase) { el.textContent = ""; return; }
+    const saem = (x.saidas || []).map((q) => `${q.t.toFixed(0)} s (${q.motivo})`).join(" · ");
+    const quem = (x.personas || []).map((q) => `${q.nome}: cerca de ${q.fim} em 100`).join(" · ");
+    el.innerHTML = `👥 ${esc(x.frase)}${saem ? `<br><small>Onde mais saem: ${esc(saem)}</small>` : ""}${quem ? `<br><small>Estimativa por público, até o fim: ${esc(quem)}</small>` : ""}`;
+  });
+  cards.forEach((box, i) => {
+    const al = als[i]; if (!al || !al.pontos.length) return;
+    const nomes = al.niveis || {};
+    const travam = al.pontos.filter((p) => p.nivel === "bloqueia" || p.nivel === "confirmar").length;
+    box.hidden = false;
+    box.innerHTML = `<b>${al.pontos.length} ponto(s) "!" na ${esc(al.versao)}</b>${travam ? ` <span class="trava">· ${travam} de compliance (travam o Aprovar)</span>` : ""}
+      <ul>${al.pontos.slice(0, 3).map((p) => `<li><span class="i n-${esc(p.nivel)}">!</span><b>${p.t0.toFixed(0)} s · ${esc(p.titulo)}</b>
+        <span class="dica"> ${esc((nomes[p.nivel] || {}).nome || "")}</span></li>`).join("")}</ul>
+      <a href="#" class="link" data-ir-ajustar="${esc(al.versao)}">Resolver na linha do tempo da ${esc(al.versao)} ›</a>`;
+  });
+  $$("[data-ir-ajustar]").forEach((a) => a.onclick = (e) => {
+    e.preventDefault(); window.versaoAjustar = a.dataset.irAjustar;
+    const aba = $('[data-aba="edicao"]'); if (aba) aba.click();
+    if (typeof carregarEditor === "function") carregarEditor().catch((err) => console.error(err));   // já aberto: troca a versão
+  });
 }
 
 async function carregarSugestoes(fin) {
@@ -519,7 +559,10 @@ async function acaoPublicacao(card, acao) {
       const [dia, mes, ano] = d.split("/");
       const iso = `${ano || new Date().getFullYear()}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
       await marcarPub(versao, { status: "agendado", data_agendada: iso }, arq);
-    } else if (acao === "salvar") return salvarNaGaleria(`/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(arq)}`, arq.split("/").pop());
+    } else if (acao === "salvar") {
+      if (!(await leuAFala(atual, versao, "salvar"))) return;
+      return salvarNaGaleria(`/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(arq)}`, arq.split("/").pop());
+    }
     abrir(atual);
   } catch (err) { alert(err.message); }
 }

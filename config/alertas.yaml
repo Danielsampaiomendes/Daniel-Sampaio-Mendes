@@ -1,0 +1,28 @@
+# Pontos de atenção na linha do tempo (o "!" sobre o trecho). Lido por divine_studio/alertas.py.
+# Cada regra liga ou desliga e tem os seus limites. Mudou um limite aqui, o painel já mostra diferente (sem render).
+# Nada muda o vídeo sozinho: cada ponto traz ações de um toque e pode ser ignorado.
+
+max_na_tela: 6          # no máximo 6 pontos por versão (os de compliance, vermelhos e laranjas, aparecem sempre)
+
+niveis:
+  bloqueia: {nome: "Precisa mudar antes de postar (compliance)", cor: "#E0866F"}
+  confirmar: {nome: "Confira antes de postar (pode ser promessa)", cor: "#E8A15A"}
+  refazer:  {nome: "Pode quebrar o engajamento: refazer", cor: "#E0866F"}
+  dublar:   {nome: "Possivelmente dublar este trecho", cor: "#CCBD91"}
+  conferir: {nome: "Vale conferir", cor: "#9AA0A6"}
+
+regras:
+  compliance_fala:       {ligada: true, nivel: bloqueia}       # percentual ou promessa direta na FALA (config/compliance.yaml > erros)
+  compliance_confira:    {nivel: confirmar}                    # prazo ou quantidade que pode ser informação (compliance.yaml > fala)
+  fala_sem_revisor:      {ligada: true, nivel: bloqueia}       # vídeo com fala sem fala transcrita: o revisor não leu (trava)
+  queda_atencao:         {ligada: true, nivel: refazer, min_s: 2.0}   # curva de atenção da prévia (atencao.py)
+  apresentacao_primeiro: {ligada: true, nivel: refazer}        # "oi, eu sou..." antes do assunto
+  abertura_lenta:        {ligada: true, nivel: refazer, max_s: 3.0}
+  fala_incerta:          {ligada: true, nivel: dublar, conf_min: 0.55, min_palavras: 2}  # o transcritor não teve certeza
+  voz_baixa:             {ligada: true, nivel: dublar, abaixo_da_mediana_db: 8}
+  recomeco:              {ligada: true, nivel: dublar, palavras_iguais: 3}   # frase recomeçada que ficou no corte
+  fala_rapida:           {ligada: true, nivel: conferir, max_palavras_s: 4.3, min_s: 2.5}
+  efeitos_demais:        {ligada: true, nivel: conferir, max_por_10s: 4}
+  sem_pedido_final:      {ligada: true, nivel: refazer, exigir_na_fala: false}
+  higgsfield_queda:      {ligada: true, nivel: refazer}        # quedas do Virality Predictor (leitura em JSON)
+  ancora_perdida:        {ligada: true, nivel: refazer}        # dublagem ou efeito cuja frase saiu do vídeo (ancoras.py)

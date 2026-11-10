@@ -71,16 +71,92 @@ def _assemblyai(wav: Path, idioma: str) -> list:
              "conf": round(w.get("confidence", 1.0), 3)} for w in r.get("words") or []]
 
 
-def _faster_whisper(wav: Path, idioma: str, modelo: str) -> list:
+def _vocabulario() -> str:
+    """Nomes que o transcritor precisa acertar (config/preferencias.yaml > transcricao.vocabulario)."""
+    v = _cfg().get("vocabulario") or ["Divine Medical Spa", "Avenida Paulista", "laser de CO2", "Endolaser"]
+    return ", ".join(str(x) for x in v) + "."
+
+
+_MODELOS: dict = {}
+_transcrever_modelo = [""]                         # qual modelo transcreveu por último (fica anotado no cache)
+
+
+def _estado_arq() -> Path:
+    from .config import ROOT
+    return ROOT / "projetos" / ".transcricao_estado.json"
+
+
+def _estado() -> dict:
+    try:
+        return json.loads(_estado_arq().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def preciso_baixado(nome: str | None = None) -> bool:
+    """O modelo preciso já está no Mac? (só olha o cache do faster-whisper, não baixa nada)."""
+    nome = nome or _cfg().get("modelo_preciso", "large-v3-turbo")
+    try:
+        from faster_whisper.utils import download_model
+        download_model(nome, local_files_only=True)
+        return True
+    except Exception:                              # noqa: BLE001 (sem a biblioteca ou sem o modelo: não está)
+        return False
+
+
+def modelo_escolhido() -> str:
+    """'auto': o preciso só quando já foi baixado (botão 🎯) e não ficou lento demais neste Mac; senão o rápido.
+    Assim uma edição nunca fica parada baixando 1,6 GB sem mostrar o progresso."""
+    cfg = _cfg()
+    pedido = cfg.get("modelo_whisper", "auto")
+    if pedido != "auto":
+        return pedido
+    preciso, rapido = cfg.get("modelo_preciso", "large-v3-turbo"), cfg.get("modelo_reserva", "small")
+    if _estado().get("lento") == preciso:
+        return rapido
+    return preciso if preciso_baixado(preciso) else rapido
+
+
+def _modelo_fw(nome: str):
+    """Carrega o modelo uma vez por processo (o painel transcreve vários brutos sem recarregar).
+    Se o modelo pedido não carregar (memória, arquivo incompleto), cai para o reserva e avisa."""
     from faster_whisper import WhisperModel
-    m = WhisperModel(modelo, device="auto", compute_type="int8")
-    segs, _ = m.transcribe(str(wav), language=idioma, word_timestamps=True,
-                           initial_prompt="Divine Medical Spa, Avenida Paulista, laser de CO2, endolaser.")
+    reserva = _cfg().get("modelo_reserva", "small")
+    for n in dict.fromkeys([nome, reserva]):
+        if n in _MODELOS:
+            return _MODELOS[n], n
+        try:
+            _MODELOS[n] = WhisperModel(n, device="auto", compute_type="int8")
+            return _MODELOS[n], n
+        except Exception as e:                     # noqa: BLE001 (qualquer falha do modelo: tenta o reserva)
+            print(f"  aviso: modelo de fala '{n}' não carregou ({e}); tentando o reserva…", flush=True)
+    raise SystemExit("O modelo de fala não carregou. Toque em ⬇ Instalar a transcrição (precisa de internet uma vez).")
+
+
+def _faster_whisper(wav: Path, idioma: str, modelo: str) -> list:
+    m, usado = _modelo_fw(modelo)
+    cfg = _cfg()
+    t0 = time.time()
+    segs, info = m.transcribe(str(wav), language=idioma, word_timestamps=True, initial_prompt=_vocabulario(),
+                              beam_size=int(cfg.get("beam_size", 5)),
+                              vad_filter=bool(cfg.get("vad", True)),          # silêncio não vira texto inventado
+                              condition_on_previous_text=False)              # evita frase repetida em loop
     out = []
     for s in segs:
         for w in s.words or []:
             out.append({"texto": w.word.strip(), "inicio": round(w.start, 3), "fim": round(w.end, 3),
                         "conf": round(w.probability, 3)})
+    minutos = max(0.1, float(getattr(info, "duration", 0) or 0) / 60)
+    por_min = (time.time() - t0) / minutos
+    print(f"  fala transcrita com o modelo {usado}: {por_min:.0f} s por minuto de fala", flush=True)
+    if usado == cfg.get("modelo_preciso", "large-v3-turbo") and por_min > float(cfg.get("max_s_por_minuto", 90)):
+        try:                                        # lento demais neste Mac: as próximas usam o rápido
+            _estado_arq().write_text(json.dumps({**_estado(), "lento": usado, "s_por_minuto": round(por_min)}),
+                                     encoding="utf-8")
+            print("  aviso: o modelo preciso ficou lento neste Mac; as próximas edições usam o rápido.", flush=True)
+        except OSError:
+            pass
+    _transcrever_modelo[0] = usado
     return out
 
 
@@ -143,13 +219,16 @@ def transcrever(arquivo: Path, pasta_cache: Path, motor: str | None = None, refa
         if m == "assemblyai":
             palavras = _assemblyai(wav, idioma)
         elif m == "faster_whisper":
-            palavras = _faster_whisper(wav, idioma, cfg.get("modelo_whisper", "small"))
+            palavras = _faster_whisper(wav, idioma, modelo_escolhido())
         elif m == "whisper":
-            palavras = _whisper(wav, idioma, cfg.get("modelo_whisper", "small"))
+            palavras = _whisper(wav, idioma, cfg.get("modelo_reserva", "small"))
         else:
             raise SystemExit(f"Motor de transcrição desconhecido: {m}")
     palavras = [p for p in palavras if p["texto"]]
-    cache.write_text(json.dumps({"arquivo": str(arquivo), "motor": m, "palavras": palavras}, indent=1,
+    # o modelo fica anotado: um bruto já transcrito com o rápido NÃO é refeito sozinho (mudaria os cortes de uma
+    # edição já aprovada); para refazer com o preciso: `transcrever <pasta> --refazer`
+    cache.write_text(json.dumps({"arquivo": str(arquivo), "motor": m, "palavras": palavras,
+                                 "modelo": _transcrever_modelo[0] if m == "faster_whisper" else ""}, indent=1,
                                 ensure_ascii=False), encoding="utf-8")
     return palavras
 

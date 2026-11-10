@@ -41,11 +41,14 @@ def analisar(plano, projeto: dict, voz: np.ndarray | None, base_video: Path, sr:
                      | {round(float(e.get("inicio", 0)), 2) for e in (projeto.get("efeitos") or []) + (getattr(plano, "efeitos_auto", None) or [])})
     mov = _movimento(base_video, fim)
     fala = np.zeros(n)
+    voz_db = []                       # nível da voz (dBFS) a cada passo: alertas.py acha a frase baixa para dublar
     if voz is not None and len(voz):
         mono = np.abs(voz).mean(axis=1) if voz.ndim == 2 else np.abs(voz)
         for k in range(n):
             a, b = int(k * PASSO * sr), int((k + 1) * PASSO * sr)
             fala[k] = float(mono[a:b].mean()) if b <= len(mono) else 0.0
+            voz_db.append(round(20 * float(np.log10(np.sqrt(np.mean(np.square(mono[a:b]))) + 1e-6)), 1)
+                          if b <= len(mono) else None)
         fala = np.clip(fala / (np.percentile(fala, 90) + 1e-6), 0, 1)
     curva, motivo = [], []
     for k in range(n):
@@ -91,7 +94,7 @@ def analisar(plano, projeto: dict, voz: np.ndarray | None, base_video: Path, sr:
         k += 1
     inicio_fraco = not any(e <= 1.0 for e in eventos)
     return {"passo": PASSO, "curva": curva, "zonas": zonas, "inicio_fraco": inicio_fraco,
-            "media": round(float(np.mean(curva)), 2)}
+            "media": round(float(np.mean(curva)), 2), "voz_db": voz_db}
 
 
 def salvar(trabalho: Path, versao: str, dados: dict) -> None:

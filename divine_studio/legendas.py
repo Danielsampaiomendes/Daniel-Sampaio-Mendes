@@ -67,13 +67,21 @@ def palavras_na_base(clipes_meta: list, transcricoes: dict) -> list:
             if ini <= w["inicio"] < fim_src:
                 a = c["inicio_base"] + (w["inicio"] - ini) / vel
                 b = c["inicio_base"] + (min(w["fim"], fim_src) - ini) / vel
-                out.append({"texto": w["texto"], "inicio": round(a, 3), "fim": round(max(b, a + 0.06), 3)})
+                novo = {"texto": w["texto"], "inicio": round(a, 3), "fim": round(max(b, a + 0.06), 3)}
+                if "conf" in w:                  # certeza do transcritor: alertas.py marca o trecho para dublar
+                    novo["conf"] = w["conf"]
+                out.append(novo)
     out.sort(key=lambda w: w["inicio"])
     return out
 
 
 def aplicar_correcoes(palavras: list, correcoes: dict | None) -> list:
     """correcoes: {"trecho errado": "trecho certo"}, por sequência de palavras (ex.: nome da clínica)."""
+    try:                                  # correções de sempre (nomes da clínica e das tecnologias) + as do projeto
+        from .config import load
+        correcoes = {**(load("preferencias").get("transcricao", {}).get("correcoes") or {}), **(correcoes or {})}
+    except Exception:
+        pass
     if not correcoes:
         return palavras
     pal = [dict(w) for w in palavras]

@@ -7,6 +7,7 @@ aprovar. Usa só a biblioteca padrão do Python (nada para instalar) e chama os 
 """
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import mimetypes
 import os
@@ -559,7 +560,8 @@ CAMPOS_EDITAVEIS = {"brutos_fora", "correcoes", "estilo_edicao", "efeitos_evitar
                     "sfx_automaticos", "audio", "pares", "subtitulo", "cta", "video", "camera_elegante",
                     "qualidade", "ritmo", "epico", "validado", "copy_dublagem", "clipes", "cor",
                     "ritmo_fixo", "dissolve", "musica_licenciada", "conta",
-                    "clipes_referencia", "layout", "credito", "divisoria", "anuncio", "posicao_texto"}
+                    "clipes_referencia", "layout", "credito", "divisoria", "anuncio", "posicao_texto",
+                    "remover_trechos", "alertas_ignorados"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -593,6 +595,7 @@ def dados_projeto(nome: str) -> dict:
             "legendas_blocos": _blocos_legenda(pasta, d), "legendas_ligadas": _leg_ativas(d),
             "legenda_estilo": _leg_estilo(d),
             "clipes_info": clipes, "linhas": linhas, "atencao": _atencao_v1(pasta),
+            "previas_versao": _previas_por_versao(previas),
             "filtros": {k: v["nome"] for k, v in (ed.get("filtros") or {}).items()},
             "transicoes": {k: v["nome"] for k, v in (ed.get("transicoes") or {}).items()},
             "velocidades": ed.get("velocidades") or [0.5, 1, 2],
@@ -764,6 +767,17 @@ def tira_miniaturas(nome: str, rel: str, n: int = 24, altura: int = 96) -> Path:
     return saida
 
 
+def _previas_por_versao(previas: list) -> dict:
+    """{versão: prévia mais recente} (a lista já vem da mais nova para a mais velha): a aba Ajustar mostra a versão
+    que você escolheu, com os "!" dela, e não sempre a V1."""
+    out = {}
+    for f in previas:
+        m = re.search(r"_(V\d+|TV|IA)_", f.name + "_")
+        if m and "_PREVIA" in f.name and m.group(1) not in out:
+            out[m.group(1)] = f"saida/{f.name}"
+    return out
+
+
 def _atencao_v1(pasta: Path) -> dict:
     from . import atencao
     for v in ("V1", "TV", "IA"):
@@ -811,12 +825,86 @@ def fixar_linha(nome: str, versao: str | None = None) -> dict:
     return {"efeitos": len(linha.get("efeitos") or []), "sons": len(linha.get("sons") or []), "versao": linha.get("versao")}
 
 
-def salvar_dados(nome: str, novos: dict) -> None:
+def barrar_aprovacao_por_fala(pasta: Path) -> None:
+    """✓ Aprovar com algo de compliance na fala da última prévia: para aqui, com o que fazer.
+    Frases já marcadas para sair (remover_trechos) não contam: a final refaz o corte e confere de novo.
+    Frases "confira" (prazo, quantidade) que você já conferiu (compliance_conferido) também não."""
+    from .compliance import achados_na_fala, video_falado
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    try:
+        fala = json.loads((pasta / "trabalho" / "fala_base.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        if video_falado(d):                       # tem fala e ninguém leu: não aprova (a final também não sairia)
+            raise ValueError("Ainda não dá para aprovar: este vídeo tem fala, mas ela ainda não foi transcrita, então o "
+                             "revisor de compliance não leu o que é dito. Toque em 🎤 Instalar a transcrição (passo 3) e "
+                             "depois em Gerar prévias.")
+        return                                    # sem fala (só imagem e música): nada para ler
+    ruins = [x for x in achados_na_fala(fala, d, ignorar=d.get("remover_trechos")) if not x["conferido"]]
+    if not ruins:
+        return
+    x = next((r for r in ruins if r["nivel"] == "erro"), ruins[0])
+    fr = x["frase"]
+    if x["nivel"] == "erro":
+        raise ValueError(f"Ainda não dá para aprovar: aos {fr['inicio']:.0f} s a fala diz \"{fr['texto'][:70]}\" "
+                         f"({x['achado'].motivo}) Toque no ! vermelho da aba Ajustar: ✂ Tirar esta frase ou 🎙 Dublar sem ela.")
+    raise ValueError(f"Confira antes de aprovar: aos {fr['inicio']:.0f} s a fala diz \"{fr['texto'][:70]}\", que pode soar "
+                     "como promessa de prazo ou de quantidade. Toque no ! laranja da aba Ajustar: se for informação, "
+                     "✓ Conferi; se for promessa, ✂ Tirar esta frase ou 🎙 Dublar sem ela.")
+
+
+def acao_alerta(nome: str, versao: str, id_: str, acao: str) -> dict:
+    """Ações de um toque nos pontos "!" (as de gravar, dublar e corrigir abrem telas no próprio painel)."""
+    from . import alertas
+    pasta = _pasta(nome)
+    ponto = next((x for x in alertas.gerar(pasta, versao, nome)["pontos"] if x["id"] == id_), None)
+    if not ponto:
+        raise ValueError("este ponto já foi resolvido ou ignorado; gere a prévia de novo para atualizar")
+    d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
+    if acao == "ignorar":
+        if ponto["nivel"] in alertas.TRAVAM:   # compliance prevalece: não se ignora, se resolve
+            raise ValueError("Compliance (CFM/Anvisa) não dá para ignorar: tire a frase, regrave sem ela"
+                             + (" ou toque em ✓ Conferi se for só informação." if ponto["nivel"] == "confirmar" else "."))
+        salvar_dados(nome, {"alertas_ignorados": sorted(set(d.get("alertas_ignorados") or []) | {id_})})
+        return {"ok": True, "msg": "Ignorado: este ponto não aparece mais nesta edição."}
+    a = next((x for x in ponto["acoes"] if x["tipo"] == acao), None)
+    if not a:
+        raise ValueError("ação indisponível para este ponto")
+    if acao == "conferir_fala":               # você leu e é informação, não promessa: fica anotado com a data
+        feitos = list(d.get("compliance_conferido") or [])
+        if not any((x.get("id") if isinstance(x, dict) else x) == a["id_frase"] for x in feitos):
+            feitos.append({"id": a["id_frase"], "frase": a["frase"][:200],
+                           "em": _dt.datetime.now().isoformat(timespec="minutes")})
+        salvar_dados(nome, {"compliance_conferido": feitos}, do_app=True)
+        return {"ok": True, "msg": "Anotado: você conferiu esta frase. Se a fala mudar, o app pergunta de novo."}
+    if acao == "cortar_frase":                # o corte limpo tira a frase exata na próxima prévia (remover_trechos)
+        trechos = list(d.get("remover_trechos") or [])
+        for f in a.get("frases") or [a["frase"]]:
+            if f not in trechos:
+                trechos.append(f)
+        novos = {"remover_trechos": trechos}
+        if not d.get("corte_limpo"):
+            # só as frases marcadas saem: ligar o corte limpo inteiro (muletas, takes, pausas) mudaria o vídeo todo
+            novos["corte_limpo"] = "so_frases"
+        salvar_dados(nome, novos)
+        return {"ok": True, "msg": "A frase sai na próxima prévia (toque em Gerar prévias). Dublagens e efeitos que "
+                                  "você já pôs acompanham a fala e continuam no lugar certo."}
+    if acao == "efeito":
+        efeitos = list(d.get("efeitos") or []) + [dict(a["efeito"])]
+        salvar_dados(nome, {"efeitos": sorted(efeitos, key=lambda e: float(e.get("inicio", 0)))})
+        return {"ok": True, "msg": f"Efeito colocado em {a['efeito'].get('inicio')} s. Gere a prévia para ver."}
+    raise ValueError("esta ação abre no painel (gravador ou legenda)")
+
+
+# campos que só o próprio app grava (nunca pelo editor genérico): o registro de que você conferiu uma frase
+CAMPOS_DO_APP = {"compliance_conferido"}
+
+
+def salvar_dados(nome: str, novos: dict, do_app: bool = False) -> None:
     """Atualiza só os campos enviados; o resto do projeto.yaml fica como estava."""
     pasta = _pasta(nome)
     d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
     for k, v in novos.items():
-        if k not in CAMPOS_EDITAVEIS:
+        if k not in CAMPOS_EDITAVEIS and not (do_app and k in CAMPOS_DO_APP):
             raise ValueError(f"campo não editável: {k}")
         if v in (None, "", []) and k in ("efeitos", "legenda", "selo", "camera_elegante", "qualidade", "epico", "copy_dublagem",
                                                   "cor", "ritmo_fixo", "musica_licenciada", "conta"):
@@ -829,6 +917,17 @@ def salvar_dados(nome: str, novos: dict) -> None:
             if ef.get("tipo") not in TIPOS and ef.get("tipo") not in QUADRO:
                 raise ValueError(f"efeito desconhecido: {ef.get('tipo')}")
             ef["inicio"] = round(float(ef.get("inicio", 0)), 2)
+    if "efeitos" in novos or "audio" in novos:
+        # efeitos e dublagens presos às PALAVRAS da fala (ancoras.py): um corte depois não os joga no lugar errado
+        from . import ancoras
+        try:
+            fala = json.loads((pasta / "trabalho" / "fala_base.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            fala = []
+        if d.get("efeitos"):
+            d["efeitos"] = ancoras.ancorar_itens(d["efeitos"], fala)
+        if (d.get("audio") or {}).get("dublagem"):
+            d["audio"] = {**d["audio"], "dublagem": ancoras.ancorar_itens(d["audio"]["dublagem"], fala, com_fim=True)}
     texto = yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000, default_flow_style=None)
     salvar_yaml(nome, "# Editado pelo painel do Divine Studio.\n" + texto)
 
@@ -984,6 +1083,7 @@ ACOES = {
     "formatos": ["formatos"], "formatos_final": ["formatos", "--final"], "carrossel": ["carrossel", "exportar"],
     "post": ["post", "exportar"], "antesdepois": ["antesdepois", "exportar"], "cortes": ["cortes"],
     "storyboard": ["storyboard"], "instalar_fala": ["instalar-fala"],
+    "fala_precisa": ["instalar-fala", "--preciso"],
 }
 
 
@@ -1323,6 +1423,24 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/sugestoes":
                 from . import sugestoes
                 return self._json(sugestoes.gerar(_pasta(q["p"]), q["p"]))
+            if u.path == "/api/alertas":            # o "!" da linha do tempo (config/alertas.yaml)
+                from . import alertas
+                return self._json(alertas.gerar(_pasta(q["p"]), q.get("v") or "V1", q["p"]))
+            if u.path == "/api/fala_final":         # a fala da final, para você ler antes de ligar "postar sozinho"
+                from . import publicar
+                pasta_ff = _pasta(q["p"])
+                ff = publicar.fala_final(pasta_ff, q.get("v") or "")
+                d_ff = yaml.safe_load((pasta_ff / "projeto.yaml").read_text(encoding="utf-8")) or {}
+                pub_ff = next((x for x in d_ff.get("publicacoes") or [] if x.get("versao") == q.get("v")), {})
+                return self._json({"tem": ff["tem"], "texto": ff["texto"], "hash": ff["hash"], "arquivo": ff["arquivo"],
+                                   "lida": bool(ff["tem"] and pub_ff.get("fala_lida") == ff["hash"])})
+            if u.path == "/api/previsao":           # de 100 pessoas, quantas ficam (por versão)
+                from . import previsao
+                pasta = _pasta(q["p"])
+                vs = [v for v in (q.get("v") or "").split(",") if v] or \
+                    sorted({f.stem[9:] for f in (pasta / "trabalho").glob("previsao_*.json") if "_" not in f.stem[9:]})
+                return self._json({v: {**previsao.ler(pasta, v), "frase": previsao.frase(previsao.ler(pasta, v))}
+                                   for v in vs})
             if u.path == "/api/fontes_legenda":
                 return self._json(fontes_legenda())
             if u.path == "/legenda.jpg":
@@ -1384,13 +1502,32 @@ class Painel(BaseHTTPRequestHandler):
                 d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
                 aud = dict(d.get("audio") or {})
                 dubs = list(aud.get("dublagem") or [])
-                dubs.append({"arquivo": f"trabalho/dublagem/{wav.name}", "inicio": round(float(q.get("inicio", 0)), 2)})
+                novo = {"arquivo": f"trabalho/dublagem/{wav.name}", "inicio": round(float(q.get("inicio", 0)), 2)}
+                aviso_dub = ""
+                if q.get("fim"):                     # dublar um trecho (ponto "!"): só ali o som original fica mudo
+                    from .audio import ajustar_take
+                    fim = round(max(float(q["fim"]), novo["inicio"]), 2)
+                    ajustada = dest / f"voz_{carimbo}_no_trecho.wav"   # a gravação inteira continua em voz_*.wav
+                    aj = ajustar_take(wav, ajustada, fim - novo["inicio"])
+                    novo.update({"arquivo": f"trabalho/dublagem/{ajustada.name}", "original_gravado": f"trabalho/dublagem/{wav.name}",
+                                 "tempo": aj["tempo"]})
+                    if aj["sobra_s"] > 0.15:         # passou do trecho mesmo acelerando: cala o original até o fim dela
+                        fim = round(novo["inicio"] + aj["duracao"], 2)
+                        aviso_dub = (f"A gravação ficou {aj['sobra_s']:.1f} s mais longa que o trecho e cobre o começo "
+                                     "da frase seguinte. Se não gostar, grave de novo um pouco mais curta.")
+                    elif aj["sobra_s"] < -0.3:
+                        aviso_dub = (f"A gravação ficou {-aj['sobra_s']:.1f} s mais curta que o trecho: sobra um "
+                                     "silêncio com a boca mexendo. Grave de novo no ritmo da fala original.")
+                    novo["fim"] = fim
+                # a âncora (as palavras daquele trecho) é posta por salvar_dados: se um corte mudar a base depois,
+                # a dublagem acompanha a fala (ancoras.py)
+                dubs.append(novo)
                 aud["dublagem"] = dubs
-                if q.get("substituir") == "1":
-                    aud["original"] = False          # a gravação substitui o som do vídeo
+                if q.get("substituir") == "1" and not q.get("fim"):
+                    aud["original"] = False          # a gravação substitui o som do vídeo inteiro
                 aud.setdefault("trilha", True)
                 salvar_dados(q["p"], {"audio": aud})
-                return self._json({"ok": True, "arquivo": f"trabalho/dublagem/{wav.name}"})
+                return self._json({"ok": True, "arquivo": novo["arquivo"], "aviso": aviso_dub})
             if u.path == "/api/upload":
                 if q.get("ref"):
                     from . import referencias
@@ -1460,6 +1597,8 @@ class Painel(BaseHTTPRequestHandler):
                 from . import feedback
                 return self._json(feedback.registrar(_pasta(dados["p"]), dados["versao"], dados.get("reacoes") or [],
                                                      dados.get("texto", ""), dados.get("nota")))
+            if u.path == "/api/alertas/acao":       # um toque num ponto "!": ignorar, tirar a frase, pôr o efeito
+                return self._json(acao_alerta(dados["p"], dados.get("versao") or "V1", dados["id"], dados["acao"]))
             if u.path == "/api/atencao/aplicar":
                 from . import atencao
                 pasta = _pasta(dados["p"])
@@ -1640,8 +1779,12 @@ class Painel(BaseHTTPRequestHandler):
                 if _job_do_projeto(dados["p"]):
                     raise ValueError("espere a tarefa deste projeto terminar")
                 pasta_ap = _pasta(dados["p"])
-                aprendizado.marcar(pasta_ap, dados["versao"], dados.get("arquivo"), gostei=True, validado=True,
-                                   status="aprovado")
+                barrar_aprovacao_por_fala(pasta_ap)      # compliance na fala: avisa já, antes de aprender e exportar
+                # só o PEDIDO fica anotado: "aprovado", "gostei" e "validado" (que alimentam o aprendizado e a Galeria)
+                # entram quando a final sai de fato pelo revisor (cli._entregar). Final barrada não ensina nada.
+                aprendizado.marcar(pasta_ap, dados["versao"], dados.get("arquivo"),
+                                   aprovacao_pedida=_dt.datetime.now().isoformat(timespec="minutes"),
+                                   aprovacao_barrada=None)
                 return self._json({"job": iniciar(dados["p"], "final", [dados["versao"]])})
             if u.path == "/api/sugestoes/ia":
                 from . import sugestoes
@@ -1672,6 +1815,14 @@ class Painel(BaseHTTPRequestHandler):
                     raise ValueError("caminho fora do projeto")
                 subprocess.run(["open", "-R", str(alvo)] if alvo.is_file() else ["open", str(alvo)], check=False)
                 return self._json({"ok": True})
+            if u.path == "/api/fala_lida":           # você leu a fala da final: o postar sozinho pode usar ESTA fala
+                from . import aprendizado, publicar
+                pasta_fl = _pasta(dados["p"])
+                ff = publicar.fala_final(pasta_fl, dados["versao"])
+                if not ff["tem"] or dados.get("hash") != ff["hash"]:
+                    raise ValueError("a fala da final mudou: abra de novo e leia a fala atual")
+                return self._json(aprendizado.marcar(pasta_fl, dados["versao"], fala_lida=ff["hash"],
+                                                     fala_lida_em=_dt.datetime.now().isoformat(timespec="minutes")))
             if u.path == "/api/publicar":             # "Publicar agora" (você tocou): mesmas travas, menos o 'sozinho'
                 from . import publicar
                 motivos = publicar.pode_publicar(dados["p"], dados["versao"], manual=True)

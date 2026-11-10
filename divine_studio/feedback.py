@@ -78,13 +78,14 @@ def _real(pasta: Path, versao: str, n: dict, riscos: list) -> str | None:
     from . import aprendizado
     pub = next((x for x in aprendizado.ler(pasta).get("publicacoes") or [] if x.get("versao") == versao), {})
     m = pub.get("metricas") or {}
-    ms = m.get("tempo_medio_ms")
+    ms = m.get("tempo_medio_ms") or (float(m["tempo_medio_s"]) * 1000 if m.get("tempo_medio_s") else None)
     dur = float(n.get("duracao") or 0)
     if not ms or not dur:
         return None
     seg = ms / 1000
     txt = f"No Instagram, as pessoas assistiram em média {seg:.1f} s de {dur:.0f} s ({seg / dur * 100:.0f}%)."
-    bate = next((r for r in riscos if r.get("ini") is not None and r["ini"] - 1.5 <= seg <= r["fim"] + 1.5), None)
+    ponto = float(m["queda_s"]) if m.get("queda_s") else seg      # onde a linha de retenção cai (anotado) ou a média
+    bate = next((r for r in riscos if r.get("ini") is not None and r["ini"] - 1.5 <= ponto <= r["fim"] + 1.5), None)
     if bate:
         txt += f" A saída bate com o trecho de risco {bate['ini']:.0f} a {bate['fim']:.0f} s: corrija nele."
     elif seg < dur * 0.3:

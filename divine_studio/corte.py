@@ -26,10 +26,10 @@ def _e_muleta(texto: str, muletas: set) -> bool:
     return bruto in muletas or normalizar(texto) in {normalizar(m) for m in muletas if normalizar(m)}
 
 
-def marcar_remocoes(palavras: list, remover_trechos: list | None = None) -> dict:
-    """{índice: motivo} das palavras que saem."""
+def marcar_remocoes(palavras: list, remover_trechos: list | None = None, so_pedidas: bool = False) -> dict:
+    """{índice: motivo} das palavras que saem. `so_pedidas`: só as frases de remover_trechos (corte_limpo: so_frases)."""
     cfg = _cfg()
-    muletas = set(cfg.get("muletas", []))
+    muletas = set(cfg.get("muletas", [])) if not so_pedidas else set()
     fora: dict = {}
     norm = [normalizar(p["texto"]) for p in palavras]
 
@@ -40,7 +40,7 @@ def marcar_remocoes(palavras: list, remover_trechos: list | None = None) -> dict
     # take repetido: a pessoa recomeça a frase; sai a tentativa anterior
     k_min = int(cfg.get("retake_min_palavras", 3))
     janela = int(cfg.get("retake_janela_palavras", 25))
-    i = 0
+    i = 0 if not so_pedidas else len(palavras)
     while i < len(palavras):
         achou = False
         for j in range(i + 1, min(len(palavras) - k_min + 1, i + janela + 1)):
@@ -53,12 +53,22 @@ def marcar_remocoes(palavras: list, remover_trechos: list | None = None) -> dict
         if not achou:
             i += 1
 
+    # frases pedidas: procuradas no texto bruto e também no texto que SOBRA depois de tirar muletas e takes, que é
+    # o texto que aparece na legenda e nos pontos "!" (ex.: "O laser né elimina..." some com "O laser elimina...")
+    vivos = [i for i in range(len(norm)) if i not in fora and norm[i]]
+    seq = [norm[i] for i in vivos]
     for frase in remover_trechos or []:
         alvo = [normalizar(w) for w in frase.split() if normalizar(w)]
         n = len(alvo)
+        if not n:
+            continue
         for i in range(len(norm) - n + 1):
             if norm[i:i + n] == alvo:
                 for x in range(i, i + n):
+                    fora[x] = "removido no projeto"
+        for k in range(len(seq) - n + 1):
+            if seq[k:k + n] == alvo:
+                for x in range(vivos[k], vivos[k + n - 1] + 1):
                     fora[x] = "removido no projeto"
     return fora
 
@@ -98,6 +108,32 @@ def segmentos(palavras: list, fora: dict, inicio: float, fim: float) -> list:
     return [(round(x, 3), round(y, 3)) for x, y in junt if y - x > 0.05]
 
 
+def segmentos_sem_frases(palavras: list, fora: dict, inicio: float, fim: float) -> list:
+    """corte_limpo: so_frases (ligado por "✂ Tirar esta frase" num projeto sem corte limpo): o clipe fica inteiro,
+    com pausas e muletas, e só os trechos das frases marcadas saem."""
+    buracos, k = [], 0
+    idx = sorted(i for i in fora if inicio <= palavras[i]["inicio"] < fim)
+    while k < len(idx):
+        j = k
+        while j + 1 < len(idx) and idx[j + 1] == idx[j] + 1:
+            j += 1
+        a = float(palavras[idx[k]]["inicio"]) - 0.04
+        b = float(palavras[idx[j]]["fim"]) + 0.04
+        prox = idx[j] + 1
+        if prox < len(palavras):
+            b = min(b, float(palavras[prox]["inicio"]) - 0.02)
+        buracos.append((max(inicio, a), min(fim, b)))
+        k = j + 1
+    segs, t = [], inicio
+    for a, b in buracos:
+        if a - t > 0.05:
+            segs.append((round(t, 3), round(a, 3)))
+        t = max(t, b)
+    if fim - t > 0.05:
+        segs.append((round(t, 3), round(fim, 3)))
+    return segs
+
+
 def expandir_clipes(projeto: dict, transcrever_fn) -> tuple:
     """Troca cada clipe com corte limpo por subclipes (corte seco entre eles). Devolve (clipes, relatorio_md)."""
     from .ingest import probe, resolver
@@ -116,8 +152,9 @@ def expandir_clipes(projeto: dict, transcrever_fn) -> tuple:
         pal = transcrever_fn(arq)
         ini = float(c.get("inicio", 0))
         fim = min(float(c.get("fim", info["duracao"])), info["duracao"] or 1e9)
-        fora = marcar_remocoes(pal, remover)
-        segs = segmentos(pal, fora, ini, fim)
+        so_frases = str(c.get("corte_limpo", projeto.get("corte_limpo"))) == "so_frases"
+        fora = marcar_remocoes(pal, remover, so_pedidas=so_frases)
+        segs = segmentos_sem_frases(pal, fora, ini, fim) if so_frases else segmentos(pal, fora, ini, fim)
         if not segs:
             novos.append(c)
             md.append(f"## {c['arquivo']}\n\nSem fala reconhecida: clipe mantido inteiro.\n")

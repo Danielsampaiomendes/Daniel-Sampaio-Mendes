@@ -129,7 +129,9 @@ def do_higgsfield(nome: str) -> list:
     for x in itens[:1]:
         if x.get("status") == "pronto" and x.get("analise"):
             a = x["analise"]
-            texto = a if isinstance(a, str) else "; ".join(f"{k}: {v}" for k, v in a.items())
+            texto = a if isinstance(a, str) else "; ".join(f"{k}: {v}" for k, v in a.items() if k != "quedas")
+            if isinstance(a, dict) and a.get("quedas"):
+                texto += f" ({len(a['quedas'])} queda(s) marcadas com ! na linha do tempo)"
             out.append({"tipo": "higgsfield", "forca": 5, "titulo": "Leitura do Higgsfield (viralidade)", "texto": texto[:600]})
         elif x.get("status") in ("pendente", "gerando"):
             out.append({"tipo": "higgsfield", "forca": 1, "titulo": "Análise do Higgsfield na fila",

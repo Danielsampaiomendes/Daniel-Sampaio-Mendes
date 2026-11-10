@@ -46,11 +46,13 @@ def no_python_do_app() -> bool:
 
 def estado() -> dict:
     """O que o painel mostra quando o app ainda não entende a fala."""
-    from .transcricao import motor_disponivel
+    from .transcricao import modelo_escolhido, motor_disponivel, preciso_baixado
     venv_ok = _py_venv().exists() and _ok_import(str(_py_venv()), "faster_whisper")
     return {"transcricao": bool(motor_disponivel()), "python": sys.version.split()[0],
             "no_python_do_app": no_python_do_app(), "venv": _py_venv().exists(), "venv_com_fala": venv_ok,
-            "precisa_reiniciar": venv_ok and not no_python_do_app()}
+            "precisa_reiniciar": venv_ok and not no_python_do_app(),
+            "preciso": motor_disponivel() != "faster_whisper" or preciso_baixado(),
+            "modelo": modelo_escolhido() if motor_disponivel() == "faster_whisper" else motor_disponivel()}
 
 
 def _uv() -> list:
@@ -124,9 +126,13 @@ def instalar_bibliotecas(py: str) -> list:
     return falhas
 
 
-def baixar_modelo(py: str) -> bool:
-    modelo = (load("preferencias").get("transcricao") or {}).get("modelo_whisper", "small")
-    _passo(f"Baixando o modelo de fala '{modelo}' (uma vez, algumas centenas de MB)…")
+def baixar_modelo(py: str, preciso: bool = False) -> bool:
+    """Baixa o modelo rápido (instalação) ou o preciso (botão 🎯 Transcrição mais precisa, ~1,6 GB)."""
+    t = load("preferencias").get("transcricao") or {}
+    modelo = t.get("modelo_whisper", "auto")
+    if modelo == "auto" or preciso:
+        modelo = t.get("modelo_preciso", "large-v3-turbo") if preciso else t.get("modelo_reserva", "small")
+    _passo(f"Baixando o modelo de fala '{modelo}' (uma vez; {'cerca de 1,6 GB, 5 a 20 minutos' if preciso else 'algumas centenas de MB'})…")
     r = subprocess.run([py, "-c", f"from faster_whisper import WhisperModel; WhisperModel('{modelo}', device='auto', "
                                   "compute_type='int8'); print('modelo pronto')"], capture_output=True, text=True)
     if r.returncode != 0:                    # sem o rastro técnico na tela: só a última linha do erro
@@ -134,7 +140,19 @@ def baixar_modelo(py: str) -> bool:
     return r.returncode == 0
 
 
-def main() -> int:
+def main(preciso: bool = False) -> int:
+    if preciso:                              # só o modelo preciso, no Python do app que já existe
+        py = str(_py_venv()) if _py_venv().exists() else sys.executable
+        if not baixar_modelo(py, preciso=True):
+            print("\n✗ O modelo preciso não baixou (internet?). As edições continuam com o rápido.", flush=True)
+            return 1
+        try:                                 # baixou de novo: tenta o preciso outra vez, mesmo que antes tenha ficado lento
+            from .transcricao import _estado_arq
+            _estado_arq().write_text("{}", encoding="utf-8")
+        except OSError:
+            pass
+        print("\n✓ Pronto: as próximas edições usam a transcrição mais precisa.", flush=True)
+        return 0
     print(f"Python do painel agora: {sys.version.split()[0]} ({sys.executable})", flush=True)
     if not criar_python():
         print("\n✗ Não consegui criar o Python do app. Copie esta tela e mande para o Claude.\n"

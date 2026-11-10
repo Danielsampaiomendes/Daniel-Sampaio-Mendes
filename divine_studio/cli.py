@@ -174,7 +174,9 @@ def _entregar(p, arq: Path, nome_versao: str) -> None:
     shutil.copy2(arq, destino / arq.name)
     atual = next((x for x in p.get("publicacoes") or [] if x.get("versao") == nome_versao), {})
     status = atual.get("status") if atual.get("status") in ("agendado", "postado") else "aprovado"
-    aprendizado.marcar(p["_pasta"], nome_versao, arquivo=f"saida/{arq.name}", status=status,
+    # ✓ Aprovar no painel só anota o pedido; aprovado, gostei e validado entram aqui, com a final já pelo revisor
+    aprovou = {"gostei": True, "validado": True, "aprovacao_pedida": None} if atual.get("aprovacao_pedida") else {}
+    aprendizado.marcar(p["_pasta"], nome_versao, arquivo=f"saida/{arq.name}", status=status, **aprovou,
                        rede="tv" if p.get("formato") == "tv" else "instagram",
                        entrega=str((destino / arq.name).relative_to(ROOT)))
 
@@ -248,7 +250,9 @@ def cmd_editar(a):
           f"{p.get('formato', 'reels')} {W}x{H}")
     _resolver_hooks(p)
     _versao_ia(p, a)
-    transcrever_fn = _transcritor(pasta, ocr=_ocr_cfg(p)) if _precisa_fala(p) else None
+    from .compliance import video_falado
+    falado = video_falado(p)                # com fala, o revisor precisa da fala transcrita (mesmo sem legenda)
+    transcrever_fn = _transcritor(pasta, ocr=_ocr_cfg(p)) if _precisa_fala(p) or falado else None
     md_cortes = ""
     if transcrever_fn and (p.get("corte_limpo") or any(c.get("corte_limpo") for c in p.get("clipes") or [])):
         from .corte import expandir_clipes
@@ -283,17 +287,32 @@ def cmd_editar(a):
             trans = {c["caminho"]: transcrever_fn(Path(c["caminho"])) for c in meta["clipes"]
                      if original and c.get("caminho") and not _clipe_mudo(p, c)}
             p["_fala"] = palavras_na_base(meta["clipes"], trans)
+            _reposicionar_ancoras(p, p["_fala"], trabalho)   # dublagens e efeitos acompanham a fala depois de um corte
             # dublagem gravada no painel: a fala dela também vira legenda, no tempo em que entra
             for d in (p.get("audio") or {}).get("dublagem") or []:
                 from .ingest import resolver
                 off = float(d.get("inicio", 0))
-                p["_fala"] += [{**w, "inicio": round(w["inicio"] + off, 3), "fim": round(w["fim"] + off, 3)}
+                if d.get("fim") is not None:            # dublagem de um trecho: a fala original dali sai da legenda
+                    p["_fala"] = [w for w in p["_fala"] if not off - 0.05 <= float(w["inicio"]) < float(d["fim"])]
+                p["_fala"] += [{**w, "inicio": round(w["inicio"] + off, 3), "fim": round(w["fim"] + off, 3), "dub": True}
                                for w in transcrever_fn(resolver(p, d["arquivo"]))]
             p["_fala"].sort(key=lambda w: w["inicio"])
             (trabalho / "fala_base.json").write_text(json.dumps(p["_fala"], ensure_ascii=False), encoding="utf-8")
         except SystemExit as e:
             # legenda da fala e mensagens na fala são opcionais: segue sem elas (o corte limpo já teria parado antes)
             print(f"  aviso: sem a fala transcrita, a legenda da fala e o na_fala ficam de fora.\n  {e}")
+    _barrar_fala_nao_lida(p, a, falado)
+    if p.get("_fala") is not None and not a.rapido and not getattr(a, "storyboard", False):
+        # compliance também no que se OUVE: a final não sai com promessa, porcentagem ou prazo na fala
+        from .compliance import erros_na_fala
+        ruins = erros_na_fala(p["_fala"], p)
+        for fr, x in ruins:
+            print(f"  {x.linha()} · fala em {fr['inicio']:.1f} s")
+        if ruins and not a.forcar:
+            _aprovacao_barrada(p, ruins)
+            raise SystemExit("Revisor bloqueou a final: a fala tem algo que o CFM/Anvisa não permite ou que precisa ser "
+                             "conferido (acima). No ! vermelho ou laranja da aba Ajustar: ✂ Tirar esta frase, 🎙 Dublar sem "
+                             "ela ou, se for só informação, ✓ Conferi. Depois gere as prévias e aprove de novo.")
 
     versoes = p.get("versoes") or []
     if a.versoes:
@@ -399,13 +418,24 @@ def cmd_editar(a):
         n_ef = len([e for e in (p.get("efeitos") or []) + (getattr(plano, "efeitos_auto", None) or [])])
         try:                                               # onde a atenção pode cair (e como resolver)
             from . import atencao
-            atencao.salvar(trabalho, nome, atencao.analisar(plano, p, voz, base))
+            at_v = atencao.analisar(plano, p, voz, base)
+            atencao.salvar(trabalho, nome, at_v)
+            from . import previsao                         # de 100 pessoas, quantas ficam (calibrado pelo Instagram)
+            from .instagram import conta_do_projeto
+            prev_v = previsao.prever(at_v, plano.duracao_total, conta_do_projeto(p))
+            previsao.salvar(trabalho, nome, prev_v, final=not a.rapido and not getattr(a, "storyboard", False))
+            if prev_v.get("tem"):
+                print("  " + previsao.frase(prev_v))
         except Exception as e:
             print(f"  aviso: análise de atenção indisponível ({e})")
         (trabalho / f"nota_{nome}.json").write_text(json.dumps({
             **nota, "media": round(sum(nota["notas"].values()) / max(1, len(nota["notas"])), 1),
             "duracao": round(plano.duracao_total, 1), "efeitos": n_ef, "sons": len(plano.eventos_sfx),
             "arquivo": f"saida/{arq}"}, ensure_ascii=False), encoding="utf-8")
+        if p.get("_fala") is not None and not a.rapido and not getattr(a, "storyboard", False):
+            # a fala conferida desta final, POR VERSÃO e presa ao arquivo: postar a V1 nunca confere a fala da V2
+            (trabalho / f"fala_final_{nome}.json").write_text(json.dumps(
+                {"arquivo": f"saida/{arq}", "palavras": p["_fala"]}, ensure_ascii=False), encoding="utf-8")
         if not a.rapido and not a.teste and not p.get("uso_interno_sem_entrega"):
             _entregar(p, saida / arq, nome)
         folha = quadros(saida / arq, trabalho / f"{nome}_quadros.jpg")
@@ -490,7 +520,7 @@ def _render_paralelo(pasta: Path, nomes: list, n_par: int, trabalho: Path) -> li
 
 def cmd_instalar_fala(a):
     from . import instalar_fala
-    raise SystemExit(instalar_fala.main())
+    raise SystemExit(instalar_fala.main(preciso=bool(getattr(a, "preciso", False))))
 
 
 def cmd_higgsfield(a):
@@ -503,7 +533,12 @@ def cmd_higgsfield(a):
     elif a.acao == "analise":                 # Virality Predictor: a leitura (texto) vira sugestão no projeto
         if not (a.id and a.valor):
             raise SystemExit('Use: higgsfield analise <id> "<o que o Virality Predictor disse>"')
-        r = hf.atualizar(a.id, status="pronto", analise=a.valor, **({"creditos": a.creditos} if a.creditos else {}))
+        try:                                  # JSON com "quedas" vira "!" na linha do tempo (alertas.py)
+            leitura = json.loads(a.valor)
+            leitura = leitura if isinstance(leitura, dict) else a.valor
+        except ValueError:
+            leitura = a.valor
+        r = hf.atualizar(a.id, status="pronto", analise=leitura, **({"creditos": a.creditos} if a.creditos else {}))
         print(f"✓ análise guardada em {r['projeto']} (aparece em Sugestões para a próxima)")
     elif a.acao == "pronto":
         if not (a.id and a.valor):
@@ -592,6 +627,75 @@ def _clipe_mudo(p, meta_clipe) -> bool:
     return any(c.get("mudo") for c in p.get("clipes") or [] if c.get("arquivo") == meta_clipe.get("arquivo"))
 
 
+def _barrar_fala_nao_lida(p, a, falado: bool) -> None:
+    """Final de um vídeo com fala sem a fala transcrita: o revisor de compliance não leu o que se ouve, então a final
+    não sai (falha para o lado seguro). As prévias seguem, com o "!" vermelho fala_sem_revisor na linha do tempo."""
+    if not falado or p.get("_fala") is not None or a.rapido or getattr(a, "storyboard", False) or a.forcar:
+        return
+    motivo = "o vídeo tem fala, mas ela não foi transcrita (o revisor de compliance não leu o que é dito)"
+    _aprovacao_barrada(p, [], motivo)
+    raise SystemExit(f"Revisor bloqueou a final: {motivo}. No passo 3, toque em 🎤 Instalar a transcrição "
+                     "(ou: python3 -m divine_studio instalar-fala) e gere as prévias de novo.")
+
+
+def _aprovacao_barrada(p, ruins: list, motivo: str | None = None) -> None:
+    """A final de um ✓ Aprovar não passou pelo revisor: o pedido vira 'aprovação barrada' (aparece no cartão da
+    versão), e nada é marcado como aprovado, gostei ou validado (o aprendizado e a Galeria não aprendem com ela)."""
+    from . import aprendizado
+    if motivo is None:
+        fr, x = ruins[0]
+        motivo = f"aos {float(fr['inicio']):.0f} s: \"{str(fr['texto'])[:70]}\" ({x.regra})"
+    for pub in p.get("publicacoes") or []:
+        if pub.get("aprovacao_pedida"):
+            aprendizado.marcar(p["_pasta"], pub["versao"], aprovacao_pedida=None, aprovacao_barrada=motivo)
+
+
+def _reposicionar_ancoras(p, fala_nova: list, trabalho: Path) -> None:
+    """Dublagens e efeitos com âncora (ancoras.py) vão para onde as palavras deles estão NESTA base.
+
+    Se a frase de um item saiu do vídeo, o item fica de fora só desta edição (o projeto.yaml guarda tudo) e a lista
+    vai para trabalho/ancoras_perdidas.json, que vira um "!" (alertas.py > ancora_perdida). Os segundos novos são
+    gravados no projeto.yaml para a linha do tempo do painel mostrar o item onde ele de fato está."""
+    import yaml
+    from . import ancoras
+    aud = dict(p.get("audio") or {})
+    dubs, dubs_fora = ancoras.reposicionar(aud.get("dublagem") or [], fala_nova, com_fim=True)
+    efs, efs_fora = ancoras.reposicionar(p.get("efeitos") or [], fala_nova)
+    if aud.get("dublagem"):
+        aud["dublagem"] = dubs
+        p["audio"] = aud
+    if p.get("efeitos"):
+        p["efeitos"] = efs
+    perdidos = [{"tipo": "dublagem", "arquivo": d.get("arquivo"), "inicio": d.get("inicio"),
+                 "palavras": " ".join((d.get("ancora") or {}).get("palavras") or [])} for d in dubs_fora]
+    perdidos += [{"tipo": "efeito", "efeito": e.get("tipo"), "inicio": e.get("inicio"),
+                  "palavras": " ".join((e.get("ancora") or {}).get("palavras") or [])} for e in efs_fora]
+    (trabalho / "ancoras_perdidas.json").write_text(json.dumps(perdidos, ensure_ascii=False), encoding="utf-8")
+    for x in perdidos:
+        print(f"  aviso: {x['tipo']} de \"{x['palavras']}\" ficou de fora: a frase saiu do vídeo (veja o ! na aba Ajustar)")
+    novos = {ancoras.chave(x): x for x in dubs + efs if isinstance(x, dict) and x.get("ancora")}
+    arq = p["_pasta"] / "projeto.yaml"
+    try:
+        d = yaml.safe_load(arq.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return
+    mudou = False
+    listas = [d.get("efeitos") or [], (d.get("audio") or {}).get("dublagem") or []]
+    for lista in listas:
+        for it in lista:
+            n = novos.get(ancoras.chave(it)) if isinstance(it, dict) and it.get("ancora") else None
+            if n and (abs(float(n["inicio"]) - float(it.get("inicio", 0))) > 0.01
+                      or (n.get("fim") is not None and abs(float(n["fim"]) - float(it.get("fim") or 0)) > 0.01)):
+                it["inicio"], it["ancora"] = n["inicio"], n["ancora"]
+                if n.get("fim") is not None:
+                    it["fim"] = n["fim"]
+                mudou = True
+    if mudou:
+        arq.write_text("# Editado pelo Divine Studio.\n" + yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000,
+                                                                        default_flow_style=None), encoding="utf-8")
+        print("  dublagens e efeitos acompanharam a fala depois do corte (segundos novos no projeto.yaml)")
+
+
 def _com_dublagem(p, voz, dur: float):
     """Soma as gravações de voz do painel (audio.dublagem: [{arquivo, inicio, ganho_db}]) à voz da base."""
     import numpy as np
@@ -607,7 +711,20 @@ def _com_dublagem(p, voz, dur: float):
         i = int(float(d.get("inicio", 0)) * SR)
         if i >= n:
             continue
-        a = a[: n - i] * db(float(d.get("ganho_db", 0)))
+        if d.get("fim") is not None:                 # dublagem de trecho: só ali a voz original fica muda
+            j = min(n, max(i, int(float(d["fim"]) * SR)))
+            rampa = min(int(0.04 * SR), max(1, (j - i) // 4))
+            env = np.ones(n, np.float32)
+            env[i:j] = 0.0
+            env[max(0, i - rampa):i] = np.linspace(1, 0, i - max(0, i - rampa), dtype=np.float32)
+            env[j:min(n, j + rampa)] = np.linspace(0, 1, min(n, j + rampa) - j, dtype=np.float32)
+            out[:n] *= env[: len(out)].reshape(-1, 1) if out.ndim == 2 else env[: len(out)]
+        # pode passar do fim da base (ex.: o pedido final gravado depois da última palavra): a voz segue por cima
+        # do cartão final, até config/preferencias.yaml > dublagem.alem_do_fim_s; o mixer corta na duração total
+        alem = int(float((load("preferencias").get("dublagem") or {}).get("alem_do_fim_s", 6.0)) * SR)
+        a = a[: n + alem - i] * db(float(d.get("ganho_db", 0)))
+        if i + len(a) > len(out):
+            out = np.vstack([out, np.zeros((i + len(a) - len(out), out.shape[1]), np.float32)])
         out[i:i + len(a)] += a
     return out
 
@@ -619,7 +736,7 @@ def _voz_limpa(p, voz, base: Path, trabalho: Path):
     modo = (p.get("audio") or {}).get("limpeza") or load("preferencias").get("voz", {}).get("modo", "auto")
     arq, meta = trabalho / "voz_limpa.wav", trabalho / "voz_limpa.json"
     from .ingest import resolver
-    dubs = [[d.get("arquivo"), d.get("inicio"), d.get("ganho_db"), resolver(p, d["arquivo"]).stat().st_mtime]
+    dubs = [[d.get("arquivo"), d.get("inicio"), d.get("ganho_db"), d.get("fim"), resolver(p, d["arquivo"]).stat().st_mtime]
             for d in (p.get("audio") or {}).get("dublagem") or []]
     chave = {"base": base.stat().st_mtime, "modo": modo, "dublagem": dubs,
              "original": (p.get("audio") or {}).get("original", True)}
@@ -1020,6 +1137,7 @@ def main(argv=None):
     s.set_defaults(f=cmd_radar)
     s = sub.add_parser("instalar-fala", help="instala a transcrição no Python próprio do app (.venv)")
     s.add_argument("projeto", nargs="?")
+    s.add_argument("--preciso", action="store_true", help="baixa só o modelo preciso (~1,6 GB, uma vez)")
     s.set_defaults(f=cmd_instalar_fala)
     s = sub.add_parser("higgsfield", help="fila de pedidos do Higgsfield (o Claude executa com o conector)")
     s.add_argument("acao", choices=["fila", "instrucao", "pronto", "status", "analise"])

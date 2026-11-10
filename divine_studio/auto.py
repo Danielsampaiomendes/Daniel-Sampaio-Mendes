@@ -186,6 +186,8 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
     p["clipes"] = clipes
 
     pode_transcrever = transcrever_fn is not None
+    # o revisor de compliance precisa saber se há fala MESMO quando não deu para transcrever (compliance.video_falado)
+    p["tem_fala"] = bool(com_fala)
     if com_fala and pode_transcrever and p["template"] != "tv":
         p["corte_limpo"] = True
         # legenda da fala sempre ligada; o estilo ajustado no painel (posição, tamanho, fonte, cor) é mantido

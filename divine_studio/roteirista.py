@@ -22,18 +22,19 @@ def texto_da_fala(palavras: list) -> str:
 
 def frases(palavras: list) -> list:
     """Frases da fala (pela pontuação e pelas pausas), com o início em segundos no bruto."""
-    out, atual, ini = [], [], None
+    out, atual, ini, i0 = [], [], None, 0
     for i, w in enumerate(palavras):
         t = str(w.get("texto", "")).strip()
         if not t:
             continue
         if ini is None:
-            ini = float(w.get("inicio", 0))
+            ini, i0 = float(w.get("inicio", 0)), i
         atual.append(t)
         prox = palavras[i + 1] if i + 1 < len(palavras) else None
         pausa = prox is not None and float(prox.get("inicio", 0)) - float(w.get("fim", 0)) > 0.6
         if re.search(r"[.!?…]$", t) or pausa or prox is None:
-            out.append({"texto": " ".join(atual), "inicio": ini})
+            # fim e índices das palavras (i0 a i1) servem aos pontos de atenção da linha do tempo (alertas.py)
+            out.append({"texto": " ".join(atual), "inicio": ini, "fim": float(w.get("fim", ini)), "i0": i0, "i1": i})
             atual, ini = [], None
     return out
 

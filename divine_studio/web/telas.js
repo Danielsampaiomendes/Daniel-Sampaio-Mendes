@@ -62,8 +62,9 @@ async function carregarProgramacao() {
         ${p.conta ? `<div class="perfil">@${esc(p.conta)}</div>` : ""}
         <div class="m">${esc(p.tipo === "carrossel" ? "carrossel" : p.tipo === "antes_depois" ? "antes e depois" : p.tipo === "post" ? "post " + p.versao : p.formato)}${p.data_agendada && id === "agendado" ? " · " + fmt(p.data_agendada) : ""}${p.data_postagem && id !== "agendado" ? " · postado " + fmt(p.data_postagem) : ""}${p.gostei ? " · ♥" : ""}</div>
         ${p.tags && p.tags.length ? `<div>${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
-        ${id === "postado" ? `<div class="metricas" title="Métricas do Instagram (o app aprende com elas)">
-          ${[["alcance", "alcance"], ["curtidas", "curtidas"], ["comentarios", "coment."], ["compartilhamentos", "envios"], ["salvamentos", "salvos"], ["views", "views"]]
+        ${id === "postado" ? `<div class="metricas" title="Métricas do Instagram (o app aprende com elas). Seg. assistidos e onde a linha cai: no app do Instagram, Reels > Ver insights > Retenção">
+          ${[["alcance", "alcance"], ["curtidas", "curtidas"], ["comentarios", "coment."], ["compartilhamentos", "envios"], ["salvamentos", "salvos"], ["views", "views"],
+              ["tempo_medio_s", "seg. assistidos"], ["queda_s", "linha cai em (s)"]]
             .map(([k, r]) => `<input type="number" min="0" data-m="${k}" placeholder="${r}" value="${m[k] ?? ""}">`).join("")}</div>` : ""}
         ${id === "aprovado" || id === "agendado" ? `<div class="redes">
           <label><input type="checkbox" data-rede="instagram" ${(p.redes || ["instagram"]).includes("instagram") ? "checked" : ""}> Instagram</label>
@@ -90,11 +91,13 @@ async function carregarProgramacao() {
   });
   $$(".peca [data-auto]").forEach((c) => c.onchange = async () => {
     const el = c.closest(".peca");
+    if (c.checked && !(await leuAFala(el.dataset.p, el.dataset.v))) { c.checked = false; return; }
     await api("/api/publicacao", { p: el.dataset.p, versao: el.dataset.v, campos: { auto_postar: c.checked } });
     aviso(c.checked ? "Vai postar sozinho no horário, se passar no revisor." : "Postagem automática desligada.");
   });
   $$(".peca [data-a]").forEach((b) => b.onclick = async () => {
     const el = b.closest(".peca"), p = pecaDe(el);
+    if (b.dataset.a === "salvar" && !(await leuAFala(p.projeto, p.versao, "salvar"))) return;
     if (b.dataset.a === "salvar") return salvarNaGaleria(`/arquivo?p=${encodeURIComponent(p.projeto)}&f=${encodeURIComponent(p.arquivo)}`, p.arquivo.split("/").pop());
     if (b.dataset.a === "legenda") {
       const d = await api("/api/projeto?p=" + encodeURIComponent(p.projeto));
@@ -107,6 +110,7 @@ async function carregarProgramacao() {
     if (b.dataset.a === "publicar") {
       const redes = (p.redes || ["instagram"]).join(" e ");
       if (!confirm(`Publicar agora no ${redes}?\n${p.titulo} · ${p.versao}\nO revisor de compliance roda antes.`)) return;
+      if (!(await leuAFala(p.projeto, p.versao, "publicar"))) return;
       b.disabled = true; b.textContent = "Publicando…";
       try {
         const r = await api("/api/publicar", { p: p.projeto, versao: p.versao });
@@ -124,11 +128,26 @@ async function carregarProgramacao() {
       const [dia, mes, ano] = data.split("/");
       campos = { status: "agendado", data_agendada: `${ano || new Date().getFullYear()}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}` };
       if (hora && /^\d{1,2}:\d{2}$/.test(hora)) campos.hora_agendada = hora.padStart(5, "0");
-      campos.auto_postar = confirm("Postar sozinho nesse horário? (o app publica com o painel aberto no Mac; o revisor roda antes)");
+      campos.auto_postar = confirm("Postar sozinho nesse horário? (o app publica com o painel aberto no Mac; o revisor roda antes)")
+        && await leuAFala(p.projeto, p.versao);
     }
     await api("/api/publicacao", { p: p.projeto, versao: p.versao, campos });
     carregarProgramacao();
   });
+}
+// O revisor por regras pega os jeitos comuns de prometer, não todos. Por isso, uma vez por final, antes de ela sair
+// pelo app (postar sozinho, 🚀 Publicar agora ou ⬇ Salvar no iPhone), você lê a fala que vai ao ar. O app guarda o
+// carimbo; se a fala mudar, pergunta de novo. Já lida: não pergunta outra vez.
+async function leuAFala(projeto, versao, para = "postar sozinho") {
+  let f;
+  try { f = await api("/api/fala_final?p=" + encodeURIComponent(projeto) + "&v=" + encodeURIComponent(versao)); } catch (e) { return false; }
+  if (!f.tem || !f.texto) return true;                 // sem fala (só imagem e música): nada para ler; o servidor confere
+  if (f.lida) return true;                             // esta mesma fala já foi lida (o carimbo bate)
+  const ok = confirm(`Antes de ${para === "salvar" ? "salvar para postar" : para === "publicar" ? "publicar" : "postar sozinho"}, leia a fala da final da ${versao} (${f.arquivo}):\n\n"${f.texto.slice(0, 4000)}"\n\n` +
+    "Ela não promete resultado, prazo, quantidade nem porcentagem? (OK = li e está certo)");
+  if (!ok) return false;
+  try { await api("/api/fala_lida", { p: projeto, versao, hash: f.hash }); return true; }
+  catch (e) { alert(e.message); return false; }
 }
 $("#pg-entregas").onclick = () => api("/api/abrir_pasta", { caminho: "entregas" }).catch((e) => alert(e.message));
 

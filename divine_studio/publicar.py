@@ -4,7 +4,8 @@ Só publica o que passa em TODAS as travas (`pode_publicar`):
   - você ligou "postar sozinho" na peça (ou tocou em "Publicar agora")
   - não é uso interno / TV / consulta / prévia / NAO-POSTAR
   - autorização de imagem resolvida
-  - revisor de compliance (CFM 2.336/2023, Anvisa RDC 96/2008) sem erro, legenda incluída
+  - revisor de compliance (CFM 2.336/2023, Anvisa RDC 96/2008) sem erro, legenda e FALA incluídas
+  - postar sozinho: você leu a fala desta final uma vez (o revisor por regras não pega todo jeito de prometer)
   - o perfil da peça está conectado
 Depois de publicar: status 'postado', link e hora gravados; as métricas entram sozinhas (automações 24h e 7d).
 """
@@ -43,6 +44,46 @@ def redes_da(pub: dict) -> list:
     return [x for x in r if x in ("instagram", "tiktok")]
 
 
+def fala_final(pasta: Path, versao: str) -> dict:
+    """A fala conferida da final DESTA versão (trabalho/fala_final_<versão>.json, gravada na exportação), como texto
+    corrido, com o arquivo da final a que ela pertence e um carimbo (hash) para saber se é a mesma que você leu."""
+    import hashlib
+    arq = Path(pasta) / "trabalho" / f"fala_final_{versao}.json"
+    try:
+        dado = json.loads(arq.read_text(encoding="utf-8"))
+        fala, arquivo = list(dado["palavras"]), str(dado.get("arquivo") or "")
+    except (OSError, ValueError, KeyError, TypeError):
+        return {"tem": False, "existe": arq.exists(), "texto": "", "hash": "", "arquivo": "", "palavras": []}
+    texto = " ".join(str(w.get("texto", "")).strip() for w in fala if str(w.get("texto", "")).strip())
+    carimbo = hashlib.sha1(f"{versao}|{arquivo}|{texto}".encode()).hexdigest()[:12]
+    return {"tem": True, "existe": True, "texto": texto, "hash": carimbo, "arquivo": arquivo, "palavras": fala}
+
+
+def _compliance_fala(pasta: Path, d: dict, pub: dict | None = None, manual: bool = True) -> list:
+    """A fala da final da versão desta peça passa pelo mesmo revisor dos textos. Ela precisa ser a fala do MESMO
+    arquivo que vai ao ar (pub['arquivo']): se outra exportação substituiu a final, a conferência não vale.
+    Vídeo com fala (compliance.video_falado, decidido pelo que se ouve) sem esse arquivo (final antiga, transcrição que
+    falhou) não posta: não foi conferido.
+    O revisor por regras pega os jeitos comuns de prometer, não todos. Por isso toda publicação pelo app (postar
+    sozinho ou 🚀 Publicar agora) pede que você tenha lido a fala desta final uma vez (pub['fala_lida'] = carimbo)."""
+    from .compliance import erros_na_fala, video_falado
+    pub = pub or {}
+    falado = video_falado(d)        # pelo que se ouve, nunca pelos interruptores que o auto desliga sem transcrição
+    ff = fala_final(pasta, str(pub.get("versao") or ""))
+    if not ff["tem"]:
+        if ff["existe"]:
+            return ["não consegui ler a fala conferida da final: exporte a final de novo"]
+        return ["a fala desta final não passou pelo revisor de compliance: exporte a final de novo"] if falado else []
+    if pub.get("arquivo") and ff["arquivo"] != pub["arquivo"]:
+        return [f"a fala conferida é de {ff['arquivo']}, não de {pub['arquivo']}: exporte a final desta versão de novo"]
+    motivos = [f"compliance na fala ({fr['inicio']:.0f} s): {x.linha()}" for fr, x in erros_na_fala(ff["palavras"], d)]
+    if ff["texto"] and pub.get("fala_lida") != ff["hash"]:
+        # o revisor por regras não pega todo jeito de prometer: toda saída pelo app (postar sozinho, 🚀 Publicar agora,
+        # ⬇ Salvar no iPhone) pede que alguém tenha lido a fala DESTA final uma vez
+        motivos.append("leia a fala desta final uma vez antes de postar (o painel mostra o texto ao tocar em postar)")
+    return motivos
+
+
 def pode_publicar(projeto: str, versao: str, manual: bool = False) -> list:
     """Lista do que impede publicar (vazia = pode)."""
     from . import instagram, tiktok
@@ -63,6 +104,7 @@ def pode_publicar(projeto: str, versao: str, manual: bool = False) -> list:
     erros = [a.linha() for a in revisar({**d, "_pasta": pasta}) if a.nivel == "erro"]
     if erros:
         motivos.append("revisor de compliance: " + "; ".join(erros))
+    motivos += _compliance_fala(pasta, d, pub, manual)
     if not d.get("legenda") and not (pasta / "saida" / "legenda.txt").exists():
         motivos.append("falta a legenda do post")
     redes = redes_da(pub)

@@ -26,6 +26,43 @@ def ler_audio(arquivo: Path, duracao: float | None = None) -> np.ndarray:
     return a
 
 
+def ajustar_take(origem: Path, destino: Path, janela_s: float | None, cfg: dict | None = None) -> dict:
+    """Prepara uma gravação de dublagem para caber no trecho: tira o silêncio do começo e do fim e, quando há um
+    trecho (janela_s), ajusta a velocidade sem mudar o tom (FFmpeg atempo) até o limite de config/preferencias.yaml
+    > dublagem.ajuste_max. Devolve {duracao, tempo, sobra_s}: sobra_s > 0 = passou do trecho; < 0 = ficou curta.
+    O arquivo original não é tocado (vai para `destino`)."""
+    cfg = cfg if cfg is not None else (load("preferencias").get("dublagem") or {})
+    a = ler_audio(origem)
+    lim = 10 ** (float(cfg.get("silencio_db", -40)) / 20)
+    passo = int(0.01 * SR)
+    env = np.array([np.abs(a[k:k + passo]).max() for k in range(0, max(1, len(a) - passo + 1), passo)]) if len(a) else np.zeros(0)
+    vivos = np.nonzero(env > lim)[0]
+    if len(vivos):
+        folga = int(0.05 * SR)
+        a = a[max(0, vivos[0] * passo - folga): min(len(a), (vivos[-1] + 1) * passo + folga)]
+    dur = len(a) / SR
+    tempo = 1.0
+    if janela_s and janela_s > 0.2 and dur > 0:
+        aj = max(1.0, float(cfg.get("ajuste_max", 1.15)))
+        tempo = min(aj, max(1 / aj, dur / janela_s))
+    if abs(tempo - 1.0) < 0.01:
+        tempo = 1.0
+        salvar_wav(a, destino)
+    else:
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td) / "aparado.wav"
+            salvar_wav(a, tmp)
+            r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(tmp), "-filter:a", f"atempo={tempo:.4f}",
+                                "-ac", "2", "-ar", str(SR), str(destino)], capture_output=True, text=True)
+        if r.returncode != 0:
+            tempo = 1.0
+            salvar_wav(a, destino)
+    final = dur / tempo
+    return {"duracao": round(final, 2), "tempo": round(tempo, 3),
+            "sobra_s": round(final - janela_s, 2) if janela_s else 0.0}
+
+
 def salvar_wav(a: np.ndarray, arquivo: Path) -> None:
     a = np.clip(a, -0.98, 0.98)
     with wave.open(str(arquivo), "wb") as w:

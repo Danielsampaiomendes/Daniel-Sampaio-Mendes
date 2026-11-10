@@ -19,6 +19,7 @@ API = "https://graph.facebook.com/v21.0"
 API_IG = "https://graph.instagram.com/v21.0"
 METRICAS = {"views": "views", "reach": "alcance", "likes": "curtidas", "comments": "comentarios",
             "shares": "compartilhamentos", "saved": "salvamentos", "ig_reels_avg_watch_time": "tempo_medio_ms",
+            "ig_reels_video_view_total_time": "tempo_total_ms", "total_interactions": "interacoes",
             "follows": "seguidores"}
 
 
@@ -195,6 +196,15 @@ def sincronizar() -> dict:
         usuario, post = achado
         m = metricas(post["id"], usuario)
         if m:
+            # retrato com a idade do post: o aprendizado compara peças na mesma idade (24 h, 72 h, 7 dias)
+            import datetime as _dt
+            agora = _dt.datetime.now(_dt.timezone.utc)
+            m["coletado_em"] = agora.isoformat(timespec="minutes")
+            try:
+                quando = _dt.datetime.strptime(post.get("timestamp", ""), "%Y-%m-%dT%H:%M:%S%z")
+                m["idade_h"] = round((agora - quando).total_seconds() / 3600, 1)
+            except ValueError:
+                pass
             aprendizado.marcar(aprendizado.PROJETOS / pub["projeto"], pub["versao"], metricas=m, conta=usuario)
             atualizadas += 1
     return {"posts_no_instagram": sum(por_conta.values()), "por_conta": por_conta, "atualizadas": atualizadas,

@@ -28,9 +28,22 @@ async function carregarEditor() {
   ed.clipes = JSON.parse(JSON.stringify(d.projeto.clipes || []));
   ed.clipesInfo = d.clipes_info || []; ed.linhas = d.linhas || {}; ed.corteLimpo = d.corte_limpo;
   ed.atencao = d.atencao || {};
+  // a versão da linha do tempo: a que você tocou no passo 3 (window.versaoAjustar) ou a última escolhida aqui
+  ed.previasVersao = d.previas_versao || {};
+  const vs = Object.keys(ed.previasVersao).sort((a, b) => (a === "IA") - (b === "IA") || a.localeCompare(b));
+  const pedida = window.versaoAjustar || ed.versao;
+  ed.versao = vs.includes(pedida) ? pedida : (vs[0] || "V1");
+  window.versaoAjustar = null;
+  ed.alertas = await carregarAlertas();
   ed.legendas = d.legendas_blocos || []; ed.legLigadas = d.legendas_ligadas; ed.correcoes = { ...(d.projeto.correcoes || {}) };
   ed.legEstilo = { ...(d.legenda_estilo || {}) }; ed.legEstiloMudou = false;
-  ed.ref = d.referencia;
+  ed.ref = ed.previasVersao[ed.versao] || d.referencia;
+  const sel = $("#tl-versao"), selBox = $("#tl-versao-box");
+  if (sel && selBox) {
+    selBox.hidden = vs.length < 2;
+    sel.innerHTML = vs.map((v) => `<option value="${esc(v)}" ${v === ed.versao ? "selected" : ""}>${esc(v)}</option>`).join("");
+    sel.onchange = () => { ed.versao = sel.value; carregarEditor(); };
+  }
   ed.cfg = { filtros: d.filtros || {}, transicoes: d.transicoes || {}, velocidades: d.velocidades || [1] };
   ed.cor = { ...(d.projeto.cor || {}) };
   ed.audio = { ...(d.projeto.audio || {}) }; ed.licenca = !!d.projeto.musica_licenciada;
@@ -39,8 +52,8 @@ async function carregarEditor() {
   if (!ed.kit) ed.kit = await api("/api/sons");
   ed.sel = null;
   const v = $("#tl-video");
-  if (d.referencia) {
-    v.src = `/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(d.referencia)}`;
+  if (ed.ref) {
+    v.src = `/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent(ed.ref)}`;
     $("#tl-dica").innerHTML = "Arraste a linha do tempo para percorrer o vídeo: a agulha branca no meio é o ponto atual. Dois cliques numa faixa (no iPhone, segure o dedo) põem efeito, texto ou som ali; arraste as marcas para mudar o momento. " +
       "<span class='atalhos-tec'>Atalhos: espaço toca/pausa · ← → quadro a quadro · S divide · Delete remove · ⌘S salva · + − zoom</span>";
   } else {
@@ -80,7 +93,7 @@ function hookFim() {
 // ---------------------------------------------------------------- automáticos (ritmo e sons) visíveis na linha
 function autos() {
   if (ed.proj.ritmo_fixo && ed.proj.sfx_automaticos === false) return null;
-  const chaves = Object.keys(ed.linhas || {}).sort((a, b) => (a !== "V1") - (b !== "V1") || (a === "IA") - (b === "IA") || a.localeCompare(b));
+  const chaves = Object.keys(ed.linhas || {}).sort((a, b) => (a !== ed.versao) - (b !== ed.versao) || (a !== "V1") - (b !== "V1") || (a === "IA") - (b === "IA") || a.localeCompare(b));
   if (!chaves.length) return null;
   const l = ed.linhas[chaves[0]];
   return { versao: chaves[0], efeitos: ed.proj.ritmo_fixo ? [] : (l.efeitos || []), sons: ed.proj.sfx_automaticos === false ? [] : (l.sons || []) };
@@ -202,7 +215,9 @@ function desenharTimeline() {
   const zona = (cls, a, b) => { const z = document.createElement("div"); z.className = "tl-zona " + cls;
     z.style.left = a * k + "px"; z.style.width = Math.max(0, b - a) * k + "px"; barra.appendChild(z); };
   zona("hook", 0, Math.min(hookFim(), ed.total));
-  ((ed.atencao || {}).zonas || []).forEach((z) => zona("risco", z.ini, z.fim));   // risco de queda (última prévia)
+  // risco de queda da versão escolhida (as zonas vêm junto com os "!" dela)
+  (((ed.alertas || {}).zonas) || (ed.atencao || {}).zonas || []).forEach((z) => zona("risco", z.ini, z.fim));
+  desenharAlertas(barra, k);
   if (ed.base) zona("fech", ed.base, ed.total);
   const ordem = ed.efeitos.map((e, i) => [Number(e.inicio) || 0, i]).sort((a, b) => a[0] - b[0]);
   const perto = new Set();
@@ -416,11 +431,78 @@ $("#tl-sfx-auto").onchange = () => sujar();
 let gravador = null;
 $("#tl-gravar").onclick = () => {
   if (gravador) return gravador.stop();
-  mostrarCopy();
+  mostrarCopy({});
 };
 
 // copy sugerida (editável) antes de gravar: lê no teleprompter enquanto o vídeo toca sem som
-async function mostrarCopy() {
+// ---------------------------------------------------------------- pontos "!" (config/alertas.yaml)
+// sempre da versão que está na linha do tempo (ed.versao): cada versão tem hook, efeitos e curva de atenção próprios
+function carregarAlertas() {
+  return api(`/api/alertas?p=${encodeURIComponent(atual)}&v=${encodeURIComponent(ed.versao || "V1")}`).catch(() => ({ pontos: [] }));
+}
+
+function desenharAlertas(barra, k) {
+  barra.querySelectorAll(".tl-alerta").forEach((x) => x.remove());
+  ((ed.alertas || {}).pontos || []).forEach((p) => {
+    const b = document.createElement("button");
+    b.className = `tl-alerta n-${p.nivel}`;
+    b.style.left = p.t0 * k + "px";
+    b.textContent = "!";
+    b.title = `${p.titulo} · ${p.t0.toFixed(1)}s`;
+    b.setAttribute("aria-label", p.titulo);
+    b.onpointerdown = (ev) => { ev.stopPropagation(); ev.preventDefault(); irPara(p.t0 + 0.05); mostrarAlerta(p); };
+    barra.appendChild(b);
+  });
+}
+
+function mostrarAlerta(p) {
+  const nivel = ((ed.alertas.niveis || {})[p.nivel] || {}).nome || p.nivel;
+  const box = $("#tl-form");
+  box.innerHTML = `<h2 class="alerta-tit n-${esc(p.nivel)}"><span class="tl-alerta-i">!</span> ${esc(p.titulo)}</h2>
+    <p class="dica">${esc(nivel)} · ${esc(ed.alertas.versao || ed.versao || "")} · ${p.t0.toFixed(1)} a ${p.t1.toFixed(1)} s${p.fonte !== "app" ? " · " + esc(p.fonte) : ""}</p>
+    <p>${esc(p.texto)}</p>
+    <div class="linha">${p.acoes.map((a, i) => `<button class="${i ? "" : "dourado"}" data-ac="${i}">${esc(a.rotulo)}</button>`).join("")}
+      ${p.nivel === "bloqueia" || p.nivel === "confirmar" ? "" : '<button class="link" data-ign>Ignorar este ponto</button>'}</div>`;
+  box.querySelectorAll("[data-ac]").forEach((b) => b.onclick = () => executarAlerta(p, p.acoes[+b.dataset.ac]));
+  const ign = box.querySelector("[data-ign]");
+  if (ign) ign.onclick = () => acaoServidor(p, "ignorar");
+}
+
+async function acaoServidor(p, acao) {
+  try {
+    const r = await api("/api/alertas/acao", { p: atual, versao: ed.alertas.versao || ed.versao || "V1", id: p.id, acao });
+    aviso(r.msg);
+    carregarEditor();
+  } catch (err) { aviso(err.message, "erro"); }
+}
+
+function executarAlerta(p, a) {
+  // sem "fim" (pedido final): a gravação SOMA à sua voz, nunca cala o vídeo inteiro
+  if (a.tipo === "dublar") return mostrarCopy({ copy: a.copy, inicio: a.inicio ?? p.t0, fim: a.fim ?? null, somar: a.fim == null });
+  if (a.tipo === "regravar") return mostrarRegravar(p, a);
+  if (a.tipo === "corrigir") { irPara((a.inicio ?? p.t0) + 0.05); const i = ed.legendas.findIndex((l) => l.fim >= (a.inicio ?? p.t0));
+    if (i >= 0) { ed.sel = { tipo: "leg", i }; desenharLegendas(); desenharForm(); } return; }
+  if (a.tipo === "abrir") return irPara((a.inicio ?? p.t0) + 0.05);
+  if (a.tipo === "instalar_fala") return rodar("instalar_fala");
+  // "Conferi" é uma assinatura: a pergunta é a da regra, e Cancelar (o padrão do iPhone) é o lado seguro
+  if (a.tipo === "conferir_fala" && !confirm(`Leia com atenção:\n\n"${a.frase}"\n\nPor que o app perguntou: ${a.motivo || "pode ser promessa"}\n\n` +
+    "Esta frase PROMETE um resultado do tratamento (que algo some, melhora, emagrece, rejuvenesce ou muda, ou em quanto tempo)?\n\n" +
+    "OK = NÃO promete: explica, fala do pós (inchaço, retorno, exame) ou desmente um mito.\nCancelar = promete ou não tenho certeza: vou tirar ou dublar.")) return;
+  return acaoServidor(p, a.tipo);           // efeito, cortar_frase, conferir_fala
+}
+
+// regravar = gravar o VÍDEO de novo (abertura mais curta, fala mais devagar): dublar não muda o tempo da imagem
+function mostrarRegravar(p, a) {
+  const box = $("#tl-form");
+  box.innerHTML = `<h2>🎬 Regravar este trecho</h2>
+    <p class="dica">Grave de novo com a câmera (de ${p.t0.toFixed(1)} a ${p.t1.toFixed(1)} s) e solte o vídeo novo na aba
+      <b>Vídeo</b>, junto dos outros brutos: o corte limpo junta e tira a versão antiga se você tocar em ✂ abaixo.</p>
+    <textarea id="rg-texto" rows="3">${esc(a.copy || "")}</textarea>
+    <div class="linha"><button class="dourado" id="rg-copiar">📋 Copiar o texto</button></div>`;
+  $("#rg-copiar").onclick = () => copiar($("#rg-texto").value).then(() => aviso("Texto copiado"), () => aviso("Selecione e copie o texto", "erro"));
+}
+
+async function mostrarCopy(opt = {}) {
   const box = $("#tl-form");
   box.innerHTML = '<p class="dica">Carregando a copy…</p>';
   let c;
@@ -442,6 +524,13 @@ async function mostrarCopy() {
     ${semMic ? `<p class="dica">No iPhone pela rede o navegador não libera o microfone: leia a copy, grave no app <b>Gravador</b> e envie aqui.</p>
       <input type="file" id="dub-arq" accept="audio/*">` : '<button class="dourado" id="cp-gravar">● Gravar lendo o teleprompter</button>'}`;
   const campo = $("#cp-texto");
+  ed.dubFim = opt.fim ?? null;                 // dublar só um trecho: o som original fica mudo só até aqui
+  if (opt.copy) campo.value = opt.copy;
+  if (opt.inicio !== undefined && $("#cp-inicio")) $("#cp-inicio").value = Number(opt.inicio).toFixed(1);
+  if (opt.somar && $("#cp-subst")) $("#cp-subst").checked = false;
+  if (ed.dubFim !== null) box.insertAdjacentHTML("afterbegin", `<p class="aviso-ia">Dublando só de ${Number(opt.inicio).toFixed(1)} a ${Number(ed.dubFim).toFixed(1)} s
+    (<b>${(Number(ed.dubFim) - Number(opt.inicio)).toFixed(1)} s</b>, no mesmo ritmo da fala original): o resto do vídeo mantém a sua voz.
+    O app tira o silêncio do começo e do fim da gravação e ajusta até 15% de velocidade para caber.</p>`);
   campo.oninput = () => {
     const seg = campo.value.split(/\s+/).filter(Boolean).length / Number($("#cp-vel").value || 2.6);
     $("#cp-seg").textContent = seg.toFixed(1);
@@ -465,8 +554,10 @@ async function mostrarCopy() {
     const f = $("#dub-arq").files[0]; if (!f) return;
     await salvar();
     const ext = (f.name.split(".").pop() || "m4a").toLowerCase();
-    const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${$("#cp-inicio").value || 0}&ext=${ext}&substituir=${$("#cp-subst").checked ? 1 : 0}`, { method: "POST", body: f });
-    if (!r.ok) return alert((await r.json()).erro);
+    const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${$("#cp-inicio").value || 0}&ext=${ext}&substituir=${$("#cp-subst").checked ? 1 : 0}${ed.dubFim !== null ? "&fim=" + ed.dubFim : ""}`, { method: "POST", body: f });
+    const j0 = await r.json();
+    if (!r.ok) return alert(j0.erro);
+    if (j0.aviso) aviso(j0.aviso, "erro");
     carregarEditor();
   };
   if ($("#cp-gravar")) $("#cp-gravar").onclick = async () => {
@@ -500,10 +591,12 @@ async function gravar(inicio, substituir, texto) {
     const blob = new Blob(pedacos, { type: tipo || "audio/webm" });
     const ext = (tipo || "audio/webm").includes("mp4") ? "m4a" : "webm";
     $("#ed-status").textContent = "Enviando a gravação…";
-    const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${inicio}&ext=${ext}&substituir=${substituir ? 1 : 0}`, { method: "POST", body: blob });
+    const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${inicio}&ext=${ext}&substituir=${substituir ? 1 : 0}${ed.dubFim !== null && ed.dubFim !== undefined ? "&fim=" + ed.dubFim : ""}`, { method: "POST", body: blob });
+    ed.dubFim = null;
     const j = await r.json();
     if (!r.ok) return alert(j.erro);
-    $("#ed-status").textContent = "Voz gravada. Gere as prévias para ouvir no vídeo.";
+    $("#ed-status").textContent = j.aviso || "Voz gravada. Gere as prévias para ouvir no vídeo.";
+    if (j.aviso) aviso(j.aviso, "erro");
     carregarEditor();
   };
   v.muted = true; v.currentTime = inicio;
@@ -534,7 +627,9 @@ function mostrarEnvioDeAudio() {
     const f = $("#dub-arq").files[0]; if (!f) return;
     const ext = (f.name.split(".").pop() || "m4a").toLowerCase();
     const r = await fetch(`/api/dublagem?p=${encodeURIComponent(atual)}&inicio=${$("#dub-inicio").value || 0}&ext=${ext}&substituir=${$("#dub-subst").checked ? 1 : 0}`, { method: "POST", body: f });
-    if (!r.ok) return alert((await r.json()).erro);
+    const j0 = await r.json();
+    if (!r.ok) return alert(j0.erro);
+    if (j0.aviso) aviso(j0.aviso, "erro");
     carregarEditor();
   };
 }

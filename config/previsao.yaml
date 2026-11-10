@@ -1,0 +1,27 @@
+# Previsão de comportamento do público (divine_studio/previsao.py): "de 100 pessoas, quantas ficam até cada segundo".
+# É uma estimativa, não uma promessa: começa com estes números e o ritmo de saída se ajusta sozinho com o tempo
+# médio assistido real do Instagram (calibração), por perfil.
+
+personas:              # quem vê o Reels (peso = parte do público; paciência > 1 = sai menos)
+  - {id: rolando,     nome: "Quem só está rolando o feed",       peso: 0.60, paciencia: 0.6}
+  - {id: interessada, nome: "Quem se interessa pelo tratamento", peso: 0.28, paciencia: 1.5}
+  - {id: seguidora,   nome: "Quem já segue a Divine",            peso: 0.12, paciencia: 2.5}
+
+modelo:
+  risco_base_por_s: 0.07   # chance de sair por segundo num trecho com atenção "média" (0,5)
+  sensibilidade: 2.4       # quanto a atenção prevista (0 a 1) aumenta ou reduz o risco
+  decisao_3s: 0.22         # saída extra por segundo nos 3 primeiros segundos, quando o começo está fraco
+  inicio_fraco_extra: 0.5  # +50% nessa saída quando o primeiro segundo não tem texto nem corte
+
+calibracao:
+  min_pecas: 3             # com menos peças postadas (com tempo médio), fica sem calibrar
+  limites: [0.1, 2.5]      # multiplicador do risco de sair (1 = modelo puro); a mediana de 3 peças ou mais já protege de um post fora da curva
+  # o tempo médio do Instagram conta as repetições: peça com tempo médio acima de 85% da duração (Reels curto em
+  # loop) não é reproduzível por um modelo de "ver uma vez" e fica fora da calibração (08/11/2026)
+  max_fracao_duracao: 0.85
+  # onde a bisseção procura o multiplicador de cada peça. Peça que segura mais do que o modelo dá mesmo no mínimo
+  # (60 s com 37 s de média) NÃO é loop: entra com o mínimo e puxa a previsão para cima; o resultado final ainda
+  # fica dentro de `limites` (08/11/2026, revisão)
+  busca: [0.02, 5.0]
+# O que a calibração ajusta: só o ritmo de saída, pelo tempo médio real (a única medida que a API da Meta entrega).
+# "Passam dos 3 s", "metade" e "por tipo de público" continuam estimativas e aparecem como "cerca de".

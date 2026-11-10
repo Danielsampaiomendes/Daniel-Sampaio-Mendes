@@ -691,3 +691,28 @@ body.simples .tarefa:not(.com-detalhes) #t-log { display: none; }
 body:not(.simples) #t-detalhes { display: none; }
 .tarefa-topo #t-detalhes { margin-left: auto; }
 .tarefa-topo #t-detalhes + #t-fechar { margin-left: 0; }
+
+/* pontos "!" da linha do tempo (alertas.py, config/alertas.yaml) */
+.tl-alerta { position: absolute; top: 2px; z-index: 6; width: 22px; height: 22px; margin-left: -11px; padding: 0;
+  border-radius: 50%; border: 2px solid var(--fundo); font: 700 13px/18px system-ui; color: #fff; cursor: pointer; }
+.tl-alerta.n-bloqueia, .tl-alerta.n-refazer { background: #E0866F; }
+.tl-alerta.n-dublar { background: #CCBD91; color: #1b1b1b; }
+.tl-alerta.n-confirmar, .pp-alertas .i.n-confirmar, .alerta-tit.n-confirmar .tl-alerta-i { background: #E8A15A; color: #1b1b1b; }
+.tl-alerta.n-conferir { background: #9AA0A6; }
+@media (pointer: coarse) { .tl-alerta { width: 30px; height: 30px; margin-left: -15px; top: 0; font-size: 16px; line-height: 26px; } }
+.alerta-tit .tl-alerta-i { display: inline-block; width: 22px; height: 22px; border-radius: 50%; text-align: center;
+  background: #E0866F; color: #fff; font-size: 14px; line-height: 22px; }
+.alerta-tit.n-dublar .tl-alerta-i { background: #CCBD91; color: #1b1b1b; }
+.pp-alertas { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--linha); border-radius: 10px; }
+.pp-alertas li { margin: 6px 0; list-style: none; }
+.pp-alertas .i { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: #E0866F; color: #fff;
+  text-align: center; font-weight: 700; font-size: 12px; line-height: 18px; margin-right: 6px; }
+.pp-alertas .i.n-dublar { background: #CCBD91; color: #1b1b1b; } .pp-alertas .i.n-conferir { background: #9AA0A6; }
+.pp-prev { font-size: 13px; margin: 4px 0; }
+
+.pp-v .pp-alertas { margin: 6px 0; padding: 8px 10px; font-size: 13px; }
+.pp-alertas .trava { color: #E0866F; }
+.tl-versao { display: flex; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+.tl-versao select { min-height: 32px; }
+
+.pp-barrada { margin: 6px 0; padding: 6px 8px; border-left: 3px solid #E0866F; font-size: 13px; }

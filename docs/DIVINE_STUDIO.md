@@ -2,6 +2,85 @@
 
 Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 3 versões prontas para postar, aplicando sozinha a marca, o template suave/glamour, o rodízio de fontes e SFX, a trilha original e o revisor de compliance.
 
+## Pontos "!" na linha do tempo, previsão de público e dublagem de trecho (08/11/2026)
+
+- **"!" na linha do tempo** (aba Ajustar) e no cartão de cada versão do passo 3: cada ponto mostra o segundo, o
+  motivo e o que fazer com um toque. Os pontos são **da versão** que está na linha do tempo (seletor "Versão na linha
+  do tempo"; tocar em "Resolver na linha do tempo da V2" no passo 3 já abre a V2). Cores: vermelho = refazer (pode
+  quebrar o engajamento) ou compliance (não dá para ignorar), laranja = **confira esta frase** (pode ser promessa),
+  dourado = **possivelmente dublar** (fala difícil de entender, voz baixa, frase recomeçada), cinza = vale conferir
+  (fala corrida, efeitos demais, leitura antiga do Higgsfield). Ações: ✦ pôr o efeito proposto, ✂ tirar a frase (vai para
+  `remover_trechos`), 🎙 dublar este trecho, Aa corrigir a legenda, Ignorar (guardado em `alertas_ignorados`).
+  Regras e limites: `config/alertas.yaml`; código: `divine_studio/alertas.py`.
+- **🎙 Dublar este trecho**: abre o gravador com a frase no teleprompter, começando no segundo certo e mostrando
+  quantos segundos o trecho tem. Só aquele trecho fica com a voz original muda (`audio.dublagem[].fim`); o resto do
+  vídeo mantém a sua voz, e a legenda passa a ser a da gravação nova. Ao enviar, o app tira o silêncio do começo e do
+  fim da gravação e ajusta até 15% de velocidade, sem mudar o tom, para caber no trecho (`config/preferencias.yaml >
+  dublagem`). Se mesmo assim passar, a voz original fica muda até o fim da gravação e o painel avisa; se ficar curta
+  demais, também avisa. A gravação inteira fica guardada em `trabalho/dublagem/voz_*.wav`.
+- **Dublagens e efeitos presos à fala** (`divine_studio/ancoras.py`): cada dublagem e cada efeito guarda as palavras
+  do trecho. Depois de um corte (✂ Tirar esta frase, corte limpo), a prévia seguinte põe cada um onde as palavras
+  dele estão agora e grava os segundos novos no projeto.yaml. Se a frase saiu do vídeo, o item fica de fora daquela
+  edição (nada é apagado) e aparece um "!" "A dublagem ficou de fora". ✂ num projeto sem corte limpo liga
+  `corte_limpo: so_frases`: só as frases marcadas saem, sem mexer em pausas e muletas.
+- **✓ Aprovar** só anota o pedido. A versão conta como aprovada, gostei e validada (Galeria e aprendizado) quando a
+  final sai pelo revisor. Se a final for barrada, o cartão da versão diz por quê.
+- **🎙 Gravar o pedido final**: entra logo depois da última palavra, soma à sua voz (não cala nada) e pode seguir por
+  cima do cartão final.
+- **🎬 Regravar** (abertura longa, fala corrida): dublar não muda o tempo da imagem, então esses pontos pedem gravar o
+  vídeo de novo, com o texto pronto para copiar.
+- **Compliance na fala, em três camadas** (`compliance.achados_na_fala`, regras em `config/compliance.yaml`):
+  Antes de conferir, os números falados viram algarismos ("em duas semanas" = "em 2 semanas"), para a mesma promessa
+  ter o mesmo nível dos dois jeitos.
+  1. **Vermelho** (porcentagem, também falada; promessa direta como "você vai perder 5 kg"; prazo + resultado + alvo do
+     tratamento na mesma frase, como "na primeira sessão a gordura some" ou "em quinze dias você vê a diferença"):
+     trava o ✓ Aprovar, a final e o postar sozinho até a frase sair ou ser dublada. Não se ignora.
+  2. **Laranja, "Confira esta frase"** (prazo ou quantidade sem alvo de tratamento, que também aparece em frase
+     correta: "o roxinho desaparece em três dias"; e o vermelho que vem negado, como "nenhum tratamento tem resultado
+     garantido", ou como orientação, "antes e depois da sessão, beba água"): trava até você tocar em **✓ Conferi:
+     é informação, não promessa** (fica anotado em `compliance_conferido`, com a data), tirar ou dublar. Exame,
+     consulta, retorno e medidas não perguntam. A frase também é conferida junto com a seguinte, para pegar a promessa
+     cortada por uma pausa.
+  3. **Toda saída da final pelo app** (🤖 postar sozinho, 🚀 Publicar agora e ⬇ Salvar no iPhone) pede que você leia
+     a fala inteira da final uma vez. O revisor por regras pega os jeitos comuns de prometer, não todos; antes de ir ao
+     ar, uma pessoa leu. Se a final mudar, o app pede a leitura de novo. Cada final grava `trabalho/fala_final_<versão>.json` (a fala
+     e o arquivo da final daquela versão): postar a V1 confere a fala da V1, e só se for do mesmo arquivo que vai ao ar.
+- **Vídeo com fala sem transcrição** (modelo de fala ausente ou com falha): o "!" vermelho **"A fala deste vídeo ainda
+  não foi lida"** aparece no começo da linha do tempo, e o ✓ Aprovar, a final e o postar ficam travados até a
+  transcrição existir (🎤 Instalar a transcrição). O app sabe que há fala pelo som de cada bruto (`tem_fala`, gravado
+  pela edição automática), não pela legenda ligada: sem transcrição a edição automática desliga a legenda e o corte
+  limpo, e antes a fala passava sem ninguém ler. As prévias continuam saindo, para você ver a edição.
+- **Quem desmente uma promessa** ("é mito que a celulite some em duas semanas", "cuidado com quem promete que...", "a
+  gordura não some em uma sessão") pede **Confira**, não trava sem saída. Duas frases inteiras seguidas ("O retorno é
+  em duas semanas." "A celulite melhora com o tratamento certo.") não viram uma promessa juntas.
+- **👥 Previsão de público** em cada versão do passo 3: "De 100 pessoas, cerca de X passam dos 3 s, Y chegam à metade
+  e Z veem até o fim". É uma estimativa para comparar as versões. Três tipos de público (`config/previsao.yaml`).
+  Depois de 3 peças postadas com o tempo médio assistido (puxado do Instagram, ou digitado em Programação > Postado:
+  "seg. assistidos"), o **ritmo de saída** se ajusta para o modelo reproduzir o tempo médio real das suas peças, por
+  perfil, sempre com a previsão da final **que foi ao ar** (congelada ao marcar como postado em
+  `trabalho/previsao_postada_<versão>.json`; prévias novas não mudam a conta). Só o tempo médio é calibrado (é a única medida que a Meta entrega); 3 s, metade e por público continuam
+  estimativa e aparecem arredondados de 5 em 5. Reels curto que roda em loop (tempo médio acima de 85% da duração,
+  porque o Instagram conta as repetições) fica fora da calibração e a frase diz quantas peças ficaram de fora. A peça
+  que segura muito, mas não é loop (60 s com 37 s de média), **entra** e puxa a previsão para cima.
+- **Aprendizado**: a retenção de cada peça é "tempo médio real / o que o modelo esperava para aquele vídeo" (um vídeo
+  curto não ganha só por ser curto); loop não conta como retenção; o alcance é comparado na mesma idade (7 dias), e
+  um post com menos de 3 dias ainda não entra nessa comparação (`config/preferencias.yaml > aprendizado`).
+- **Equilíbrio**: com fala, o efeito do meio nasce do que a frase diz, sem sorteio: pergunta aproxima, alerta bate,
+  virada muda a luz, dado foca, nome do tratamento revela com brilho. Frase sem motivo fica sem efeito; no máximo 2 a
+  cada 10 s (`config/viral.yaml > equilibrio.por_motivo`). Cada motivo tem 3 efeitos ou mais que o modo viral permite: V1, V2 e V3 usam um diferente na mesma frase,
+  e a versão IA percorre os mesmos efeitos em outra ordem (pela posição da versão, não pelo número do nome).
+- **Higgsfield na linha do tempo**: a leitura do Virality Predictor só vira "!" na versão e no render que foram
+  analisados. Depois de tirar uma frase e gerar de novo, ela vira um aviso cinza "leitura de uma prévia antiga".
+- **Transcrição**: `modelo_whisper: auto` usa o modelo preciso (`large-v3-turbo`) só quando ele já foi baixado pelo
+  botão **🎯 Transcrição mais precisa** do passo 3 (1,6 GB, uma vez, com o passo a passo visível); até lá, o rápido
+  (`small`). Uma edição nunca fica parada baixando o modelo. Se o preciso levar mais de 90 s por minuto de fala no
+  Mac, as próximas voltam para o rápido sozinhas (`projetos/.transcricao_estado.json`). Brutos já transcritos não são
+  refeitos sozinhos (mudaria os cortes de uma edição já aprovada): `transcrever <pasta> --refazer`. Também: silêncio
+  ignorado, nomes da clínica como dica e correções que valem em todo projeto (`config/preferencias.yaml > transcricao`).
+- **Aprendizado pela retenção**: o tempo médio assistido (da API ou digitado) dividido pela duração entra na nota de
+  cada peça, comparado com a mediana das suas peças; "linha cai em" antes de 3 s tira ponto do hook. Isso muda o que o
+  sorteio de hooks, fontes e efeitos e a versão IA preferem (`config/preferencias.yaml > aprendizado`).
+
 ## Começar a usar (modo simples, 07/11/2026)
 
 1. Dois cliques em `Divine Studio.command`. Na primeira vez depois desta atualização ele prepara o Python próprio do app

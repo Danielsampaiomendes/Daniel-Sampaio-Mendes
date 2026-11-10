@@ -81,19 +81,44 @@ def marcar(pasta: Path, versao: str, arquivo: str | None = None, **campos) -> di
         pubs.append(pub)
     if arquivo:
         pub["arquivo"] = arquivo
+    ja_postado = pub.get("status") == "postado"
     for k, v in campos.items():
         if v is None:
             pub.pop(k, None)
         elif k == "metricas":
             pub["metricas"] = {**(pub.get("metricas") or {}), **v}
+            if v.get("idade_h") is not None:          # histórico por idade do post (últimos 12 retratos)
+                hist = list(pub.get("historico_metricas") or []) + [dict(v)]
+                pub["historico_metricas"] = _podar_historico(hist)
         else:
             pub[k] = v
     if campos.get("status") == "postado" and not pub.get("data_postagem"):
         pub["data_postagem"] = _dt.date.today().isoformat()
+    if campos.get("status") == "postado" and not ja_postado:
+        _guardar_previsao_postada(Path(pasta), versao, pub)
     if campos.get("gostei") or campos.get("status") in ("postado", "aprovado"):
         pub["caracteristicas"] = caracteristicas({**d, "_pasta": pasta}, versao)
     _gravar(pasta, d)
     return pub
+
+
+def _guardar_previsao_postada(pasta: Path, versao: str, pub: dict) -> None:
+    """Congela a previsão da FINAL no momento em que a peça é postada (trabalho/previsao_postada_<versão>.json).
+
+    A calibração (previsao.fator_calibracao) compara o tempo médio real do Instagram com a entrada DESTE arquivo.
+    Sem isso, uma prévia nova da mesma versão (buscando a versão superior) trocaria a entrada, e o tempo real do que
+    foi postado seria comparado com um vídeo que nunca foi ao ar."""
+    import shutil
+    trab = pasta / "trabalho"
+    origem = trab / f"previsao_{versao}_final.json"
+    if not origem.exists():
+        pub["previsao_postada"] = None
+        pub["previsao_postada_falta"] = "sem previsão da final (exporte a final pelo app para calibrar com esta peça)"
+        return
+    destino = trab / f"previsao_postada_{versao}.json"
+    shutil.copy2(origem, destino)
+    pub["previsao_postada"] = f"trabalho/{destino.name}"
+    pub.pop("previsao_postada_falta", None)
 
 
 def todas_publicacoes() -> list:
@@ -120,8 +145,69 @@ def todas_publicacoes() -> list:
 
 # ---------------------------------------------------------------- aprendizado
 
-def pontuar(pub: dict, mediana_alcance: float | None = None) -> float:
-    """Sinal de quanto a versão funcionou: gostei +1, postado +2, métricas até +4 (relativas ao seu normal)."""
+def retencao(pub: dict, modo: str = "bruta") -> float | None:
+    """Quanto a peça segurou. Como num estudo clínico, o desfecho é "observado / esperado":
+
+      modo "relativa": tempo médio real / tempo médio que o modelo dava para ESTE vídeo (a previsão congelada ao
+                       postar). Assim um vídeo curto não ganha só por ser curto (10 s com 6 s de média é 60% da
+                       duração, mas é o esperado), e um longo que segura bem não perde por ser longo;
+      modo "bruta":    tempo médio / duração (peças antigas, sem a previsão congelada).
+    None quando não há o número ou quando é loop (acima de 85% da duração, previsao.em_loop): o Instagram contou as
+    repetições e isso não é retenção. É a mesma regra que tira o loop da calibração (antes, o loop ganhava a nota
+    máxima aqui e virava favorito)."""
+    from . import previsao
+    m = pub.get("metricas") or {}
+    ms = m.get("tempo_medio_ms") or (float(m["tempo_medio_s"]) * 1000 if m.get("tempo_medio_s") else None)
+    dur = (pub.get("caracteristicas") or {}).get("duracao")
+    if not ms or not dur:
+        return None
+    real = float(ms) / 1000
+    if previsao.em_loop(real, float(dur)):
+        return None
+    if modo == "bruta":
+        return real / float(dur)
+    entrada = (previsao._previsao_do_postado(PROJETOS / pub["projeto"], pub).get("entrada") or {}) \
+        if pub.get("projeto") else {}
+    esperado = previsao.tempo_medio_esperado(entrada) if entrada.get("curva") else 0.0
+    return real / esperado if esperado > 0 else None
+
+
+def alcance_comparavel(pub: dict) -> float | None:
+    """Alcance na mesma idade para todas as peças (um Reels de 2 dias não se compara com um de 30).
+
+    Com retratos por idade (historico_metricas, da sincronização), usa o retrato mais perto de `alcance_idade_h`
+    (7 dias) entre os que já passaram de `alcance_idade_min_h` (3 dias); peça mais nova que isso ainda não entra na
+    comparação de alcance (o engajamento por alcance continua contando). Sem retratos (número digitado ou peça
+    antiga): o alcance que há."""
+    m = pub.get("metricas") or {}
+    atual = m.get("alcance") or m.get("views") or m.get("visualizacoes")
+    hist = [h for h in pub.get("historico_metricas") or []
+            if h.get("idade_h") is not None and (h.get("alcance") or h.get("views"))]
+    if not hist:
+        return atual
+    cfg = _cfg()
+    alvo, minimo = float(cfg.get("alcance_idade_h", 168)), float(cfg.get("alcance_idade_min_h", 72))
+    maduros = [h for h in hist if float(h["idade_h"]) >= minimo]
+    if not maduros:
+        return None
+    h = min(maduros, key=lambda h: abs(float(h["idade_h"]) - alvo))
+    return h.get("alcance") or h.get("views")
+
+
+def _podar_historico(hist: list, marcos=(24, 72, 168), ultimos: int = 6) -> list:
+    """Guarda o retrato mais perto de cada idade-marco (24 h, 3 dias, 7 dias) e os últimos: sincronizando todo dia,
+    os 12 mais recentes de uma peça de 30 dias já não teriam o retrato dos 7 dias."""
+    com_idade = [h for h in hist if h.get("idade_h") is not None]
+    guardar = {id(min(com_idade, key=lambda h: abs(float(h["idade_h"]) - mk))) for mk in marcos if com_idade}
+    guardar |= {id(h) for h in hist[-ultimos:]}
+    return [h for h in hist if id(h) in guardar]
+
+
+def pontuar(pub: dict, mediana_alcance: float | None = None, mediana_retencao: float | None = None,
+            modo_retencao: str = "bruta") -> float:
+    """Sinal de quanto a versão funcionou: gostei +1, postado +2, métricas até +4 (relativas ao seu normal) e a
+    retenção (o quanto assistem, comparado com a mediana das suas peças) de -1,5 a +2. Uma queda da linha de
+    retenção logo na abertura ("linha cai em") tira ponto: é o hook que não segurou."""
     s = 0.0
     if pub.get("gostei"):
         s += 1
@@ -132,9 +218,16 @@ def pontuar(pub: dict, mediana_alcance: float | None = None) -> float:
     if alcance:
         envio = (m.get("compartilhamentos", 0) * 3 + m.get("salvamentos", 0) * 2 + m.get("comentarios", 0)
                  + m.get("curtidas", 0) * 0.5) / max(1, alcance) * 100
-        s += min(2.0, envio / 2)                               # engajamento por alcance
-        if mediana_alcance:
-            s += max(-1.0, min(2.0, math.log2(max(1, alcance) / mediana_alcance)))   # acima da sua média
+        s += min(2.0, envio / 2)                               # engajamento por alcance (taxa: não depende da idade)
+        comparavel = alcance_comparavel(pub)
+        if mediana_alcance and comparavel:                     # alcance na mesma idade (7 dias) que as outras
+            s += max(-1.0, min(2.0, math.log2(max(1, comparavel) / mediana_alcance)))   # acima da sua média
+    cfg = _cfg()
+    ret = retencao(pub, modo_retencao)
+    if ret and mediana_retencao:
+        s += max(-1.5, min(2.0, float(cfg.get("peso_retencao", 2.0)) * math.log2(max(0.05, ret) / mediana_retencao)))
+    if m.get("queda_s") is not None and float(m["queda_s"]) <= float(cfg.get("queda_na_abertura_s", 3)):
+        s -= float(cfg.get("penalidade_queda_abertura", 0.75))
     if pub.get("nao_gostei"):
         s -= 1.5
     return s
@@ -149,12 +242,17 @@ def preferencias(conta: str | None = None) -> dict:
         do_perfil = [p for p in pubs if p.get("conta") == conta]
         if len(do_perfil) >= 3:
             pubs = do_perfil
-    alcances = [(p.get("metricas") or {}).get("alcance") or (p.get("metricas") or {}).get("views") for p in pubs]
-    alcances = [a for a in alcances if a]
+    alcances = [a for a in (alcance_comparavel(p) for p in pubs) if a]
     med = statistics.median(alcances) if alcances else None
+    # retenção "observado / esperado" quando 2 peças ou mais têm a previsão congelada; senão, a bruta. Nunca as duas
+    # misturadas na mesma mediana (escalas diferentes)
+    rel = [r for r in (retencao(p, "relativa") for p in pubs) if r]
+    modo = "relativa" if len(rel) >= 2 else "bruta"
+    rets = rel if modo == "relativa" else [r for r in (retencao(p) for p in pubs) if r]
+    med_ret = statistics.median(rets) if len(rets) >= 2 else None     # com uma peça só, não há com o que comparar
     soma, cont = defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(int))
     for p in pubs:
-        s = pontuar(p, med)
+        s = pontuar(p, med, med_ret, modo)
         for campo, valor in p["caracteristicas"].items():
             for v in (valor if isinstance(valor, list) else [valor]):
                 soma[campo][str(v)] += s

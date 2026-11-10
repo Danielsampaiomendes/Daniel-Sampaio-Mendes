@@ -62,3 +62,32 @@ sons:
   foco_lente: cristal
   chicote: whoosh_suave
   # efeitos virais: o som vem de divine_studio/efeitos_viral.py (SONS) quando não estiver aqui
+
+# Equilíbrio no vídeo falado (pedido do Renato: "nada de efeitos aleatórios", "edições sem nada a ver com o vídeo").
+# Lido por divine_studio/ritmo.py. Com fala, o efeito do meio do vídeo NÃO é sorteado: ele nasce do que a frase diz.
+# Cada frase é comparada com os motivos abaixo, na ordem; a primeira que casa decide o efeito (entre os que o modo
+# permite, ex.: viral > meio_com_fala). Frase sem motivo fica sem efeito: a fala segura sozinha. Teto por 10 s.
+# Entre os efeitos de um motivo, cada versão (V1, V2, V3) usa um diferente na mesma frase, sem sorteio. Cada motivo
+# tem pelo menos 3 efeitos que o modo viral permite (meio_com_fala), para as 3 versões não coincidirem (08/11/2026).
+# Palavras comuns demais na fala ("você", "seu", "porque") NÃO são motivo: casariam com quase toda frase.
+equilibrio:
+  so_frases_com_motivo: true
+  max_por_10s: 2
+  longe_do_inicio_s: 2.0        # a abertura já tem o efeito dela
+  longe_do_fim_s: 2.5           # o fim tem a pausa antes do CTA
+  por_motivo:
+    - motivo: pergunta           # quem pergunta olha para a câmera: aproxima devagar
+      padrao: '\?\s*$|^(você sabia|sabia que|por que|qual|quanto|será que)\b'
+      efeitos: [zoom_digital, foco_lente, luz_dourada]
+    - motivo: alerta             # alerta ou mito: batida curta marca a frase
+      padrao: '\b(nunca|pare|cuidado|perigo|erro|errado|errada|mito|atenção|não faça|não deixe|evite)\b'
+      efeitos: [zoom_batida, foco_lente, zoom_digital]
+    - motivo: virada             # a ideia muda ("mas", "só que"): a luz muda junto
+      padrao: '^(mas|só que|porém|agora|aí que|o problema)\b|\b(na verdade|a diferença)\b'
+      efeitos: [luz_dourada, cor_volta, zoom_digital, foco_lente]
+    - motivo: dado               # número ou dado: o foco vai para quem fala
+      padrao: '\d|\b(dois|duas|três|quatro|cinco|seis|sete|oito|nove|dez|metade|dobro)\b'
+      efeitos: [foco_lente, zoom_digital, zoom_batida]
+    - motivo: nome_do_tratamento # nome da tecnologia ou do protocolo: revela com brilho
+      padrao: '\b(endolaser|cmslim|hipro|laser|co2|pellets?|microagulhamento|protocolo divine|bioestimulador)\b'
+      efeitos: [luz_dourada, revelar_foco, foco_lente, zoom_digital]
