@@ -61,3 +61,28 @@ calendario:
   # post do Dr. Daniel sai em collab com as duas contas da Divine: ocupa o dia nelas também
   collabs:
     drdanielmendess: [dvmedicalspa, dv.medicalspa]
+
+# Liquid glass Divine (rodada 9 da Pastinha, 14/11/2026): foto real em cima, cartão de vidro escuro translúcido embaixo
+# do rosto, borda dourada fina, esferas de vidro e brilhos dourados. Texto em caixa alta e baixa (nunca tudo em caixa
+# alta): título em Poppins Light off-white com 1 palavra dourada, apoio em Lora itálico dourado.
+liquid_glass:
+  cartao:
+    margem: 56                   # px dos lados
+    base: 1560                   # o cartão termina antes da zona morta de baixo (1920 - 340 = 1580)
+    topo_minimo: 700             # o rosto fica sempre visível acima do cartão
+    raio: 46
+    desfoque: 30                 # vidro: quanto o fundo embaça atrás do cartão
+    escurecer: 0.62              # quanto o vidro escurece (0 a 1)
+    cor: "#1B1916"
+    borda: "#CCBD91"
+    borda_opacidade: 0.55
+    brilho_topo: 0.10            # reflexo do vidro na borda de cima
+  fontes:
+    titulo: {arquivo: "Poppins-Light.ttf", tamanho: 78}
+    apoio: {arquivo: "Lora-Italic[wght].ttf", tamanho: 58, peso: 500}
+    corpo: {arquivo: "Poppins-Light.ttf", tamanho: 42}
+    destaque: {arquivo: "Poppins-Medium.ttf", tamanho: 42}
+    rodape: {arquivo: "Poppins-Light.ttf", tamanho: 22}
+  esferas: 2                     # esferas de vidro decorativas (fora do texto)
+  brilhos: 7                     # estrelinhas douradas
+  rodape: "Dr. Daniel Mendes · CRM/SP 186.470 · RQE 105302 · RQE 130995\nResultados variam de pessoa para pessoa."

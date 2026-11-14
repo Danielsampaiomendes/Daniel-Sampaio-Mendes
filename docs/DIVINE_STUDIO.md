@@ -2,6 +2,20 @@
 
 Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 3 versões prontas para postar, aplicando sozinha a marca, o template suave/glamour, o rodízio de fontes e SFX, a trilha original e o revisor de compliance.
 
+## Stories no liquid glass Divine (14/11/2026)
+
+O mesmo padrão das artes da rodada 9 da Pastinha: foto real do Dr. Daniel em cima, cartão de vidro escuro translúcido
+embaixo do rosto, borda dourada fina, esferas de vidro e brilhos dourados. Texto sempre em caixa alta e baixa: título
+em Poppins Light com 1 palavra dourada (`*palavra*`), apoio em Lora itálico dourado, corpo em Poppins, rodapé com CRM,
+RQE e "Resultados variam de pessoa para pessoa.". O cartão termina antes da zona morta de baixo e nunca cobre o rosto.
+Figurinhas (enquete, caixinha, controle deslizante) não são desenhadas: entram nativas pelo app.
+
+    python3 -m divine_studio stories-glass <stories.yaml> [--saida pasta]
+
+Exemplo completo (os 6 Stories da rodada 10, E1 a E5b): `docs/exemplos/stories_liquid_glass_rodada10.yaml`. Blocos:
+`lista`, `opcoes`, `linhas`, `escala`, `texto` e `grande`. Medidas, fontes e transparência do vidro em
+`config/identidade.yaml`, seção `liquid_glass`.
+
 ## Identidade visual e checklist do algoritmo em toda peça (14/11/2026)
 
 As regras das skills **divine-algoritmo**, **divine-plano-crescimento** e **divine-postar-metricool** agora são do

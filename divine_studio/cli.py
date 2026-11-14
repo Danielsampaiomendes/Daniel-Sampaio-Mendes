@@ -523,6 +523,12 @@ def cmd_instalar_fala(a):
     raise SystemExit(instalar_fala.main(preciso=bool(getattr(a, "preciso", False))))
 
 
+def cmd_stories_glass(a):
+    from . import stories_glass
+    feitos = stories_glass.gerar(Path(a.arquivo), Path(a.saida) if a.saida else None)
+    print(f"{len(feitos)} Stories no liquid glass Divine.")
+
+
 def cmd_higgsfield(a):
     from . import higgsfield as hf
     if a.acao == "fila":
@@ -1139,6 +1145,10 @@ def main(argv=None):
     s.add_argument("projeto", nargs="?")
     s.add_argument("--preciso", action="store_true", help="baixa só o modelo preciso (~1,6 GB, uma vez)")
     s.set_defaults(f=cmd_instalar_fala)
+    s = sub.add_parser("stories-glass", help="Stories no liquid glass Divine a partir de um stories.yaml")
+    s.add_argument("arquivo")
+    s.add_argument("--saida")
+    s.set_defaults(f=cmd_stories_glass)
     s = sub.add_parser("higgsfield", help="fila de pedidos do Higgsfield (o Claude executa com o conector)")
     s.add_argument("acao", choices=["fila", "instrucao", "pronto", "status", "analise"])
     s.add_argument("id", nargs="?")

@@ -1,0 +1,62 @@
+# Rodada 10 da Pastinha (12/11/2026), refeita no liquid glass Divine em 14/11/2026
+fotos: fotos
+stories:
+  - id: E1
+    foto: sorriso_mao_queixo.jpg
+    titulo: "Quem *nunca*?"
+    apoio: "Conta quantos você já fez"
+    blocos:
+      - tipo: lista
+        itens:
+          - "Comprou o creme mais caro e usou duas vezes"
+          - "Prometeu 2 litros de água e chegou no almoço com um copo"
+          - "Disse \"segunda eu começo\" pela quarta segunda seguida"
+          - "Pesquisou bioestimulador às 2h da manhã"
+          - "Tirou foto no espelho da academia e foi embora"
+    chamada: "De 0 a 5, quantos você fez?"
+    chamada_apoio: "Me conta no direct, sem julgamento"
+  - id: E2
+    foto: camisa_mao_queixo.jpg
+    titulo: "Se tivesse que *escolher*"
+    apoio: "Um pra sempre:"
+    blocos:
+      - {tipo: opcoes, itens: ["Pele de 25", "Metabolismo de 25"]}
+      - {tipo: texto, texto: "Spoiler: dá pra cuidar dos dois."}
+    chamada: "Reage com o seu lado"
+    chamada_apoio: "E me conta no direct por quê"
+  - id: E3
+    foto: jaleco_braco.jpg
+    titulo: "De 0 a *10*,"
+    apoio: "Quanto você enrola pra marcar aquela avaliação?"
+    blocos:
+      - {tipo: escala, de: 0, ate: 10, rotulo_de: "Já marquei", rotulo_ate: "Desde 2019"}
+    chamada: "Me manda o seu número no direct"
+    chamada_apoio: "Prometo não julgar"
+  - id: E4
+    foto: consultorio_espelho.jpg
+    titulo: "Eu ia *começar*"
+    apoio: "A me cuidar, mas…"
+    blocos:
+      - tipo: linhas
+        itens: ["Chegou o fim de ano", "Era aniversário de alguém (de novo)", "A Black Friday me distraiu"]
+    chamada: "Qual é o seu \"mas\"?"
+    chamada_apoio: "Me manda no direct que eu respondo"
+  - id: E5a
+    foto: jaleco_braco.jpg
+    selo: "Mito ou verdade?"
+    titulo: "Laser *CO2*"
+    apoio: "É só pra mancha."
+    blocos:
+      - {tipo: opcoes, itens: ["Mito", "Verdade"]}
+    chamada: "A resposta tá no próximo Story"
+    chamada_apoio: "Reage com o seu palpite e não pula"
+  - id: E5b
+    foto: jaleco_braco.jpg
+    selo: "A resposta"
+    titulo: ""
+    blocos:
+      - {tipo: grande, texto: "Mito."}
+      - {tipo: texto, forte: true, texto: "O Laser CO2 também estimula a renovação da pele e a produção de colágeno."}
+      - {tipo: texto, texto: "Por isso ele entra no cuidado de textura, poros e linhas finas, sempre depois da avaliação."}
+    chamada: "Quer saber se é pra você?"
+    chamada_apoio: "Me chama no direct"
