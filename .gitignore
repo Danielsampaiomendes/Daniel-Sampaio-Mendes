@@ -52,6 +52,7 @@ Videos/_Versoes anteriores/
 # logos oficiais da Divine (Biblioteca > Logomarcas): vão para o GitHub para chegar ao Mac com git pull
 !assets/marca/*.png
 !assets/marca/originais/*.png
+!assets/fundos/*.jpg
 
 # Ambiente
 __pycache__/

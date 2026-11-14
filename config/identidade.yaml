@@ -62,27 +62,55 @@ calendario:
   collabs:
     drdanielmendess: [dvmedicalspa, dv.medicalspa]
 
-# Liquid glass Divine (rodada 9 da Pastinha, 14/11/2026): foto real em cima, cartão de vidro escuro translúcido embaixo
-# do rosto, borda dourada fina, esferas de vidro e brilhos dourados. Texto em caixa alta e baixa (nunca tudo em caixa
-# alta): título em Poppins Light off-white com 1 palavra dourada, apoio em Lora itálico dourado.
+# Liquid Glass Divine: portfólio de identidade visual (novembro de 2026, docs/IDENTIDADE_VISUAL.md).
+# Ouro líquido, vidro temperado e diamantes sobre preto profundo: cada peça parece campanha de joalheria.
+# SEMPRE: centro escuro livre para o texto, elementos 3D só nos cantos, pequenas variações a cada peça (nunca o mesmo
+# fundo duas vezes seguidas). NUNCA: rococó com ornamento demais, minimalista chapado com cara de modelo pronto, ou
+# dourado em excesso que deixa a peça perdida. O dourado é destaque, nunca o fundo inteiro.
 liquid_glass:
+  paleta:
+    escura:
+      preto_puro: "#000000"        # fundos
+      preto_quente: "#12110F"      # base Divine
+      champanhe_claro: "#ECDEB2"   # brilho, aro, fecho
+      dourado: "#CCBD91"           # palavra-chave
+      ouro_antigo: "#B8A169"       # logo, linhas
+      off_white: "#F8F6F0"         # texto
+    clara:
+      marfim: "#FBF7EE"            # fundo
+      grafite_quente: "#261F18"    # texto
+      ouro_escuro: ["#C49C46", "#70521A"]   # palavra-chave em degradê
+      bronze: "#8A6826"            # fecho itálico
+  # Banco de fundos (assets/fundos, gerados no Canva com IA; ao publicar, marcar "Feito com IA")
+  fundos:
+    escura: [ondas, esferas, diamantes, splash, laminas, seda, prisma, gotas, fitas]
+    clara: [claro_ouro, claro_esferas]
+    tv: [tv_ondas]
+  # Três vozes, nunca tudo no mesmo peso
+  vozes:
+    frase: {arquivo: "Poppins-Light.ttf", tamanho: 50}          # branca, caixa baixa, leve: conversa com a paciente
+    chave: {arquivo: "Poppins-Bold.ttf", tamanho: 104}          # CAIXA ALTA, dourado em degradê com brilho (1 ou 2 palavras)
+    fecho: {arquivo: "Lora-Italic[wght].ttf", tamanho: 46, peso: 500}   # dourado claro, itálico: fecha a ideia
+    corpo: {arquivo: "Poppins-Light.ttf", tamanho: 36}
+    opcao: {arquivo: "Poppins-Medium.ttf", tamanho: 38}
+    nome: {arquivo: "Poppins-SemiBold.ttf", tamanho: 32}
+    arroba: {arquivo: "Poppins-Light.ttf", tamanho: 24}
+    rodape: {arquivo: "Poppins-Light.ttf", tamanho: 21}
+  # Cartão de vidro líquido: o coração de cada post, Stories e capa
   cartao:
-    margem: 56                   # px dos lados
-    base: 1560                   # o cartão termina antes da zona morta de baixo (1920 - 340 = 1580)
-    topo_minimo: 700             # o rosto fica sempre visível acima do cartão
-    raio: 46
-    desfoque: 30                 # vidro: quanto o fundo embaça atrás do cartão
-    escurecer: 0.62              # quanto o vidro escurece (0 a 1)
-    cor: "#1B1916"
-    borda: "#CCBD91"
-    borda_opacidade: 0.55
-    brilho_topo: 0.10            # reflexo do vidro na borda de cima
-  fontes:
-    titulo: {arquivo: "Poppins-Light.ttf", tamanho: 78}
-    apoio: {arquivo: "Lora-Italic[wght].ttf", tamanho: 58, peso: 500}
-    corpo: {arquivo: "Poppins-Light.ttf", tamanho: 42}
-    destaque: {arquivo: "Poppins-Medium.ttf", tamanho: 42}
-    rodape: {arquivo: "Poppins-Light.ttf", tamanho: 22}
-  esferas: 2                     # esferas de vidro decorativas (fora do texto)
-  brilhos: 7                     # estrelinhas douradas
-  rodape: "Dr. Daniel Mendes · CRM/SP 186.470 · RQE 105302 · RQE 130995\nResultados variam de pessoa para pessoa."
+    margem: 84                     # px dos lados (Stories 1080 de largura)
+    raio: 54
+    centro_y: 915                  # meio da área segura do Stories (250 a 1580)
+    topo_minimo: 300
+    base_maxima: 1560              # nunca entra na zona morta de baixo
+    desfoque: 34                   # vidro que refrata o fundo: ampliado e desfocado por trás
+    ampliar_fundo: 1.18
+    tinta_escura: 0.74             # tinta escura quente
+    tinta_clara: 0.80              # vidro fosco branco (versão clara)
+    luz_topo: 0.12
+  cabecalho:                        # tipo tweet: avatar redondo com aro dourado, nome e @ pequenos
+    nome: "Dr. Daniel Mendes"
+    arroba: "@drdanielmendess"
+    avatar: 92
+  logo_topo: false                 # nos Stories o cabeçalho do cartão assina; ligue para posts sem cabeçalho
+  rodape: "CRM/SP 186.470 · RQE 105302 · RQE 130995 · Resultados variam de pessoa para pessoa."

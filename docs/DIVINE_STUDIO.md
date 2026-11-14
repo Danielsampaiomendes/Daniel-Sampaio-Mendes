@@ -2,19 +2,20 @@
 
 Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 3 versões prontas para postar, aplicando sozinha a marca, o template suave/glamour, o rodízio de fontes e SFX, a trilha original e o revisor de compliance.
 
-## Stories no liquid glass Divine (14/11/2026)
+## Stories no Liquid Glass Divine (14/11/2026)
 
-O mesmo padrão das artes da rodada 9 da Pastinha: foto real do Dr. Daniel em cima, cartão de vidro escuro translúcido
-embaixo do rosto, borda dourada fina, esferas de vidro e brilhos dourados. Texto sempre em caixa alta e baixa: título
-em Poppins Light com 1 palavra dourada (`*palavra*`), apoio em Lora itálico dourado, corpo em Poppins, rodapé com CRM,
-RQE e "Resultados variam de pessoa para pessoa.". O cartão termina antes da zona morta de baixo e nunca cobre o rosto.
-Figurinhas (enquete, caixinha, controle deslizante) não são desenhadas: entram nativas pelo app.
+Segue o portfólio de identidade visual (resumo em `docs/IDENTIDADE_VISUAL.md`). Fundo de joalheria 3D do banco
+(`assets/fundos`: ouro líquido, vidro e diamantes só nos cantos, centro escuro livre, nunca o mesmo fundo duas vezes
+seguidas), cartão de vidro líquido no centro (refrata o fundo, aro luminoso duplo, brilhos nos cantos), cabeçalho tipo
+tweet (avatar com aro dourado, nome e @) e três vozes: frase em Poppins Light, palavra-chave em Poppins Bold em CAIXA
+ALTA dourada com brilho, fecho em Lora itálico. Sai nas versões escura e clara para o teste A/B. Tudo fora das zonas
+mortas; figurinhas entram nativas pelo app.
 
     python3 -m divine_studio stories-glass <stories.yaml> [--saida pasta]
 
-Exemplo completo (os 6 Stories da rodada 10, E1 a E5b): `docs/exemplos/stories_liquid_glass_rodada10.yaml`. Blocos:
-`lista`, `opcoes`, `linhas`, `escala`, `texto` e `grande`. Medidas, fontes e transparência do vidro em
-`config/identidade.yaml`, seção `liquid_glass`.
+Exemplo completo (rodada 10, E1 a E5b): `docs/exemplos/stories_liquid_glass_rodada10.yaml`. Campos de cada Story:
+`frase`, `chave`, `blocos` (`lista`, `opcoes`, `linhas`, `escala`, `texto`), `fecho`, `chamada` e, se quiser, `fundo`.
+Paleta, fontes, vidro e banco de fundos em `config/identidade.yaml`, seção `liquid_glass`.
 
 ## Identidade visual e checklist do algoritmo em toda peça (14/11/2026)
 

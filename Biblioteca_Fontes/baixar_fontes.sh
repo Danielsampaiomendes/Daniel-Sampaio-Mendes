@@ -18,6 +18,8 @@ playfairdisplay PlayfairDisplay%5Bwght%5D.ttf
 playfairdisplay PlayfairDisplay-Italic%5Bwght%5D.ttf
 poppins Poppins-Light.ttf
 poppins Poppins-Medium.ttf
+poppins Poppins-Bold.ttf
+poppins Poppins-SemiBold.ttf
 dmserifdisplay DMSerifDisplay-Regular.ttf
 lora Lora-Italic%5Bwght%5D.ttf
 italiana Italiana-Regular.ttf
