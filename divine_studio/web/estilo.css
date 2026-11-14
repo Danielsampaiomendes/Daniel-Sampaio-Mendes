@@ -850,3 +850,17 @@ body.estudio .tarefa { width: min(440px, calc(100vw - 40px)); bottom: 12px; righ
 .es-linha .cc-agulha { background: var(--es-neon); } .es-linha .cc-agulha::before { border-top-color: var(--es-neon); }
 .es-linha .cc-ferramentas { border-top-color: var(--es-borda); padding: 4px 2px 0; }
 .es-linha .cc-ferramentas button { min-width: 64px; font-size: 11px; }
+/* aba Marca do Estúdio: identidade visual e checklist do algoritmo */
+.es-abas button b { font-weight: 600; font-size: 10px; color: var(--dourado); }
+.es-marca-resumo { margin: 0 0 4px; font-size: 13px; }
+.es-check { list-style: none; margin: 0; padding: 0; }
+.es-check li { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid #ffffff08; font-size: 12px; }
+.es-check li span { display: flex; flex-direction: column; } .es-check li small { color: var(--apagado); }
+.es-check li.falha small { color: #E8A15A; }
+.es-check i { flex: none; width: 18px; height: 18px; border-radius: 50%; text-align: center; font: 700 11px/18px system-ui; font-style: normal; }
+.es-check i.ok { background: #A9C49A33; color: #A9C49A; } .es-check i.nao { background: #E8A15A; color: #111; } .es-check i.nd { background: #ffffff10; color: var(--apagado); }
+.es-capa { margin-top: 12px; align-items: center; gap: 12px; }
+.pp-marca { margin: 6px 0; font-size: 13px; } .pp-marca summary { cursor: pointer; color: var(--dourado); }
+.pp-marca ul { margin: 6px 0 0; padding-left: 18px; } .pp-marca small { color: var(--apagado); }
+.es-capa a, .es-capa a:visited { color: var(--dourado); }
+.pp-marca ul { text-align: left; }

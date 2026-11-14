@@ -1,0 +1,63 @@
+# Identidade visual e checklist do algoritmo que o app aplica sozinho em toda peça.
+# Fonte: skills divine-algoritmo (12 e 13/11/2026), divine-plano-crescimento (09/11/2026) e divine-postar-metricool.
+# Cores, fontes e logo continuam em config/marca.yaml e config/fontes.yaml; aqui ficam as REGRAS de posição, texto,
+# capa, Stories, legenda do post e calendário. Mudou a skill? Atualize aqui (com a data) e o app passa a seguir.
+atualizado_em: "2026-11-14"
+
+# Stories (1080x1920): zonas mortas do Instagram, nenhum texto nelas (topo ~250 px e base ~340 px)
+stories:
+  zona_morta: {topo: 250, base: 340}
+  max_artes_por_dia: 1             # Story real e cru ganha de arte (13/11): no máximo 1 arte por dia, nunca 2 seguidas
+  max_stories_dia_util: 4
+  max_stories_fim_de_semana: 3
+  cartao: "vidro escuro abaixo do rosto"   # texto em cartão de vidro escuro; nunca caixa branca de figurinha desenhada
+  figurinhas_na_arte: false        # enquete, caixinha e pergunta vão nativas pelo app do Instagram
+  divulgar_reels: "compartilhar o próprio Reels pelo app com 1 frase (não card de arte)"
+
+# Reels: onde cada elemento fica (ref. @brock11johnson, 12/11/2026)
+reels:
+  legenda_altura: {min: 0.56, max: 0.78}   # fração da altura: na altura do peito, nunca sobre o rosto nem na faixa de baixo
+  titulo_no_topo: true                     # título no topo, dentro da área segura, sem cobrir a cabeça
+  palavra_dourada_por_frase: 1             # 1 palavra-chave destacada por frase (dourado)
+  duracao_ideal_s: [13, 35]                # laboratório: 13 a 30 s; acima de 35 s perde conclusão
+  ja_me_segue_ate_s: 5                     # "Já me segue" (ou "segue") nos primeiros 5 s
+  ganchos_minimos: 3                       # falado, escrito diferente da fala, visual nos 1ºs segundos, sonoro sutil
+
+# Texto em tela e na legenda
+texto:
+  maiuscula_no_inicio: true
+  sem_travessao: true
+  proibido:                                # isca de palavra e anúncio fora do lugar
+    - "comenta (a palavra|aqui a palavra|eu quero|quero)"
+    - "digita (a palavra|eu quero|quero)"
+    - "comente a palavra"
+
+# Capa do vídeo (Metricool e grade do perfil): quadro com a pessoa bonita, de boca fechada e sorrindo,
+# título do hook e logo no topo, tudo fora das zonas mortas
+capa:
+  momento_s: 1.0                 # padrão; no Estúdio, "📸 Capa neste quadro" escolhe o quadro
+  largura: 1080
+  altura: 1920
+  titulo_tamanho: 74
+  logo_altura: 54
+  escurecer_topo: 0.55           # degradê escuro atrás do título (legibilidade sem caixa)
+
+# Legenda do post (Instagram/Facebook)
+legenda_post:
+  primeira_linha_max: 125        # antes do "mais": identificação, sem repetir o texto da tela
+  assinatura:
+    drdanielmendess: "Dr. Daniel Mendes · CRM/SP 186.470 · RQE 105302 · RQE 130995"
+    dvmedicalspa: "RT: Dr. Daniel Sampaio Mendes, CRM/SP 186.470"
+  perguntas_finais:              # fecho com pergunta de opinião (nunca "comenta PALAVRA")
+    - "E você, já passou por isso?"
+    - "Qual dessas você mais vê no seu dia a dia?"
+    - "Você já tinha ouvido falar disso?"
+    - "O que você faria diferente?"
+
+# Calendário: no máximo 1 post de feed por dia por perfil de Instagram, contando collabs
+calendario:
+  feed_por_dia: 1
+  formatos_feed: [reels, video, carrossel, post, feed45, feed11]
+  # post do Dr. Daniel sai em collab com as duas contas da Divine: ocupa o dia nelas também
+  collabs:
+    drdanielmendess: [dvmedicalspa, dv.medicalspa]

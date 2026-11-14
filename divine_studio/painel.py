@@ -1437,6 +1437,9 @@ class Painel(BaseHTTPRequestHandler):
                                    for h in sortear(int(q.get("n", 3)), tema=q.get("tema"))])
             if u.path == "/arquivo":
                 return self._arquivo(_arquivo_do_projeto(_pasta(q["p"]), q["f"]))
+            if u.path == "/api/identidade":         # checklist do algoritmo e da identidade visual (config/identidade.yaml)
+                from . import identidade
+                return self._json(identidade.checklist(_pasta(q["p"]), q.get("v") or "V1"))
             if u.path == "/api/estudio":            # a tela Estúdio: agentes, efeitos e sons rápidos (config/estudio.yaml)
                 return self._json(estudio_config())
             if u.path == "/api/fala":
@@ -1814,6 +1817,10 @@ class Painel(BaseHTTPRequestHandler):
                 from . import higgsfield as hf, sugestoes
                 ped = sugestoes.pedir_higgsfield(dados["p"], _pasta(dados["p"]), dados["arquivo"])
                 return self._json({"pedido": ped, "instrucao": hf.instrucao_claude([ped["id"]])})
+            if u.path == "/api/capa":                 # capa com título do hook e logo no topo, no quadro escolhido
+                from . import identidade
+                arq = identidade.capa(_pasta(dados["p"]), dados.get("versao") or "V1", dados.get("t"), dados.get("arquivo"))
+                return self._json({"arquivo": str(arq.relative_to(_pasta(dados["p"])))})
             if u.path == "/api/publicacao":
                 from . import aprendizado
                 campos = {k: v for k, v in (dados.get("campos") or {}).items()
@@ -1826,6 +1833,13 @@ class Painel(BaseHTTPRequestHandler):
                 if campos.get("status") in ("postado", "agendado") and \
                         (aprendizado.ler(pasta_pub).get("tipo") == "antes_depois" or aprendizado.ler(pasta_pub).get("uso_interno")):
                     raise ValueError("Antes e depois é uso interno (consulta): não pode ser postado nem agendado (CFM 2.336/2023).")
+                if campos.get("status") == "agendado" and campos.get("data_agendada") and not dados.get("forcar"):
+                    from . import identidade                # no máximo 1 post de feed por dia por perfil, contando collabs
+                    choque = identidade.conflito_feed(dados["p"], dados["versao"], campos["data_agendada"])
+                    if choque:
+                        return self._json({"erro": "Dia ocupado no feed: " + "; ".join(choque)
+                                           + ". Duas peças no mesmo dia dividem o alcance. Agendar mesmo assim?",
+                                           "conflito": choque}, 409)
                 pub = aprendizado.marcar(pasta_pub, dados["versao"], dados.get("arquivo"), **campos)
                 return self._json(pub)
             if u.path == "/api/abrir_pasta":

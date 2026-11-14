@@ -71,11 +71,12 @@ function esMontar() {
     <section class="es-p es-inspetor">
       <nav class="es-abas">
         <button data-es="ajuste">Ajuste</button><button data-es="cor">Cor e áudio</button>
-        <button data-es="textos">Textos</button><button data-es="fluxo">Aprovar e postar</button>
+        <button data-es="textos">Textos</button><button data-es="marca" title="Identidade visual e checklist do algoritmo">Marca <b id="es-marca-n"></b></button><button data-es="fluxo">Aprovar e postar</button>
       </nav>
       <div class="es-pane" data-pane="ajuste"><p class="dica es-dica" id="es-dica">Toque numa marca da linha do tempo, num ponto <b>!</b> ou num efeito rápido: o ajuste aparece aqui.</p></div>
       <div class="es-pane" data-pane="cor"></div>
       <div class="es-pane" data-pane="textos"></div>
+      <div class="es-pane" data-pane="marca"><div id="es-marca"></div></div>
       <div class="es-pane" data-pane="fluxo"></div>
     </section>
     <section class="es-p es-linha"><div id="es-linha-topo" class="es-linha-topo"></div></section>`;
@@ -148,7 +149,7 @@ function esDecidir() {
 
 function esAtualizar() {
   if (!es.ligado || !dados) return;
-  esAgentes(); esVersoes(); esFonte(); esAlertas(); esPrevisao(); esResumo();
+  esAgentes(); esVersoes(); esFonte(); esAlertas(); esPrevisao(); esResumo(); esMarca();
   const v = (typeof ed !== "undefined" && ed.versao) || "";
   $("#es-versao-nome").textContent = v ? "· " + v : "";
 }
@@ -398,6 +399,35 @@ function esNivel() {
   b.style.height = h * 100 + "%";
   b.style.background = db > -6 ? "#E0866F" : db > -14 ? "#F2D16B" : "#A9C49A";
   $("#es-nivel-t").textContent = db > -59 ? db.toFixed(0) + " dB" : "som";
+}
+
+// ---------------------------------------------------------------- identidade visual e checklist do algoritmo (config/identidade.yaml)
+
+async function esMarca() {
+  const box = $("#es-marca"); if (!box) return;
+  const v = (typeof ed !== "undefined" && ed.versao) || "V1";
+  let c;
+  try { c = await api(`/api/identidade?p=${encodeURIComponent(atual)}&v=${encodeURIComponent(v)}`); } catch (e) { box.innerHTML = `<p class="dica">${esc(e.message)}</p>`; return; }
+  $("#es-marca-n").textContent = c.total ? `${c.ok}/${c.total}` : "";
+  const grupos = { algoritmo: "Algoritmo", identidade: "Identidade visual", legenda: "Legenda do post", compliance: "Compliance" };
+  const icone = (ok) => ok === true ? '<i class="ok">✓</i>' : ok === false ? '<i class="nao">!</i>' : '<i class="nd">·</i>';
+  const temCapa = c.itens.some((i) => i.id === "capa" && i.ok);
+  box.innerHTML = `<p class="es-marca-resumo"><b>${c.ok} de ${c.total}</b> itens no padrão Divine na ${esc(v)}</p>` +
+    Object.entries(grupos).map(([g, nome]) => {
+      const its = c.itens.filter((i) => i.grupo === g); if (!its.length) return "";
+      return `<div class="es-sub">${nome}</div><ul class="es-check">${its.map((i) =>
+        `<li class="${i.ok === false ? "falha" : ""}">${icone(i.ok)}<span><b>${esc(i.titulo)}</b><small>${esc(i.detalhe)}</small></span></li>`).join("")}</ul>`;
+    }).join("") +
+    `<div class="linha es-capa"><button id="es-capa" class="dourado">📸 Capa neste quadro</button>
+      ${temCapa ? `<a class="link" target="_blank" href="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent("saida/capa_" + v + ".jpg")}&t=${Date.now()}">ver capa</a>` : ""}</div>
+     <p class="dica">Pare o vídeo num quadro em que a pessoa está bonita, de boca fechada e sorrindo: a capa sai com o título do hook e a logo no topo, fora das zonas mortas.</p>`;
+  $("#es-capa").onclick = async () => {
+    const t = $("#tl-video") && $("#tl-video").src ? $("#tl-video").currentTime : undefined;
+    $("#es-capa").disabled = true; $("#es-capa").textContent = "Gerando a capa…";
+    try { await api("/api/capa", { p: atual, versao: v, t }); aviso("Capa pronta ✓ (saida/capa_" + v + ".jpg)"); esRegistrar("roteiro", `capa da ${v} em ${(t || 0).toFixed(1)} s`); }
+    catch (err) { aviso(err.message, "erro"); }
+    esMarca();
+  };
 }
 
 // ---------------------------------------------------------------- aprovar a versão do monitor e prévia automática

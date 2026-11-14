@@ -70,8 +70,11 @@ def gerar(projeto: dict, semente: int = 0) -> str:
     frase_final = (projeto.get("fechamento") or {}).get("frase")
     if frase_final:
         corpo.append(_frase(frase_final))
+    if not pessoal and not any("?" in c for c in corpo):
+        from .identidade import pergunta_final        # fecho com pergunta de opinião (skill divine-algoritmo)
+        corpo.append(pergunta_final(semente))
     if corpo:
-        partes.append(" ".join(corpo))
+        partes.append(" ".join(c for c in corpo if c))
 
     if not pessoal:
         tv = projeto.get("template") == "tv"
@@ -79,7 +82,9 @@ def gerar(projeto: dict, semente: int = 0) -> str:
                       + f"\n📍 {marca['clinica']['endereco']}")
         rodape = [marca["aviso_resultados"]]
         if projeto.get("conteudo_medico", True):
-            rodape.append(marca["responsavel_tecnico"]["curto"])
+            from .identidade import assinatura           # assinatura do perfil que posta (config/identidade.yaml)
+            from .instagram import conta_do_projeto
+            rodape.append(assinatura(conta_do_projeto(projeto)) or marca["responsavel_tecnico"]["curto"])
         partes.append("\n".join(rodape))
         partes.append(" ".join(hashtags(projeto)))
     return "\n\n".join(partes).strip() + "\n"

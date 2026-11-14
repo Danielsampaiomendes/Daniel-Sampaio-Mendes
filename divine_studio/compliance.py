@@ -294,7 +294,8 @@ def textos_do_projeto(projeto: dict) -> list:
     t = []
     for v in projeto.get("versoes") or []:
         for b in (v.get("hook") or []) if isinstance(v.get("hook"), list) else [v.get("hook") or {}]:
-            t += [b.get("titulo"), b.get("apoio")]
+            if isinstance(b, dict):            # hook: auto (ou id do banco) ainda sem frase não é texto de tela
+                t += [b.get("titulo"), b.get("apoio")]
     for m in projeto.get("mensagens") or []:
         t += [m.get("titulo"), m.get("apoio")]
     cta = projeto.get("cta_antecipado")

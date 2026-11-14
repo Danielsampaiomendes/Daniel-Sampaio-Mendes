@@ -264,18 +264,23 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
     larg = min(W - 2 * margem, int(H * 0.95))   # coluna de texto (na TV não espalha na largura toda)
 
     # marca no topo e progresso discreto (pontos, sem número)
+    # Stories (9:16): nada nas zonas mortas do Instagram (config/identidade.yaml, topo ~250 e base ~340 px)
+    vertical = H / W > 1.7
+    zm = ((load("identidade").get("stories") or {}).get("zona_morta") or {"topo": 250, "base": 340}) if vertical else {}
+    z_topo, z_base = int(zm.get("topo", 0) * W / 1080), int(zm.get("base", 0) * W / 1080)
     if est.get("marca", True):
         hdr = brand.horizontal(int(48 * esc))
-        rgba.alpha_composite(hdr, ((W - hdr.width) // 2, int(56 * esc)))
+        rgba.alpha_composite(hdr, ((W - hdr.width) // 2, max(int(56 * esc), z_topo)))
     n = len(cards)
     r = int(5 * esc)
     x0 = W // 2 - (n - 1) * int(9 * esc)
     for k in range(n if n > 1 else 0):       # post de imagem única: sem progresso
         cor_p = hexrgb(est["destaque"]) + ((255,) if k == i else (80,))
         cx = x0 + k * int(18 * esc)
-        dr.ellipse((cx - r, H - int(60 * esc) - r, cx + r, H - int(60 * esc) + r), fill=cor_p)
+        cy = H - max(int(60 * esc), z_base + int(24 * esc) if z_base else 0)
+        dr.ellipse((cx - r, cy - r, cx + r, cy + r), fill=cor_p)
 
-    topo, base = int(170 * esc), H - int(120 * esc)
+    topo, base = max(int(170 * esc), z_topo + int(110 * esc) if z_topo else 0), H - max(int(120 * esc), z_base)
     area_h = base - topo
 
     def centro(bloco):
@@ -293,7 +298,7 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
         centro(_empilhar(bloco, -int(18 * esc)))
         if n > 1:
             dica = render("deslize  ›", Estilo("Poppins-Light.ttf", 26 * esc, hexrgb(est["apoio"])), sombra=False)
-            rgba.alpha_composite(dica, (W - margem - dica.width, H - int(90 * esc) - dica.height // 2))
+            rgba.alpha_composite(dica, (W - margem - dica.width, H - max(int(90 * esc), z_base + int(40 * esc) if z_base else 0) - dica.height // 2))
     elif lay == "texto":
         t, d, _, _ = _estilos(p, est, 84 * esc)
         tit = _caber(lambda s: render(c.get("titulo", ""), dataclasses.replace(t, tamanho=s),
@@ -402,7 +407,7 @@ def desenhar(p: dict, i: int, pasta: Path | None = None) -> Image.Image:
                 linhas.append(m["responsavel_tecnico"]["curto"])
             er = Estilo("Poppins-Light.ttf", 21 * esc, hexrgb(est["apoio"]))
             ir = render("\n".join(linhas), er, er, largura_max=larg, sombra=False, entrelinha=1.3)
-            rgba.alpha_composite(ir, ((W - ir.width) // 2, H - int(100 * esc) - ir.height))
+            rgba.alpha_composite(ir, ((W - ir.width) // 2, H - max(int(100 * esc), z_base) - ir.height))
     return rgba.convert("RGB")
 
 

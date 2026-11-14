@@ -2,6 +2,29 @@
 
 Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 3 versões prontas para postar, aplicando sozinha a marca, o template suave/glamour, o rodízio de fontes e SFX, a trilha original e o revisor de compliance.
 
+## Identidade visual e checklist do algoritmo em toda peça (14/11/2026)
+
+As regras das skills **divine-algoritmo**, **divine-plano-crescimento** e **divine-postar-metricool** agora são do
+app, num lugar só: `config/identidade.yaml` (mudou a skill, muda lá).
+
+- **Aba Marca** no Estúdio (e "Padrão Divine: X de Y" no cartão de cada versão, no iPhone): o checklist antes de
+  aprovar e agendar. **Algoritmo**: abertura de identificação nos 3 s, quem fala aparece como médico e como quem
+  resolve o problema, gancho em 3 camadas (falado, escrito diferente da fala, visual, sonoro), "Já me segue" nos 5 s,
+  pergunta de opinião no fim, duração de 13 a 35 s. **Identidade visual**: legenda na altura do peito, 1 palavra
+  dourada por frase, texto com maiúscula, sem travessão e sem isca ("comenta EU QUERO"), capa pronta.
+  **Legenda do post**: 1ª linha até 125 caracteres, pergunta, 📍 endereço, aviso de resultados, assinatura e 8 a 12
+  hashtags. **Compliance** por último, prevalecendo sobre tudo. Cada item que falha diz o que ajustar.
+- **📸 Capa neste quadro** (aba Marca): pare o vídeo num quadro bonito (boca fechada, sorrindo) e a capa sai em
+  `saida/capa_<versão>.jpg`, com o quadro limpo (sem a legenda gravada), a logo e o título do hook no topo, fora das
+  zonas mortas. É a capa para o Metricool e para a grade do perfil.
+- **Stories** (carrossel e post no formato Stories): nada nas zonas mortas do Instagram (250 px em cima e 340 px
+  embaixo, em 1080x1920): logo, texto, pontinhos e rodapé ficam dentro.
+- **Legenda do post**: assinatura do perfil que posta (@drdanielmendess: "Dr. Daniel Mendes · CRM/SP 186.470 · RQE
+  105302 · RQE 130995"; @dvmedicalspa: "RT: Dr. Daniel Sampaio Mendes, CRM/SP 186.470") e pergunta de opinião no fim.
+- **Calendário**: ao agendar, o app avisa se o perfil já tem post de feed naquele dia, contando a collab (post do Dr.
+  Daniel ocupa também o feed das duas contas da Divine). Stories não contam. Dá para agendar mesmo assim, mas ele
+  pergunta antes.
+
 ## Estúdio: a tela de edição profissional no computador (10/11/2026)
 
 Inspirada nos editores com agentes trabalhando ao vivo. Abre sozinha quando você abre um vídeo no computador (tela com

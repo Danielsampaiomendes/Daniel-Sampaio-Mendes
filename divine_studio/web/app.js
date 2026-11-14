@@ -10,6 +10,11 @@ async function api(caminho, corpo) {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
   });
   const j = await r.json();
+  // agendar num dia em que o perfil (ou a collab) já tem post de feed: pergunta antes (config/identidade.yaml)
+  if (r.status === 409 && j.conflito && caminho === "/api/publicacao" && corpo && !corpo.forcar) {
+    if (confirm(j.erro)) return api(caminho, { ...corpo, forcar: true });
+    throw new Error("Agendamento cancelado: escolha outro dia (no máximo 1 post de feed por dia por perfil).");
+  }
   if (!r.ok) throw new Error(j.erro || r.statusText);
   return j;
 }
@@ -333,6 +338,7 @@ function desenharProximoPasso() {
         <b>${esc(s.versao)}${s.versao === "IA" ? " · a aposta do app (tenta superar as outras)" : ""}</b>
         <div class="pp-prev" data-prev="${esc(s.versao)}"></div>
         <div class="pp-alertas" data-pontos="${esc(s.versao)}" hidden></div>
+        <details class="pp-marca" data-marca="${esc(s.versao)}" hidden></details>
         ${barrada(s.versao) ? `<div class="pp-barrada">A final da ${esc(s.versao)} não saiu: o revisor achou ${esc(barrada(s.versao))}. Ela não contou como aprovada. Resolva o ! e aprove de novo.</div>` : ""}
         <button class="dourado" data-aprovar>✓ Aprovar esta</button></div>`).join("")}</div>
       ${ef.transcricao && ef.preciso === false ? `<div class="pp-linha dica">A fala foi transcrita com o modelo rápido.
@@ -427,6 +433,14 @@ async function carregarPontos() {
     api("/api/previsao?p=" + encodeURIComponent(atual)).catch(() => ({})),
     ...cards.map((c) => api(`/api/alertas?p=${encodeURIComponent(atual)}&v=${encodeURIComponent(c.dataset.pontos)}`).catch(() => null)),
   ]);
+  // checklist do algoritmo e da identidade visual de cada versão (config/identidade.yaml)
+  $$("[data-marca]").forEach(async (el) => {
+    let c; try { c = await api(`/api/identidade?p=${encodeURIComponent(atual)}&v=${encodeURIComponent(el.dataset.marca)}`); } catch (e) { return; }
+    const falhas = c.itens.filter((i) => i.ok === false);
+    el.hidden = false;
+    el.innerHTML = `<summary>${falhas.length ? "◇" : "✓"} Padrão Divine: ${c.ok} de ${c.total}${falhas.length ? ` · ${falhas.length} para ajustar` : ""}</summary>
+      <ul>${falhas.map((i) => `<li><b>${esc(i.titulo)}</b><br><small>${esc(i.detalhe)}</small></li>`).join("") || "<li>Tudo no padrão.</li>"}</ul>`;
+  });
   $$("[data-prev]").forEach((el) => {
     const x = pv[el.dataset.prev]; if (!x || !x.frase) { el.textContent = ""; return; }
     const saem = (x.saidas || []).map((q) => `${q.t.toFixed(0)} s (${q.motivo})`).join(" · ");
