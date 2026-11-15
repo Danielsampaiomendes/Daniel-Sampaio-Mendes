@@ -214,3 +214,20 @@ def test_regras_da_fala_estao_no_config():
     from divine_studio.config import load
     fala = load("roteiros")["fala"]
     assert fala["pular_apresentacao"] and {"de", "no", "com"} <= set(fala["destaque_nao_comeca_em"]) and fala["efeito_so_em_frase_aprovada"]
+
+
+def test_hdr_sem_zscale_usa_conversao_que_todo_ffmpeg_tem(monkeypatch, tmp_path):
+    """FFmpeg do Mac sem o zscale parava com "No such filter: 'zscale'" em vídeo HDR do iPhone."""
+    import subprocess
+    from divine_studio import ingest
+    monkeypatch.setattr(ingest, "_FILTROS", {"zscale": False})
+    f = ingest.filtro_hdr()
+    assert "zscale" not in f and "tonemap" not in f
+    saida = tmp_path / "o.mp4"
+    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=s=320x568:d=0.4:r=30",
+                        "-vf", "format=yuv420p10le," + f, str(saida)], capture_output=True, text=True)
+    assert r.returncode == 0 and saida.stat().st_size > 0, r.stderr
+    monkeypatch.setattr(ingest, "_FILTROS", {"zscale": True})
+    assert "zscale" in ingest.filtro_hdr()
+    monkeypatch.setattr(ingest, "_FILTROS", {})
+    assert ingest.tem_filtro("scale") and not ingest.tem_filtro("filtro_que_nao_existe")

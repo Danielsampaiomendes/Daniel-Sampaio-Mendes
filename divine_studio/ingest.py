@@ -17,6 +17,37 @@ from pathlib import Path
 
 from .config import ROOT, load
 
+
+HDR_COM_ZSCALE = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
+                  "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
+# FFmpeg sem o zscale (libzimg), comum no Mac: converte a matriz de cor pelo próprio FFmpeg e compensa o HLG do
+# iPhone com um pouco de contraste e saturação. Ajustável em config/exportacao.yaml (hdr_sem_zscale).
+HDR_SEM_ZSCALE = ("scale=in_color_matrix=bt2020:out_color_matrix=bt709:in_range=tv:out_range=tv,format=yuv420p,"
+                  "eq=contrast=1.06:saturation=1.12,"
+                  "setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709")
+_FILTROS: dict = {}
+
+
+def tem_filtro(nome: str) -> bool:
+    """O FFmpeg desta máquina tem o filtro? (a resposta fica guardada: a lista não muda com o app aberto)"""
+    if nome not in _FILTROS:
+        try:
+            saida = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, text=True, timeout=30).stdout
+        except (OSError, subprocess.SubprocessError):
+            saida = ""
+        _FILTROS[nome] = any(ln.split()[1:2] == [nome] for ln in saida.splitlines() if ln.strip())
+    return _FILTROS[nome]
+
+
+def filtro_hdr() -> str:
+    """Conversão do vídeo HDR do iPhone para cor normal: a melhor (zscale + tonemap) quando o FFmpeg tem o zscale;
+    sem ele, a conversão que todo FFmpeg faz, em vez de parar com "No such filter: 'zscale'"."""
+    if tem_filtro("zscale"):
+        return HDR_COM_ZSCALE
+    print("  aviso: este FFmpeg não tem o filtro zscale; usando a conversão HDR simples (a cor pode ficar um pouco "
+          "menos fiel). Para a conversão completa: brew install ffmpeg", flush=True)
+    return str(load("exportacao").get("hdr_sem_zscale") or HDR_SEM_ZSCALE)
+
 HDR_TRANSFERS = {"arib-std-b67", "smpte2084"}
 
 
@@ -158,8 +189,7 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
 
         v = []
         if p["hdr"]:
-            v.append("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
-                     "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
+            v.append(filtro_hdr())
         if hq:
             v.append(hqcfg["denoise"])
         if c.get("reverso"):
