@@ -83,5 +83,9 @@ projetos/.legenda_padrao.json
 _arquivo/testes/
 projetos/.registro.lock
 
+# erros inesperados do painel (detalhe para o suporte; fica só no Mac)
+projetos/.erros_painel.log
+_arquivo/erros_painel/
+
 # torneio de agentes (/arena)
 .arena/

@@ -2,6 +2,28 @@
 
 Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 3 versões prontas para postar, aplicando sozinha a marca, o template suave/glamour, o rodízio de fontes e SFX, a trilha original e o revisor de compliance.
 
+## Base segura: nada se perde, o painel sempre responde, Parar e tema pela fala (15/11/2026)
+
+- **Projeto que não se perde** (`divine_studio/guardar.py`): o projeto.yaml é gravado por troca atômica (quem lê nunca
+  encontra o arquivo pela metade) e uma gravação por vez por projeto (Mac e iPhone salvando juntos não apagam a mudança
+  um do outro). Além de `trabalho/projeto.yaml.anterior`, fica um retrato em `trabalho/historico/` no máximo a cada
+  10 minutos de edição (`config/preferencias.yaml > historico_projeto`); nenhum retrato é apagado. Para voltar:
+  `python3 -m divine_studio restaurar <pasta> --listar` e `python3 -m divine_studio restaurar <pasta> [retrato]`
+  (o projeto atual vira retrato antes de voltar).
+- **O painel sempre responde**: um erro que ninguém previu vira uma frase clara na tela, e o detalhe fica em
+  `projetos/.erros_painel.log` (só no Mac; mande esse arquivo para o Claude). Em Nova edição, a saúde do app ganhou
+  duas linhas: "Regras do app (config)", que aponta o arquivo e a linha de um YAML com erro de escrita, e "Painel sem
+  erro nas últimas 24 h". Sem conexão, a tela diz o que conferir no lugar de "Load failed".
+- **Parar** na janela da tarefa: encerra a edição automática, a prévia ou a final na hora (o render das versões e o
+  FFmpeg saem juntos). O projeto e as prévias que já existiam ficam como estavam. Fechar o painel também encerra as
+  tarefas. Com tarefa rodando, ⟳ Atualizar espera: antes, atualizar no meio deixava o render rodando sem dono.
+- **Tema pela fala**: vídeo solto com nome de câmera (IMG_4032) não sai mais com selo vazio e fechamento genérico. O
+  título manda quando cita o tratamento; sem isso, vale o tratamento que domina a fala (`config/roteiros.yaml >
+  tema_pela_fala` e `na_fala` de cada tema). Na dúvida entre dois tratamentos, fica sem selo: nunca com o selo errado.
+  O tema reconhecido fica em `tema:` no projeto e é o mesmo para os hooks do banco, a copy do teleprompter e o anúncio.
+- **Regra nova sem perder os comentários**: `python3 -m divine_studio regra "..."` acrescenta a regra no fim de
+  `config/preferencias.yaml` sem regravar o arquivo (antes, a primeira regra apagava todos os comentários dele).
+
 ## Stories no Liquid Glass Divine (14/11/2026)
 
 Segue o portfólio de identidade visual (resumo em `docs/IDENTIDADE_VISUAL.md`). Fundo de joalheria 3D do banco

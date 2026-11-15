@@ -24,6 +24,7 @@ temas:
     cta: "Agende sua avaliação"
   cmslim:
     nomes: [cmslim, cm slim, tesla, musculo]
+    na_fala: [cmslim, cm slim, tesla]
     selo: "CMSLIM · 12 TESLA"
     mensagens:
       - {titulo: "Você deita. / O músculo *treina.*"}
@@ -42,6 +43,7 @@ temas:
     cta: "Agende sua avaliação"
   microagulhamento:
     nomes: [microagulhamento, micro agulhamento, colageno]
+    na_fala: [microagulhamento, micro agulhamento]
     selo: "MICROAGULHAMENTO"
     mensagens:
       - {titulo: "Não é só uma agulhinha. / É um *chamado* / para o colágeno."}
@@ -60,6 +62,7 @@ temas:
     cta: "Agende sua avaliação"
   spa:
     nomes: [spa, pedras quentes, massagem, relaxamento]
+    na_fala: [pedras quentes, massagem]
     selo: "SPA DIVINE"
     mensagens:
       - {titulo: "Lá fora, / a Paulista *corre.*"}
@@ -78,6 +81,7 @@ temas:
     cta: "Agende sua avaliação"
   emagrecimento:
     nomes: [emagrecimento, emagrecer, peso, obesidade, bariatrica, nutrologia, suplemento]
+    na_fala: [emagrecimento, emagrecer, obesidade, bariatrica]
     selo: "ACOMPANHAMENTO MÉDICO"
     mensagens:
       - {titulo: "O peso que volta / vem *diferente.*"}
@@ -87,6 +91,7 @@ temas:
     cta: "Agende sua avaliação"
   cabelo:
     nomes: [cabelo, queda, capilar, calvicie]
+    na_fala: [cabelo, capilar, calvicie]
     selo: "SAÚDE CAPILAR"
     mensagens:
       - {titulo: "Queda de cabelo / *nem sempre é só cabelo.*"}
@@ -103,6 +108,14 @@ temas:
       - {titulo: "A beleza mais elegante / é a que *ninguém aponta.*"}
     fechamento: "Natural, *sempre.*"
     cta: "Agende sua avaliação"
+
+# Tema pela fala: quando o título não cita tratamento (vídeo solto como IMG_4032), o app procura o assunto no que
+# é falado. Contam as palavras de `na_fala` de cada tema (sem ela, `nomes`: use `na_fala` para tirar palavras que
+# aparecem em qualquer vídeo, como "colágeno" e "peso"). O tema só vale se dominar a fala; na dúvida fica sem selo.
+tema_pela_fala:
+  ativo: true
+  minimo_citacoes: 1      # quantas vezes o tratamento precisa ser citado
+  dominio: 2              # o mais citado precisa ter este múltiplo das citações do segundo
 
 # Sem tema reconhecido
 padrao:

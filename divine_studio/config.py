@@ -13,17 +13,67 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config"
 
 
+class ErroDeConfig(yaml.YAMLError, ValueError):
+    """Arquivo de regras (config/*.yaml) com erro de escrita: a mensagem diz qual arquivo e qual linha."""
+
+
 @lru_cache(maxsize=None)
 def load(name: str) -> dict:
-    with open(CONFIG / f"{name}.yaml", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    try:
+        with open(CONFIG / f"{name}.yaml", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except yaml.YAMLError as e:
+        marca = getattr(e, "problem_mark", None)
+        onde = f", linha {marca.line + 1}" if marca else ""
+        raise ErroDeConfig(f"config/{name}.yaml está com erro de escrita{onde}: "
+                           f"{getattr(e, 'problem', None) or e}. Corrija esse arquivo (ou volte a versão anterior "
+                           "dele) e tente de novo.") from e
 
 
 def save(name: str, data: dict, header: str = "") -> None:
-    load.cache_clear()
+    from .guardar import gravar_texto
     text = yaml.safe_dump(data, allow_unicode=True, sort_keys=False, width=1000)
-    with open(CONFIG / f"{name}.yaml", "w", encoding="utf-8") as f:
-        f.write(header + text)
+    gravar_texto(CONFIG / f"{name}.yaml", header + text)      # troca atômica: nunca fica um YAML pela metade
+    load.cache_clear()
+
+
+def anexar_item(name: str, chave: str, item: dict) -> bool:
+    """Acrescenta um item a uma lista do topo do YAML SEM reescrever o arquivo: os comentários ficam.
+
+    Os arquivos de config são a documentação das regras (cada valor tem o porquê ao lado). Regravar com
+    yaml.safe_dump apagava todos os comentários na primeira regra nova. Devolve False se o arquivo não tem o
+    formato esperado (quem chama cai no save(), que continua correto, só sem comentários).
+    """
+    from .guardar import gravar_texto
+    arq = CONFIG / f"{name}.yaml"
+    try:
+        texto = arq.read_text(encoding="utf-8")
+        antes = list((yaml.safe_load(texto) or {}).get(chave) or [])
+    except (OSError, yaml.YAMLError, TypeError):
+        return False
+    linhas = texto.split("\n")
+    alvo = next((i for i, ln in enumerate(linhas) if re.match(rf"^{re.escape(chave)}:\s*(\[\s*\])?\s*(#.*)?$", ln)), None)
+    if alvo is None:
+        return False
+    linhas[alvo] = re.sub(r":\s*\[\s*\]", ":", linhas[alvo], count=1)
+    fim = alvo + 1
+    while fim < len(linhas) and (not linhas[fim].strip() or linhas[fim][0] in " \t-#"):
+        fim += 1                                   # o bloco da lista vai até a próxima chave do topo
+    while fim > alvo + 1 and (not linhas[fim - 1].strip() or linhas[fim - 1].startswith("#")):
+        fim -= 1                                   # o item entra depois do último item, antes de linhas em branco
+    nova = "  - " + yaml.safe_dump(item, allow_unicode=True, sort_keys=False, width=100000,
+                                   default_flow_style=True).strip()
+    novo = "\n".join(linhas[:fim] + [nova] + linhas[fim:])
+    try:
+        depois = yaml.safe_load(novo) or {}
+    except yaml.YAMLError:
+        return False
+    if depois.get(chave) != antes + [item] or {k: v for k, v in depois.items() if k != chave} != \
+            {k: v for k, v in (yaml.safe_load(texto) or {}).items() if k != chave}:
+        return False                               # só grava se o resultado é exatamente "o de antes + o item"
+    gravar_texto(arq, novo)
+    load.cache_clear()
+    return True
 
 
 def hexrgb(h: str) -> tuple:

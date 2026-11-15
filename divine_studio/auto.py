@@ -43,6 +43,93 @@ def tema(titulo: str) -> tuple:
     return (melhor, cfg["temas"][melhor]) if melhor else ("padrao", cfg["padrao"])
 
 
+def tema_da_fala(texto: str) -> str:
+    """Tema pelo que é FALADO: o tratamento mais citado, só quando ele domina a fala; senão 'padrao'.
+
+    Um selo errado (vídeo de HIPRO com selo MICROAGULHAMENTO porque a fala cita "colágeno") é pior que nenhum
+    selo. Por isso: contam as palavras de `na_fala` do tema (sem ela, `nomes`) e o primeiro colocado precisa ter
+    pelo menos `tema_pela_fala.dominio` vezes as citações do segundo (config/roteiros.yaml).
+    """
+    cfg = load("roteiros")
+    regra = cfg.get("tema_pela_fala") or {}
+    if not regra.get("ativo", True):
+        return "padrao"
+    t = _norm(texto or "")
+    placar = []
+    for chave, r in cfg["temas"].items():
+        nomes = sorted({_norm(n) for n in (r.get("na_fala") or r.get("nomes") or [chave])}, key=len, reverse=True)
+        resto, n = t, 0
+        for nome in nomes:                      # do mais longo para o mais curto: "laser de co2" não conta 2 vezes
+            achados = re.findall(rf"\b{re.escape(nome)}", resto)
+            n += len(achados)
+            if achados:
+                resto = re.sub(rf"\b{re.escape(nome)}", " ", resto)
+        if n:
+            placar.append((n, chave))
+    if not placar:
+        return "padrao"
+    placar.sort(reverse=True)
+    if placar[0][0] < int(regra.get("minimo_citacoes", 1)):
+        return "padrao"
+    if len(placar) > 1 and placar[0][0] < float(regra.get("dominio", 2)) * placar[1][0]:
+        return "padrao"                         # dois tratamentos disputam a fala: fica sem selo, nunca com o errado
+    return placar[0][1]
+
+
+def tema_do_projeto(projeto: dict, palavras: list | None = None) -> str:
+    """A chave do tema do projeto, num lugar só (hooks do banco, copy, anúncio e edição automática usam esta).
+
+    Ordem: o título manda quando cita um tratamento; sem isso, a fala (quando foi passada); sem fala, o tema que
+    a última edição automática reconheceu e guardou em `tema`; por fim 'padrao'.
+    """
+    temas = load("roteiros")["temas"]
+    chave, _ = tema(str(projeto.get("titulo") or ""))
+    if chave != "padrao":
+        return chave
+    if palavras is not None:
+        return tema_da_fala(" ".join(str(w.get("texto", "")) for w in palavras))
+    guardado = str(projeto.get("tema") or "")
+    return guardado if guardado in temas else "padrao"
+
+
+def texto_do_tema(projeto: dict) -> str:
+    """Título + nome do tema reconhecido: o texto que o sorteio de hooks do banco usa para ficar no assunto."""
+    chave = tema_do_projeto(projeto)
+    titulo = str(projeto.get("titulo") or "")
+    if chave == "padrao":
+        return titulo
+    r = load("roteiros")["temas"][chave]
+    return f"{titulo} {(r.get('nomes') or [chave])[0]}".strip()
+
+
+def aplicar_tema(p: dict, chave: str) -> dict:
+    """Grava o tema reconhecido e troca pelos textos dele o que ainda era o texto genérico ('padrao').
+
+    Só mexe no que a montagem deixou genérico: selo vazio, fechamento padrão e mensagens padrão. O que veio da
+    fala, da IA ou foi escrito à mão fica como está.
+    """
+    cfg = load("roteiros")
+    p = dict(p)
+    if chave == "padrao" or chave not in cfg["temas"]:
+        p.pop("tema", None)
+        return p
+    p["tema"] = chave
+    rot, pad = cfg["temas"][chave], cfg["padrao"]
+    if p.get("template") == "tv":
+        return p                                # TV: o painel de mensagens é montado pelo título em montar()
+    if not p.get("selo") and rot.get("selo") and _ok(rot["selo"]):
+        p["selo"] = rot["selo"]
+    fech = p.get("fechamento") or {}
+    if fech.get("frase", "") == pad.get("fechamento", "") and rot.get("fechamento") and _ok(rot["fechamento"]):
+        p["fechamento"] = {**fech, "frase": rot["fechamento"], "cta": rot.get("cta", fech.get("cta", ""))}
+    genericas = [dict(m) for m in pad.get("mensagens", []) if _ok(m["titulo"])]
+    if p.get("mensagens") == genericas:
+        do_tema = [dict(m) for m in rot.get("mensagens", []) if _ok(m["titulo"])]
+        if do_tema:
+            p["mensagens"] = do_tema
+    return p
+
+
 def tem_fala(arquivo: Path, transcrever_fn=None) -> bool:
     """Vídeo falado? Com transcrição, decide pelas palavras ditas (é o que importa); sem ela, pelo nível da voz.
 
@@ -252,11 +339,10 @@ def montar(projeto: dict, template: str | None = None, transcrever_fn=None, seme
 def salvar(projeto: dict, novo: dict) -> Path:
     pasta = projeto["_pasta"]
     arq = pasta / "projeto.yaml"
-    (pasta / "trabalho").mkdir(exist_ok=True)
-    if arq.exists():
-        (pasta / "trabalho" / "projeto.yaml.anterior").write_text(arq.read_text(encoding="utf-8"), encoding="utf-8")
+    from . import guardar
     cab = ("# Montado pela edição automática do Divine Studio. Ajuste à vontade e gere as prévias de novo.\n"
            "# *palavra* = dourado · \" / \" = quebra de linha · hook: auto sorteia do banco (fica guardado).\n")
-    arq.write_text(cab + yaml.safe_dump(novo, allow_unicode=True, sort_keys=False, width=1000,
-                                        default_flow_style=None), encoding="utf-8")
+    # troca atômica + anterior + histórico (guardar.py): o painel nunca lê o projeto pela metade
+    guardar.gravar_projeto(pasta, cab + yaml.safe_dump(novo, allow_unicode=True, sort_keys=False, width=1000,
+                                                       default_flow_style=None))
     return arq

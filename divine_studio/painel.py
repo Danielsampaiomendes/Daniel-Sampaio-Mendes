@@ -12,12 +12,14 @@ import json
 import mimetypes
 import os
 import secrets
+import signal
 import socket
 import re
 import subprocess
 import sys
 import threading
 import time
+import traceback
 import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -33,6 +35,8 @@ WEB = Path(__file__).parent / "web"
 VIDEO = {".mp4", ".mov", ".m4v", ".mkv", ".webm"}
 JOBS: dict = {}
 TRAVA = threading.Lock()
+ERROS = PROJETOS / ".erros_painel.log"      # só no Mac (no .gitignore): o detalhe de cada erro inesperado do painel
+_TRAVA_ERROS = threading.Lock()
 LOCAIS = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
 
 
@@ -238,6 +242,57 @@ def nova_edicao(tipo: str, titulo: str) -> str:
     return nome
 
 
+def registrar_erro(onde: str, e: BaseException) -> None:
+    """Guarda o erro inesperado com data, pedido e a pilha. Arquivo grande vai para _arquivo/ (nada é apagado)."""
+    try:
+        arq = PROJETOS / ERROS.name
+        with _TRAVA_ERROS:
+            arq.parent.mkdir(parents=True, exist_ok=True)
+            if arq.exists() and arq.stat().st_size > 1_000_000:
+                dest = ROOT / "_arquivo" / "erros_painel"
+                dest.mkdir(parents=True, exist_ok=True)
+                os.replace(arq, dest / f"erros_painel_{time.strftime('%Y%m%d-%H%M%S')}.log")
+            pilha = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+            with open(arq, "a", encoding="utf-8") as fh:
+                fh.write(f"=== {time.strftime('%Y-%m-%d %H:%M:%S')} | {onde.split('?')[0]}\n{pilha}\n")
+    except OSError:
+        pass
+
+
+def erros_recentes(horas: float = 24.0) -> list:
+    """[{quando, onde, erro}] dos erros inesperados das últimas horas (o mais novo primeiro)."""
+    arq = PROJETOS / ERROS.name
+    try:
+        blocos = arq.read_text(encoding="utf-8", errors="replace").split("=== ")[1:]
+    except OSError:
+        return []
+    out, limite = [], time.time() - horas * 3600
+    for b in blocos:
+        cab, _, resto = b.partition("\n")
+        quando, _, onde = cab.partition(" | ")
+        try:
+            if time.mktime(time.strptime(quando.strip(), "%Y-%m-%d %H:%M:%S")) < limite:
+                continue
+        except ValueError:
+            continue
+        linhas = [ln for ln in resto.strip().splitlines() if ln.strip()]
+        out.append({"quando": quando.strip(), "onde": onde.strip(), "erro": linhas[-1][:200] if linhas else ""})
+    return out[::-1]
+
+
+def _config_com_erro() -> list:
+    """Arquivos de regra (config/*.yaml) que não abrem: um erro de digitação ali para o app inteiro."""
+    from .config import CONFIG
+    ruins = []
+    for f in sorted(CONFIG.glob("*.yaml")):
+        try:
+            yaml.safe_load(f.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError) as e:
+            marca = getattr(e, "problem_mark", None)
+            ruins.append(f"{f.name}" + (f" (linha {marca.line + 1})" if marca else ""))
+    return ruins
+
+
 def diagnostico() -> list:
     """Saúde do app: o que está instalado e o que falta (para a tela Nova edição)."""
     import importlib.util
@@ -248,7 +303,14 @@ def diagnostico() -> list:
     ok_ia, motivo_ia = assistente.disponivel()
     q = qualidade.diagnostico()
     faltam_img = sum(c["faltam_obrigatorios"] for c in listar_bib())
+    ruins = _config_com_erro()
+    erros = erros_recentes()
     return [
+        {"item": "Regras do app (config)", "ok": not ruins,
+         "dica": "erro de escrita em config/" + ", config/".join(ruins) if ruins else ""},
+        {"item": "Painel sem erro nas últimas 24 h", "ok": not erros,
+         "dica": (f"{len(erros)} erro(s); o último em {erros[0]['onde']}: {erros[0]['erro']} "
+                  f"(detalhe em projetos/{ERROS.name})") if erros else ""},
         {"item": "FFmpeg", "ok": bool(_sh.which("ffmpeg")), "dica": "brew install ffmpeg"},
         {"item": "Logo oficial", "ok": bool(__import__("divine_studio.biblioteca", fromlist=["logo"]).logo("divine-simbolo")),
          "dica": "Biblioteca > Logomarcas"},
@@ -920,6 +982,12 @@ CAMPOS_DO_APP = {"compliance_conferido"}
 
 def salvar_dados(nome: str, novos: dict, do_app: bool = False) -> None:
     """Atualiza só os campos enviados; o resto do projeto.yaml fica como estava."""
+    from . import guardar
+    with guardar.trava(_pasta(nome)):           # ler, mudar e gravar de uma vez: Mac e iPhone não se atropelam
+        _salvar_dados(nome, novos, do_app)
+
+
+def _salvar_dados(nome: str, novos: dict, do_app: bool) -> None:
     pasta = _pasta(nome)
     d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
     for k, v in novos.items():
@@ -996,10 +1064,8 @@ def amostra_efeito(tipo: str) -> bytes:
 def salvar_yaml(nome: str, texto: str) -> None:
     pasta = _pasta(nome)
     yaml.safe_load(texto)                       # erro de sintaxe volta para a tela antes de gravar
-    atual = pasta / "projeto.yaml"
-    (pasta / "trabalho").mkdir(exist_ok=True)
-    (pasta / "trabalho" / "projeto.yaml.anterior").write_text(atual.read_text(encoding="utf-8"), encoding="utf-8")
-    atual.write_text(texto if texto.endswith("\n") else texto + "\n", encoding="utf-8")
+    from . import guardar
+    guardar.gravar_projeto(pasta, texto)        # troca atômica, uma gravação por vez, anterior + histórico
 
 
 def trocar_campo(texto: str, campo: str, valor: str) -> str:
@@ -1134,24 +1200,102 @@ def iniciar(nome: str, acao: str, versoes: list | None = None) -> str:
         log = pasta / "trabalho" / f"painel_{acao}_{jid}.log"
         log.parent.mkdir(exist_ok=True)
         fh = open(log, "w", encoding="utf-8")
-        proc = subprocess.Popen(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT)
+        # sessão própria: "Parar" encerra a tarefa inteira (o render das versões em paralelo e o FFmpeg junto)
+        proc = subprocess.Popen(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT, start_new_session=True)
         JOBS[jid] = {"id": jid, "projeto": nome, "acao": acao, "estado": "rodando", "log": str(log),
                      "inicio": time.time(), "proc": proc, "fh": fh, "versoes": versoes or []}
     return jid
+
+
+def tarefas_rodando() -> list:
+    """As tarefas em andamento agora (o painel não se atualiza nem reinicia com uma delas no meio)."""
+    return [j for j in list(JOBS.values()) if j["estado"] == "rodando" and j["proc"].poll() is None]
+
+
+def _grupo_vivo(pid: int) -> bool:
+    try:
+        os.killpg(pid, 0)
+        return True
+    except (OSError, AttributeError):
+        return False
+
+
+def _encerrar(proc, espera: float = 4.0) -> None:
+    """Pede para a tarefa sair, junto com o que ela abriu (render das versões, FFmpeg); quem ficar é encerrado à força.
+
+    A tarefa abriu a própria sessão (start_new_session), então o grupo é só ela e os filhos. Esperar só o processo
+    principal não basta: no teste real ele saiu e o FFmpeg da base continuou rodando sozinho.
+    """
+    try:
+        os.killpg(proc.pid, signal.SIGTERM)
+    except (OSError, AttributeError):
+        try:
+            proc.terminate()
+        except OSError:
+            pass
+    try:
+        proc.wait(timeout=espera)
+    except subprocess.TimeoutExpired:
+        pass
+    limite = time.time() + 1.5                   # um instante para os filhos saírem sozinhos
+    while time.time() < limite and _grupo_vivo(proc.pid):
+        time.sleep(0.1)
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)      # o que sobrou do grupo (sem ninguém, não faz nada)
+    except (OSError, AttributeError):
+        pass
+    if proc.poll() is None:
+        try:
+            proc.kill()
+            proc.wait(timeout=espera)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
+
+def parar(jid: str) -> dict:
+    """Botão Parar: encerra a tarefa. O projeto.yaml e as prévias que já existiam ficam como estavam."""
+    j = JOBS.get(jid)
+    if not j:
+        raise ValueError("tarefa não encontrada")
+    with TRAVA:
+        minha = j["estado"] == "rodando" and j["proc"].poll() is None
+        if minha:
+            j["estado"] = "parado"              # marcado antes: o estado() de outro pedido não vira "erro"
+    if minha:                                   # fora da trava: encerrar pode levar alguns segundos
+        _encerrar(j["proc"])
+        try:
+            j["fh"].close()
+            with open(j["log"], "a", encoding="utf-8") as fh:
+                fh.write("\nTarefa parada por você. Nada do que já estava pronto foi apagado.\n")
+        except (OSError, ValueError):
+            pass
+    return estado(jid)
+
+
+def parar_todas() -> None:
+    """Ao fechar o painel: nenhuma tarefa fica rodando sozinha, sem ninguém vendo."""
+    for j in tarefas_rodando():
+        try:
+            parar(j["id"])
+        except ValueError:
+            pass
 
 
 def estado(jid: str) -> dict:
     j = JOBS.get(jid)
     if not j:
         raise ValueError("tarefa não encontrada")
-    if j["estado"] == "rodando" and j["proc"].poll() is not None:
-        j["fh"].close()
-        j["estado"] = "ok" if j["proc"].returncode == 0 else "erro"
-        if j["estado"] == "ok" and j["acao"] == "final":
-            pasta = _pasta(j["projeto"])
-            (pasta / "trabalho" / "aprovacao.json").write_text(json.dumps(
-                {"aprovado_em": time.strftime("%d/%m/%Y %H:%M"), "versoes": j["versoes"] or "todas"},
-                ensure_ascii=False), encoding="utf-8")
+    with TRAVA:                                  # dois pedidos juntos (Mac e iPhone) fecham a tarefa uma vez só
+        terminou = j["estado"] == "rodando" and j["proc"].poll() is not None
+        if terminou:
+            j["fh"].close()
+            j["estado"] = "ok" if j["proc"].returncode == 0 else "erro"
+    if terminou and j["estado"] == "ok" and j["acao"] == "final":
+        pasta = _pasta(j["projeto"])
+        from . import guardar
+        guardar.gravar_texto(pasta / "trabalho" / "aprovacao.json", json.dumps(
+            {"aprovado_em": time.strftime("%d/%m/%Y %H:%M"), "versoes": j["versoes"] or "todas"},
+            ensure_ascii=False))
     texto = Path(j["log"]).read_text(encoding="utf-8", errors="replace") if Path(j["log"]).exists() else ""
     # linhas de progresso do render ("  5.0s / 12.7s") viram só a última
     linhas = [ln for ln in texto.splitlines() if not re.match(r"^\s+[\d.]+s / [\d.]+s$", ln)]
@@ -1210,6 +1354,29 @@ class Painel(BaseHTTPRequestHandler):
     def _erro(self, msg, codigo=400):
         self._json({"erro": msg}, codigo)
 
+    def send_response(self, code, message=None):
+        self._respondeu = True                   # daqui em diante não cabe mais uma resposta de erro em JSON
+        super().send_response(code, message)
+
+    def _falha(self, e: Exception):
+        """Erro que ninguém previu: a tela recebe uma frase clara e o detalhe fica guardado para o suporte."""
+        if isinstance(e, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            return                               # o navegador fechou a conexão (trocou de tela): não é erro do app
+        registrar_erro(self.command + " " + self.path, e)
+        if getattr(self, "_respondeu", False):
+            return
+        if isinstance(e, yaml.YAMLError):
+            msg = "O projeto.yaml deste projeto está com erro de escrita: " + " ".join(str(e).split())[:200]
+        elif isinstance(e, FileNotFoundError):
+            msg = "Um arquivo que esta tela precisa não existe mais: " + Path(str(e.filename or "")).name
+        else:
+            msg = ("O app tropeçou nesta ação. Tente de novo. Se repetir, o detalhe está guardado em "
+                   f"projetos/{ERROS.name} (mande para o Claude): {type(e).__name__}")
+        try:
+            self._erro(msg, 500)
+        except OSError:
+            pass
+
     def _corpo(self) -> bytes:
         n = int(self.headers.get("Content-Length") or 0)
         return self.rfile.read(n) if n else b""
@@ -1230,9 +1397,18 @@ class Painel(BaseHTTPRequestHandler):
         ini, fim = 0, tam - 1
         if rng and rng.startswith("bytes="):
             a, _, b = rng[6:].partition("-")
-            ini = int(a) if a else max(0, tam - int(b))
-            fim = int(b) if a and b else tam - 1
+            try:
+                ini = int(a) if a else max(0, tam - int(b))
+                fim = int(b) if a and b else tam - 1
+            except ValueError:
+                ini, fim = tam, tam - 1          # pedido ilegível: responde 416 em vez de derrubar a conexão
             fim = min(fim, tam - 1)
+            if ini < 0 or ini > fim:             # trecho depois do fim (vídeo trocado por um mais curto): 416
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{tam}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             self.send_response(206)
             self.send_header("Content-Range", f"bytes {ini}-{fim}/{tam}")
         else:
@@ -1255,6 +1431,7 @@ class Painel(BaseHTTPRequestHandler):
                 falta -= len(bloco)
 
     def do_GET(self):
+        self._respondeu = False
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
         if self._barrar(u.path):
@@ -1273,6 +1450,11 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json(detalhe(q["p"]))
             if u.path == "/api/job":
                 return self._json(estado(q["id"]))
+            if u.path == "/api/erros":              # erros inesperados das últimas 24 h (para o suporte)
+                return self._json(erros_recentes(float(q.get("h", 24))))
+            if u.path == "/api/historico":          # retratos guardados do projeto.yaml (trabalho/historico)
+                from . import guardar
+                return self._json(guardar.historico(_pasta(q["p"])))
             if u.path == "/api/dados":
                 return self._json(dados_projeto(q["p"]))
             if u.path == "/api/fontes":
@@ -1473,10 +1655,15 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/tira":
                 return self._arquivo(tira_miniaturas(q["p"], q["f"], int(q.get("n", 24))))
             return self._erro("não encontrado", 404)
-        except (ValueError, KeyError) as e:
+        except (ValueError, KeyError, SystemExit) as e:
+            if getattr(self, "_respondeu", False):
+                return None
             return self._erro(str(e))
+        except Exception as e:                   # nenhum pedido fica sem resposta (a tela mostrava "Load failed")
+            return self._falha(e)
 
     def do_POST(self):
+        self._respondeu = False
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
         if u.path == "/entrar":
@@ -1716,6 +1903,13 @@ class Painel(BaseHTTPRequestHandler):
                 return self._json({"ok": True})
             if u.path == "/api/acao":
                 return self._json({"job": iniciar(dados["p"], dados["acao"], dados.get("versoes"))})
+            if u.path == "/api/job/parar":          # botão Parar da janela da tarefa
+                return self._json(parar(dados["id"]))
+            if u.path == "/api/historico/restaurar":
+                from . import guardar
+                if _job_do_projeto(dados["p"]):
+                    return self._erro("espere a tarefa deste projeto terminar (ou toque em Parar)")
+                return self._json({"ok": True, "restaurado": guardar.restaurar(_pasta(dados["p"]), dados.get("arquivo"))})
             if u.path == "/api/dados":
                 salvar_dados(dados["p"], dados["dados"])
                 return self._json({"ok": True})
@@ -1907,6 +2101,11 @@ class Painel(BaseHTTPRequestHandler):
                 elif r["aplicados"]:
                     r["job"] = iniciar(nome, "storyboard", dados.get("versoes"))
                 return self._json(r)
+            if u.path in ("/api/reiniciar", "/api/atualizar") and tarefas_rodando():
+                # reiniciar no meio de uma tarefa deixava o render rodando sem dono e liberava um segundo por cima
+                nomes = ", ".join(sorted({j["projeto"] for j in tarefas_rodando()}))
+                return self._erro(f"Tem uma tarefa rodando ({nomes}). Espere terminar ou toque em Parar; depois "
+                                  "atualize.", 409)
             if u.path == "/api/reiniciar":           # depois de instalar a transcrição: painel no Python novo
                 reiniciar_no_python_do_app(self.server.server_address[1], bool(self.codigo))
                 return self._json({"reiniciando": True})
@@ -1935,7 +2134,11 @@ class Painel(BaseHTTPRequestHandler):
         except yaml.YAMLError as e:
             return self._erro(f"YAML com erro: {e}")
         except (ValueError, KeyError, SystemExit) as e:
+            if getattr(self, "_respondeu", False):
+                return None
             return self._erro(str(e))
+        except Exception as e:
+            return self._falha(e)
 
 
 def _iniciar_seguro(nome: str, acao: str) -> str:
@@ -1987,9 +2190,17 @@ def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
         print("  Depois: Compartilhar > Adicionar à Tela de Início. O Mac precisa ficar ligado com esta janela aberta.\n")
     if abrir:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+    def _fechar(*_):                         # janela do Terminal fechada ou kill: sai pelo mesmo caminho do Ctrl+C
+        raise KeyboardInterrupt
+    for nome_sinal in ("SIGTERM", "SIGHUP"):
+        try:
+            signal.signal(getattr(signal, nome_sinal), _fechar)
+        except (AttributeError, ValueError, OSError):
+            pass
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         print("\nPainel fechado.")
     finally:
+        parar_todas()                        # as tarefas têm sessão própria: fechamos junto, nada fica rodando só
         srv.server_close()

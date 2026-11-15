@@ -102,6 +102,9 @@ ia:                               # assistente (Claude): brainstorm, hooks, idei
   modelo: claude-opus-5-5
   esforco: medium                 # low | medium | high (mais alto: respostas mais pensadas, mais lentas)
 
+historico_projeto:                # retratos do projeto.yaml em trabalho/historico (divine_studio/guardar.py)
+  intervalo_min: 10               # no máximo um retrato a cada tantos minutos de edição; nenhum é apagado
+
 aprendizado:                      # gostei / postei / métricas viram preferência
   versao_ia: true                 # toda edição ganha a versão "IA" (a que o app acredita ser a melhor)
   versao_ia_sem_historico: true   # gera mesmo antes de ter histórico (testa combinações novas)

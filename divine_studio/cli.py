@@ -196,7 +196,8 @@ def _resolver_hooks(p) -> None:
     faltam = [v for v in pedem if v.get("nome") not in guardados]
     if faltam:
         ja = {v.get("hook_id") for v in versoes if v.get("hook_id")} | set(guardados.values())
-        novos = sortear(len(faltam), tema=p.get("titulo"), semente=sum(map(ord, p["_pasta"].name)), excluir=ja)
+        from .auto import texto_do_tema
+        novos = sortear(len(faltam), tema=texto_do_tema(p), semente=sum(map(ord, p["_pasta"].name)), excluir=ja)
         for v, h in zip(faltam, novos):
             guardados[v.get("nome")] = h["id"]
         arq.parent.mkdir(exist_ok=True)
@@ -697,8 +698,9 @@ def _reposicionar_ancoras(p, fala_nova: list, trabalho: Path) -> None:
                     it["fim"] = n["fim"]
                 mudou = True
     if mudou:
-        arq.write_text("# Editado pelo Divine Studio.\n" + yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000,
-                                                                        default_flow_style=None), encoding="utf-8")
+        from . import guardar
+        guardar.gravar_projeto(p["_pasta"], "# Editado pelo Divine Studio.\n" + yaml.safe_dump(
+            d, allow_unicode=True, sort_keys=False, width=1000, default_flow_style=None))
         print("  dublagens e efeitos acompanharam a fala depois do corte (segundos novos no projeto.yaml)")
 
 
@@ -978,10 +980,10 @@ def cmd_auto(a):
     novo = auto.montar(p, a.template, fn, semente)
     # roteirista: as 3 versões escritas EM CIMA da fala (como o Claude faz no chat), não pelo título
     falados = [c for c in novo.get("clipes") or [] if not c.get("mudo")]
+    palavras = []
     if fn and falados:
         try:
             from . import roteirista
-            palavras = []
             for c in falados:
                 palavras += fn(p["_pasta"] / c["arquivo"])
             if palavras:
@@ -1002,7 +1004,11 @@ def cmd_auto(a):
                                                    for v in novo.get("versoes") or []))
     except Exception as e:
         print(f"  aviso: laboratório de formatos indisponível ({e})")
-    chave, _ = auto.tema(novo.get("titulo", ""))
+    # tema: o título manda; se ele não cita tratamento (IMG_4032), vale o que a fala diz. Selo, fechamento e
+    # mensagens genéricas passam a ser os do assunto do vídeo, e o tema fica guardado para hooks, copy e anúncio
+    # (recalculado a cada edição automática: o tema guardado de uma edição anterior não decide esta)
+    chave = auto.tema_do_projeto({"titulo": novo.get("titulo")}, palavras or None)
+    novo = auto.aplicar_tema(novo, chave)
     (p["_pasta"] / "trabalho" / "versao_ia.json").unlink(missing_ok=True)   # edição nova: a aposta IA é refeita
     arq = auto.salvar(p, novo)
     print(f"• Tema reconhecido: {chave} · template {novo['template']} · {len(novo['clipes'])} clipe(s) · "
@@ -1033,17 +1039,35 @@ def cmd_painel(a):
 
 
 def cmd_regra(a):
-    pref = dict(load("preferencias"))
-    regras = list(pref.get("regras_aprendidas") or [])
-    regras.append({"data": hoje(), "regra": a.texto})
-    pref["regras_aprendidas"] = regras
-    cab = "# Regras de edição do Renato (docs/CONHECIMENTO_DIVINE.md, seção 7). Valores usados pelo template.\n"
-    save("preferencias", pref, cab)
+    from .config import anexar_item
+    item = {"data": hoje(), "regra": a.texto}
+    # a regra entra no fim da lista sem regravar o arquivo: os comentários do preferencias.yaml continuam lá
+    if not anexar_item("preferencias", "regras_aprendidas", item):
+        pref = dict(load("preferencias"))
+        pref["regras_aprendidas"] = list(pref.get("regras_aprendidas") or []) + [item]
+        cab = "# Regras de edição do Renato (docs/CONHECIMENTO_DIVINE.md, seção 7). Valores usados pelo template.\n"
+        save("preferencias", pref, cab)
     doc = ROOT / "docs" / "CONHECIMENTO_DIVINE.md"
     if doc.exists():
         with open(doc, "a", encoding="utf-8") as f:
             f.write(f"- {_dt.date.today():%d/%m/%Y}: {a.texto}\n")
     print("Regra registrada em config/preferencias.yaml e docs/CONHECIMENTO_DIVINE.md (seção 12).")
+
+
+def cmd_restaurar(a):
+    """Volta o projeto.yaml para um retrato de trabalho/historico (o atual vira retrato antes: nada se perde)."""
+    from . import guardar
+    pasta = Path(a.projeto).resolve()
+    lista = guardar.historico(pasta)
+    if a.listar or not lista:
+        print("\n".join(f"{x['arquivo']}   {x['quando']}   {x['bytes']} bytes" for x in lista)
+              or "Este projeto ainda não tem histórico guardado (trabalho/historico).")
+        return
+    try:
+        nome = guardar.restaurar(pasta, a.retrato)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    print(f"projeto.yaml restaurado de trabalho/historico/{nome}. O que estava antes também ficou no histórico.")
 
 
 def cmd_quadros(a):
@@ -1237,6 +1261,11 @@ def main(argv=None):
     s = sub.add_parser("regra", help="registra uma regra aprendida")
     s.add_argument("texto")
     s.set_defaults(f=cmd_regra)
+    s = sub.add_parser("restaurar", help="volta o projeto.yaml para um retrato guardado (trabalho/historico)")
+    s.add_argument("projeto")
+    s.add_argument("retrato", nargs="?", help="nome do retrato (sem nome: o mais novo)")
+    s.add_argument("--listar", action="store_true", help="só mostra os retratos guardados")
+    s.set_defaults(f=cmd_restaurar)
     s = sub.add_parser("quadros", help="folha de contato de um vídeo")
     s.add_argument("video")
     s.add_argument("--n", type=int, default=6)

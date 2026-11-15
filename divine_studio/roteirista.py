@@ -80,9 +80,8 @@ def ganchos_da_fala(palavras: list, n: int = 3) -> list:
 
 
 def _assunto(palavras: list, titulo: str) -> str:
-    from .auto import tema
-    chave, rot = tema(titulo + " " + texto_da_fala(palavras)[:400])
-    return chave
+    from .auto import tema_do_projeto
+    return tema_do_projeto({"titulo": titulo}, palavras)     # o título manda; sem tema nele, a fala inteira decide
 
 
 def _sem_marca(t: str) -> str:

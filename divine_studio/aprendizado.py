@@ -68,7 +68,8 @@ def ler(pasta: Path) -> dict:
 
 def _gravar(pasta: Path, d: dict) -> None:
     texto = yaml.safe_dump(d, allow_unicode=True, sort_keys=False, width=1000, default_flow_style=None)
-    (pasta / "projeto.yaml").write_text("# Divine Studio\n" + texto, encoding="utf-8")
+    from . import guardar
+    guardar.gravar_projeto(pasta, "# Divine Studio\n" + texto, anterior=False)     # troca atômica + histórico
 
 
 def marcar(pasta: Path, versao: str, arquivo: str | None = None, **campos) -> dict:

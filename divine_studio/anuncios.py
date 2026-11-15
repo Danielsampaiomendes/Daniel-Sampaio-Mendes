@@ -17,16 +17,16 @@ def _cfg() -> dict:
     return load("anuncios")
 
 
-def _tema(titulo: str) -> dict:
-    from .auto import tema
-    chave, _ = tema(titulo or "")
+def _tema(titulo: str, projeto: dict | None = None) -> dict:
+    from .auto import tema_do_projeto
+    chave = tema_do_projeto({**(projeto or {}), "titulo": titulo or ""})
     temas = _cfg().get("temas") or {}
     return temas.get(chave) or temas.get("padrao") or {}
 
 
 def dados_anuncio(projeto: dict) -> dict:
     a = dict(projeto.get("anuncio") or {})
-    t = _tema(projeto.get("titulo", ""))
+    t = _tema(projeto.get("titulo", ""), projeto)
     a.setdefault("objetivo", "agendamento")
     a.setdefault("servico", projeto.get("selo") or projeto.get("titulo") or "o tratamento")
     a.setdefault("dor", t.get("dor", "você quer se cuidar com segurança"))

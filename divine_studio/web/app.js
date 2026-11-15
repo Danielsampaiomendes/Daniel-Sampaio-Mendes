@@ -6,10 +6,18 @@ let dados = null;          // detalhe do projeto
 let jobAtivo = null;
 
 async function api(caminho, corpo) {
-  const r = await fetch(caminho, corpo === undefined ? {} : {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
-  });
-  const j = await r.json();
+  let r;
+  try {
+    r = await fetch(caminho, corpo === undefined ? {} : {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
+    });
+  } catch (e) {     // o Safari dizia só "Load failed": agora a tela diz o que conferir
+    throw new Error("Sem conexão com o Divine Studio. Confira se a janela do app continua aberta no Mac" +
+                    (NO_IPHONE ? " e se o iPhone está no mesmo Wi-Fi." : "."));
+  }
+  let j;
+  try { j = await r.json(); }
+  catch (e) { j = { erro: `O app não respondeu direito (${r.status}). Tente de novo.` }; if (r.ok) throw new Error(j.erro); }
   // agendar num dia em que o perfil (ou a collab) já tem post de feed: pergunta antes (config/identidade.yaml)
   if (r.status === 409 && j.conflito && caminho === "/api/publicacao" && corpo && !corpo.forcar) {
     if (confirm(j.erro)) return api(caminho, { ...corpo, forcar: true });
@@ -662,8 +670,16 @@ function acompanhar(job, titulo) {
   $("#tarefa").hidden = false;
   $("#t-titulo").textContent = titulo;
   $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = true);
+  const bParar = $("#t-parar");
+  bParar.hidden = false; bParar.disabled = false; bParar.textContent = "parar";
+  bParar.onclick = async () => {
+    if (!confirm("Parar esta tarefa agora?\nO que já estava pronto (projeto e prévias anteriores) continua guardado.")) return;
+    bParar.disabled = true; bParar.textContent = "parando…";
+    try { await api("/api/job/parar", { id: job }); } catch (err) { alert(err.message); bParar.disabled = false; bParar.textContent = "parar"; }
+  };
   const liberar = (msg) => {
     jobAtivo = null;
+    bParar.hidden = true;
     $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
     $("#t-tempo").innerHTML = `<span class="estado-erro">${esc(msg)}</span>`;
   };
@@ -679,12 +695,13 @@ function acompanhar(job, titulo) {
     $("#t-log").textContent = e.log;
     $("#t-log").scrollTop = 1e9;
     $("#t-tempo").innerHTML = e.estado === "rodando" ? `${e.segundos}s`
-      : `<span class="estado-${e.estado}">${e.estado === "ok" ? "pronto" : "parou com erro"}</span> em ${e.segundos}s`;
+      : `<span class="estado-${e.estado === "parado" ? "erro" : e.estado}">${e.estado === "ok" ? "pronto" : e.estado === "parado" ? "parada por você" : "parou com erro"}</span> em ${e.segundos}s`;
     $("#t-barra").style.width = e.progresso ? `${Math.min(100, 100 * e.progresso[0] / e.progresso[1])}%` : (e.estado === "rodando" ? "8%" : "100%");
     if (e.estado === "rodando") setTimeout(tick, 1200);
     else {
       jobAtivo = null;
-      avisarFim(titulo, e.estado === "ok");
+      bParar.hidden = true;
+      if (e.estado !== "parado") avisarFim(titulo, e.estado === "ok");
       $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
       if (atual) abrir(atual);
       const simples = document.body.classList.contains("simples");

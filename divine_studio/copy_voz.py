@@ -34,7 +34,6 @@ def sugerida(pasta: Path, projeto: dict) -> tuple:
         texto = "\n".join(ln for ln in texto.splitlines() if not ln.startswith("#")).strip()
         if texto:
             return texto, copias[0].name
-    from .auto import tema
     from .hooks import batidas_do_hook
     partes = []
     v1 = dict(next(iter(projeto.get("versoes") or []), {}))
@@ -49,7 +48,10 @@ def sugerida(pasta: Path, projeto: dict) -> tuple:
             pass
     elif isinstance(v1.get("hook"), list):
         partes.append(" ".join(_frase(b.get("titulo", "")) for b in v1["hook"]))
-    _, rot = tema(projeto.get("titulo", ""))
+    from .auto import tema_do_projeto
+    from .config import load as _load
+    _rots = _load("roteiros")
+    rot = _rots["temas"].get(tema_do_projeto(projeto)) or _rots["padrao"]     # o tema guardado pela edição automática
     msgs = projeto.get("mensagens") or rot.get("mensagens") or []
     for m in msgs:
         linha = _frase(m.get("titulo", "") if isinstance(m, dict) else m)
