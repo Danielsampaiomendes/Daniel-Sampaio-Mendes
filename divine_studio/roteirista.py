@@ -49,6 +49,13 @@ def _limpar(f: str) -> str:
     return f[:1].upper() + f[1:] if f else f
 
 
+def apresentacao(f: str) -> bool:
+    """Frase de apresentação ("Oi, eu sou o Dr. ...", "Hoje eu vou falar de..."): não prende ninguém."""
+    from .sugestoes import ABERTURA_FRACA
+    f = _limpar(f)
+    return bool(ABERTURA_FRACA.search(f) or re.search(r"\b(eu sou|meu nome|hoje eu vou|vou te explicar)\b", f.lower()))
+
+
 def _destacar(f: str) -> str:
     from .auto import _destacar as d
     return d(f)
@@ -71,8 +78,7 @@ def ganchos_da_fala(palavras: list, n: int = 3) -> list:
         p += 1.0 * (k == 0)                                       # quem abre o vídeo já costuma ser o gancho
         if re.search(r"\b(agende|agenda|marque|segue|siga|link|direct|whatsapp|salva|salve|comenta)\b", nf):
             continue                                              # frase de pedido (CTA) fica para o final, nunca é hook
-        from .sugestoes import ABERTURA_FRACA
-        if ABERTURA_FRACA.search(f) or re.search(r"\b(eu sou|meu nome|hoje eu vou|vou te explicar)\b", nf):
+        if apresentacao(f):
             continue                                              # apresentação ("eu sou o Dr. ...") não prende ninguém
         cand.append((p, k, f))
     escolhidos = [f for _, _, f in sorted(cand, reverse=True)[:n]]
@@ -103,9 +109,12 @@ def planejar_regras(projeto: dict, palavras: list) -> dict:
             break
         ganchos.append([{"titulo": m["titulo"]}])
     efeitos = []
+    from .auto import _cfg_fala
+    so_aprovada = _cfg_fala().get("efeito_so_em_frase_aprovada", True)
     for fr in frases(palavras):                                    # números e nomes de tecnologia ganham destaque
         f = fr["texto"]
-        if re.search(r"\b\d+[\d.,]*\s*(%|por cento|sessões|sessoes|minutos|dias|semanas|anos)?", f) and len(efeitos) < 2:
+        if re.search(r"\b\d+[\d.,]*\s*(%|por cento|sessões|sessoes|minutos|dias|semanas|anos)?", f) and len(efeitos) < 2 \
+                and (not so_aprovada or _ok(f)):
             efeitos.append({"tipo": "zoom_batida", "na_fala": " ".join(f.split()[:4]), "motivo": "número na fala"})
     return {"fonte": "regras", "tema": chave, "ganchos": ganchos, "mensagens": msgs, "efeitos": efeitos}
 

@@ -23,6 +23,20 @@ Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 
   O tema reconhecido fica em `tema:` no projeto e é o mesmo para os hooks do banco, a copy do teleprompter e o anúncio.
 - **Regra nova sem perder os comentários**: `python3 -m divine_studio regra "..."` acrescenta a regra no fim de
   `config/preferencias.yaml` sem regravar o arquivo (antes, a primeira regra apagava todos os comentários dele).
+## Rodada de confiabilidade (15/11/2026)
+
+- **O painel sempre responde.** Um erro que ninguém previu (projeto.yaml com erro de escrita, arquivo que sumiu, disco
+  cheio) não derruba mais a conexão: a tela mostra uma frase clara e o detalhe técnico fica em
+  `projetos/.erros_painel.log` (só no Mac, nunca passa de ~500 KB). É esse arquivo que se manda para o Claude quando
+  algo repetir.
+- **A tarefa fecha sozinha.** Se o iPhone bloquear a tela no meio da exportação, a final termina, a aprovação fica
+  registrada e o projeto fica livre para a próxima tarefa (antes, só fechava quando a tela voltava a consultar).
+- **Código do iPhone com limite.** 8 códigos errados no mesmo aparelho (ou 40 somando todos) fecham a entrada por 10
+  minutos. Quem já entrou continua usando; no Mac nada muda.
+- **Só o painel manda no painel.** Um pedido de gravação que venha de outro site aberto no navegador é recusado.
+- **Textos tirados da fala** (`config/roteiros.yaml > fala`): apresentação ("Oi, eu sou...", "Hoje eu vou falar
+  de...") nunca vira mensagem na tela nem hook; o dourado fica na palavra forte e não começa em "de", "com", "que" (a lista
+  está em `destaque_nao_comeca_em`); o zoom no número só entra em frase que passa no revisor.
 
 ## Stories no Liquid Glass Divine (14/11/2026)
 

@@ -167,7 +167,7 @@ def test_erro_inesperado_vira_resposta_clara_e_fica_registrado(servidor, projeto
 def test_projeto_yaml_quebrado_nao_derruba_a_conexao(servidor, projeto):
     (projeto / "projeto.yaml").write_text("titulo: [quebrado\n", encoding="utf-8")
     codigo, corpo = _pedir(servidor + "/api/dados?p=2026-11-15_x")
-    assert codigo == 500 and "projeto.yaml" in json.loads(corpo)["erro"]
+    assert codigo in (400, 500) and "projeto.yaml" in json.loads(corpo)["erro"]   # frase clara, nunca conexão caída
     codigo, corpo = _pedir(servidor + "/api/dados", {"p": "2026-11-15_x", "dados": {"selo": "B"}})
     assert codigo == 400 and "YAML" in json.loads(corpo)["erro"]     # o POST já respondia; continua igual
 

@@ -82,6 +82,7 @@ projetos/.legenda_padrao.json
 # testes de ponta a ponta do Claude (vídeo sintético) e trava do registro
 _arquivo/testes/
 projetos/.registro.lock
+projetos/.erros_painel.log
 
 # erros inesperados do painel (detalhe para o suporte; fica só no Mac)
 projetos/.erros_painel.log

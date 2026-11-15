@@ -138,3 +138,13 @@ alvo_sem_fala_s: 30          # vídeo sem fala: pega o miolo dos clipes até ~30
 max_mensagens_da_fala: 3     # vídeo falado: frases fortes da própria fala viram mensagens na tela
 estilo_do_formato: false   # edição automática: o formato viral muda o hook e o CTA, não o visual (papel, neon... só se você escolher)
 velocidade_broll: 0.85       # clipes sem fala entram em câmera lenta suave
+
+# Textos tirados da própria fala (15/11/2026)
+fala:
+  pular_apresentacao: true           # "Oi, eu sou...", "Hoje eu vou falar de..." nunca viram mensagem na tela nem hook
+  # o dourado não começa nestas palavras: fica só na palavra forte ("cicatrizes de *acne*"). "seu" e "sua" ficam
+  # de fora da lista de propósito ("no *seu tempo*" é da marca). Lista vazia desliga a regra.
+  # (entre aspas: sem elas o YAML lê "no" como "não")
+  destaque_nao_comeca_em: ["a", "o", "as", "os", "e", "de", "da", "do", "das", "dos", "em", "na", "no", "nas", "nos",
+                           "um", "uma", "que", "por", "para", "pra", "com", "se", "ao"]
+  efeito_so_em_frase_aprovada: true  # zoom no número só em frase que passa no revisor (nunca reforça promessa ou prazo)

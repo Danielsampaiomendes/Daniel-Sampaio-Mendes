@@ -38,6 +38,34 @@ TRAVA = threading.Lock()
 ERROS = PROJETOS / ".erros_painel.log"      # só no Mac (no .gitignore): o detalhe de cada erro inesperado do painel
 _TRAVA_ERROS = threading.Lock()
 LOCAIS = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+# código do iPhone: depois de tantos códigos errados, a entrada fica fechada por um tempo (quem já entrou continua)
+TENTATIVAS: dict = {}            # endereço (e "*" para todos) -> instantes dos códigos errados
+MAX_ERROS_CODIGO = 8             # por aparelho, dentro da janela
+MAX_ERROS_CODIGO_TODOS = 40      # somando todos os aparelhos, dentro da janela
+JANELA_CODIGO_S = 600
+TRAVA_CODIGO = threading.Lock()
+LOG_ERROS = ".erros_painel.log"  # em projetos/ (fora do GitHub): o detalhe técnico de cada erro inesperado
+
+
+def codigo_travado(ip: str) -> bool:
+    agora = time.time()
+    with TRAVA_CODIGO:
+        for k in (ip, "*"):
+            TENTATIVAS[k] = [t for t in TENTATIVAS.get(k, []) if agora - t < JANELA_CODIGO_S]
+        return len(TENTATIVAS[ip]) >= MAX_ERROS_CODIGO or len(TENTATIVAS["*"]) >= MAX_ERROS_CODIGO_TODOS
+
+
+def codigo_errado(ip: str) -> None:
+    with TRAVA_CODIGO:
+        for k in (ip, "*"):
+            TENTATIVAS.setdefault(k, []).append(time.time())
+
+
+def mensagem_yaml(e: Exception) -> str:
+    marca = getattr(e, "problem_mark", None)
+    onde = f" (linha {marca.line + 1})" if marca is not None else ""
+    return (f"O projeto.yaml deste projeto está com um erro de escrita{onde}. Corrija no quadro \"projeto.yaml\" do "
+            "projeto (em Mais ferramentas) e salve de novo. Nenhum vídeo foi perdido.")
 
 
 # ---------------------------------------------------------------- acesso pelo celular
@@ -154,6 +182,8 @@ def _arquivo_do_projeto(pasta: Path, rel: str) -> Path:
 
 
 def listar() -> list:
+    for j in list(JOBS.values()):             # final que terminou com a tela fechada já aparece como aprovada
+        _concluir(j)
     out = []
     for y in sorted(PROJETOS.glob("**/projeto.yaml")):
         pasta = y.parent
@@ -248,7 +278,7 @@ def registrar_erro(onde: str, e: BaseException) -> None:
         arq = PROJETOS / ERROS.name
         with _TRAVA_ERROS:
             arq.parent.mkdir(parents=True, exist_ok=True)
-            if arq.exists() and arq.stat().st_size > 1_000_000:
+            if arq.exists() and arq.stat().st_size > 500_000:
                 dest = ROOT / "_arquivo" / "erros_painel"
                 dest.mkdir(parents=True, exist_ok=True)
                 os.replace(arq, dest / f"erros_painel_{time.strftime('%Y%m%d-%H%M%S')}.log")
@@ -1172,8 +1202,28 @@ ACOES = {
 }
 
 
+def _concluir(j: dict) -> None:
+    """Fecha a tarefa que já terminou, mesmo que nenhuma tela esteja acompanhando (iPhone com a tela bloqueada):
+    o projeto fica livre para a próxima tarefa e a aprovação da final fica registrada."""
+    with TRAVA:                                  # dois pedidos juntos (Mac e iPhone) fecham a tarefa uma vez só
+        if j["estado"] != "rodando" or j["proc"].poll() is None:
+            return
+        j["fh"].close()
+        j["estado"] = "ok" if j["proc"].returncode == 0 else "erro"
+    if j["estado"] == "ok" and j["acao"] == "final":
+        try:
+            pasta = _pasta(j["projeto"])
+            from . import guardar
+            guardar.gravar_texto(pasta / "trabalho" / "aprovacao.json", json.dumps(
+                {"aprovado_em": time.strftime("%d/%m/%Y %H:%M"), "versoes": j["versoes"] or "todas"},
+                ensure_ascii=False))
+        except (ValueError, OSError):
+            pass                              # projeto arquivado ou excluído enquanto exportava
+
+
 def _job_do_projeto(nome: str):
-    for j in JOBS.values():
+    for j in list(JOBS.values()):
+        _concluir(j)
         if j["projeto"] == nome and j["estado"] == "rodando":
             return j["id"]
     return None
@@ -1285,17 +1335,7 @@ def estado(jid: str) -> dict:
     j = JOBS.get(jid)
     if not j:
         raise ValueError("tarefa não encontrada")
-    with TRAVA:                                  # dois pedidos juntos (Mac e iPhone) fecham a tarefa uma vez só
-        terminou = j["estado"] == "rodando" and j["proc"].poll() is not None
-        if terminou:
-            j["fh"].close()
-            j["estado"] = "ok" if j["proc"].returncode == 0 else "erro"
-    if terminou and j["estado"] == "ok" and j["acao"] == "final":
-        pasta = _pasta(j["projeto"])
-        from . import guardar
-        guardar.gravar_texto(pasta / "trabalho" / "aprovacao.json", json.dumps(
-            {"aprovado_em": time.strftime("%d/%m/%Y %H:%M"), "versoes": j["versoes"] or "todas"},
-            ensure_ascii=False))
+    _concluir(j)
     texto = Path(j["log"]).read_text(encoding="utf-8", errors="replace") if Path(j["log"]).exists() else ""
     # linhas de progresso do render ("  5.0s / 12.7s") viram só a última
     linhas = [ln for ln in texto.splitlines() if not re.match(r"^\s+[\d.]+s / [\d.]+s$", ln)]
@@ -1370,12 +1410,20 @@ class Painel(BaseHTTPRequestHandler):
         elif isinstance(e, FileNotFoundError):
             msg = "Um arquivo que esta tela precisa não existe mais: " + Path(str(e.filename or "")).name
         else:
-            msg = ("O app tropeçou nesta ação. Tente de novo. Se repetir, o detalhe está guardado em "
-                   f"projetos/{ERROS.name} (mande para o Claude): {type(e).__name__}")
+            msg = (f"O app tropeçou nesta ação ({type(e).__name__}: {str(e)[:160]}). Nada foi apagado. Tente de novo. "
+                   f"Se repetir, o detalhe está guardado em projetos/{ERROS.name} (mande para o Claude).")
         try:
             self._erro(msg, 500)
         except OSError:
             pass
+
+    def _origem_de_fora(self) -> bool:
+        """POST disparado por OUTRO site aberto no navegador (o painel aceita tudo o que vem do próprio Mac):
+        o navegador manda o cabeçalho Origin, que tem de ser o mesmo endereço do painel."""
+        origem = self.headers.get("Origin")
+        if not origem:
+            return False
+        return urlparse(origem).netloc.lower() != (self.headers.get("Host") or "").lower()
 
     def _corpo(self) -> bytes:
         n = int(self.headers.get("Content-Length") or 0)
@@ -1655,6 +1703,10 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/tira":
                 return self._arquivo(tira_miniaturas(q["p"], q["f"], int(q.get("n", 24))))
             return self._erro("não encontrado", 404)
+        except yaml.YAMLError as e:
+            if getattr(self, "_respondeu", False):
+                return None
+            return self._erro(mensagem_yaml(e))
         except (ValueError, KeyError, SystemExit) as e:
             if getattr(self, "_respondeu", False):
                 return None
@@ -1666,14 +1718,25 @@ class Painel(BaseHTTPRequestHandler):
         self._respondeu = False
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        if self._origem_de_fora():
+            self._corpo()
+            return self._erro("pedido recusado: veio de outro site, não do painel", 403)
         if u.path == "/entrar":
+            ip = self.client_address[0]
             dado = parse_qs(self._corpo().decode("utf-8", "ignore")).get("codigo", [""])[0].strip()
+            if codigo_travado(ip):
+                return self._html(PAGINA_ENTRAR.format(
+                    erro='<p class="erro">Muitas tentativas com o código errado. Espere 10 minutos e tente de novo '
+                         '(o código certo aparece no Terminal do Mac).</p>'), 429)
             if self.codigo and secrets.compare_digest(dado.encode(), self.codigo.encode()):
+                with TRAVA_CODIGO:
+                    TENTATIVAS.pop(ip, None)
                 self.send_response(303)
                 self.send_header("Set-Cookie", f"divine={self.codigo}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Strict")
                 self.send_header("Location", "/")
                 self.end_headers()
                 return
+            codigo_errado(ip)
             time.sleep(1.0)            # freia tentativa e erro
             return self._html(PAGINA_ENTRAR.format(erro='<p class="erro">Código errado.</p>'), 401)
         if self._barrar(u.path):

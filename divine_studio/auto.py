@@ -166,6 +166,9 @@ def _destacar(frase: str) -> str:
     n_dest = 2 if len(ws) >= 5 else 1
     from .corte import normalizar
     from .legendas import CONECTIVOS
+    if n_dest == 2 and normalizar(ws[-2]) in {normalizar(str(x)) for x in
+                                              _cfg_fala().get("destaque_nao_comeca_em") or []}:
+        n_dest = 1                            # "cicatrizes *de acne*" vira "cicatrizes de *acne*"
     # linhas equilibradas de até ~17 letras: nenhuma palavra fica sozinha numa linha e nenhuma linha termina
     # em "a", "de", "que" (a quebra automática do texto deixava "gordura" sozinha)
     total = len(" ".join(ws))
@@ -194,9 +197,16 @@ def _destacar(frase: str) -> str:
     return titulo[0].upper() + titulo[1:]
 
 
+def _cfg_fala() -> dict:
+    """Regras dos textos tirados da fala (config/roteiros.yaml > fala)."""
+    return load("roteiros").get("fala") or {}
+
+
 def mensagens_da_fala(palavras: list, chave: str, maximo: int = 3) -> list:
     """As frases mais fortes da fala (curtas, com o tema ou palavras de benefício) viram mensagens na tela."""
     from .corte import marcar_remocoes
+    from .roteirista import apresentacao
+    pular_apres = _cfg_fala().get("pular_apresentacao", True)
     roteiro_nomes = [_norm(n) for n in (load("roteiros")["temas"].get(chave, {}).get("nomes") or [])]
     fora = marcar_remocoes(palavras)          # sem "hum", sem a tentativa repetida
     texto = " ".join(w["texto"] for i, w in enumerate(palavras) if i not in fora)
@@ -209,6 +219,8 @@ def mensagens_da_fala(palavras: list, chave: str, maximo: int = 3) -> list:
             continue
         if re.search(r"\b(agende|agenda|segue|seguir|manda|link|direct|whatsapp|comenta)\b", nf):
             continue          # CTA falado já está no fechamento
+        if pular_apres and apresentacao(f):
+            continue          # "Hoje eu vou falar de...": não é mensagem de tela e nunca vira hook de reserva
         pontos = 3 - abs(n - 6) * 0.3
         pontos += 2 * any(nm in nf for nm in roteiro_nomes)
         pontos += sum(1 for w in ("pele", "colageno", "cuidado", "tempo", "saude", "corpo", "estimul", "firmeza",
