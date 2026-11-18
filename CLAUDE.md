@@ -47,6 +47,7 @@ Jeito mais fácil: dois cliques em `Divine Studio.command` na raiz (ou `python3 
 - **Cortes de vídeo longo** (`cortes`), **conversa por edição** (`feedback.py`), **tela dividida/cabecinha** (template react, layout auto), **Divine TV** (`/tv`), **Crescimento** (`config/algoritmo.yaml`, metas e projeção) e **integrações** (`config/integracoes.yaml`).
 - **Base segura**: `divine_studio/guardar.py` grava o projeto.yaml no painel, na edição automática e nas publicações; código novo que grave projeto.yaml deve usar `guardar.gravar_projeto` (troca atômica, trava por projeto, retratos em `trabalho/historico/`, `python3 -m divine_studio restaurar <pasta>`); erros inesperados do painel em `projetos/.erros_painel.log`; tema do vídeo por `auto.tema_do_projeto` (título, depois fala).
 - **Importar a pasta antiga**: `python3 -m divine_studio importar` cria projetos com atalhos para `Videos/...` e pacotes soltos (não move nada).
+- **Acervo**: `divine_studio/acervo.py` e `config/acervo.yaml` catalogam as imagens da pasta toda e abastecem `assets/marca` e `assets/fundos`; imagens novas do Canva em `assets/canva`; `python3 -m divine_studio acervo --buscar "..."`.
 - **Biblioteca de imagens**: `assets/marca`, `assets/pessoas`, `assets/tecnologias`, `assets/clinica`, `assets/produtos` (tela "Biblioteca" do painel mostra o que falta; imagens só no Mac).
 - **Índice de vídeos editados pelo Divine Studio**: `docs/INDICE_VIDEOS_EDITADOS.md` (atualizado sozinho a cada exportação final). Os índices antigos `claude/indice-videos-editados*.md` estão só no projeto do app.
 

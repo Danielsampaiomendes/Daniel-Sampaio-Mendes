@@ -1,0 +1,39 @@
+# Acervo de imagens: o app varre a pasta inteira da Divine Medical Spa Marketing, cataloga cada imagem e abastece a
+# Biblioteca (assets/) sozinho com a melhor versão de cada logo, tecnologia, produto e fundo. Roda toda vez que o
+# painel abre e só relê o que mudou. O índice fica em assets/.acervo.json (só no Mac). Nada é movido nem apagado:
+# o acervo copia para assets/ e, se trocar um arquivo por um melhor, o antigo vai para _arquivo/assets/.
+
+# pastas que não entram na varredura
+ignorar: [.git, .venv, .arena, _arquivo, node_modules, trabalho, miniaturas, __pycache__, entregas, previews, web]
+extensoes: [.png, .jpg, .jpeg, .webp]
+tamanho_minimo_px: 300          # menor lado; ícones e miniaturas ficam de fora
+
+# imagem feita com IA (Canva e afins): reconhecida pelo caminho ou pelo nome. Ao publicar, marcar "Feito com IA".
+ia: [canva, liquid glass, liquid_glass, fundo ia, gerado, gerada, ia_, _ia, higgsfield, nano banana, assets/fundos]
+# onde você solta as imagens novas do Canva para o app pegar sozinho
+pasta_canva: assets/canva
+
+# categoria pela primeira regra que casar com o caminho (sem acento, minúsculas)
+categorias:
+  - {nome: marca, palavras: [logo, logos, simbolo, trevo, letreiro, logomarca, icone]}
+  - {nome: fundos, palavras: [fundo, fundos, background, textura, liquid glass, joalheria]}
+  - {nome: pessoas, palavras: [perfil, retrato, daniel, george, equipe, medico]}
+  - {nome: tecnologias, palavras: [laser, co2, endolaser, cmslim, hipro, hybrius, microagulhamento, aparelho, equipamento, tecnologia]}
+  - {nome: produtos, palavras: [produto, suplemento, frasco, creme, pellet, injetavel]}
+  - {nome: clinica, palavras: [clinica, recepcao, sala, spa, consultorio, fachada, ambiente]}
+  - {nome: artes, palavras: [post, carrossel, stories, story, capa, card, arte]}
+
+# Abastecer a Biblioteca: para cada item (arquivo em config/biblioteca.yaml), as palavras que TODAS precisam estar no
+# nome ou na pasta da imagem. Só entra imagem maior que a que já está lá (ou quando falta).
+abastecer:
+  marca:
+    divine-simbolo: [[simbolo], [trevo]]
+    logo-horizontal: [[logo, horizontal], [nome, horizontal]]
+    logo-vertical: [[logo, vertical], [logo, empilhad]]
+    letreiro: [[letreiro]]
+    icone-circulo: [[icone, circulo], [icone, redondo]]
+    logo-preto: [[logo, preto]]
+  minimo_marca_px: 800            # lado maior da logo abaixo disso é "baixa resolução": a Saúde do app avisa
+  melhor_se_maior: 1.3            # troca a da Biblioteca quando a do acervo é pelo menos 30% maior
+  pastas_preferidas: [logos divine hd, logos divine]   # logo destas pastas vale mais (e entra mesmo sem 'divine' no nome)
+  fundos: true                    # imagem de IA vertical com "fundo" no caminho entra em assets/fundos

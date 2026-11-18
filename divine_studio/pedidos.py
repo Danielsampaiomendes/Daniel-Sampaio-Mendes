@@ -210,6 +210,12 @@ def aplicar(projeto: dict, texto: str, duracao: float = 30.0, autos: list | None
             if novo_txt:
                 msgs.append({"titulo": novo_txt, "inicio": round(t, 2)})
                 feito = f"Pus o texto \"{novo_txt}\" em {t:.1f} s"
+            elif tipo == "insert_foto":                  # a imagem vem do acervo, pelas palavras do pedido
+                from .acervo import buscar
+                achadas = buscar(re.sub(r"\d+[.,:]?\d*\s*(s|seg|segundos?)?\b", " ", frase), n=1)
+                if achadas:
+                    efeitos.append({"tipo": tipo, "inicio": round(t, 2), "foto": achadas[0]["arquivo"]})
+                    feito = f"Pus a imagem {Path(achadas[0]['arquivo']).name} em {t:.1f} s"
             elif tipo:
                 efeitos.append({"tipo": tipo, "inicio": round(t, 2)})
                 feito = f"Pus {tipo} em {t:.1f} s"

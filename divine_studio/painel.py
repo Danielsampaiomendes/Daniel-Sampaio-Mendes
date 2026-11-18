@@ -335,6 +335,8 @@ def diagnostico() -> list:
     faltam_img = sum(c["faltam_obrigatorios"] for c in listar_bib())
     ruins = _config_com_erro()
     erros = erros_recentes()
+    from . import acervo
+    ac = acervo.saude()
     from .ingest import ffmpeg_completo
     ff = ffmpeg_completo() if _sh.which("ffmpeg") else {"faltam": [], "essenciais": []}
     return [
@@ -352,6 +354,10 @@ def diagnostico() -> list:
         {"item": "Logo oficial", "ok": bool(__import__("divine_studio.biblioteca", fromlist=["logo"]).logo("divine-simbolo")),
          "dica": "Biblioteca > Logomarcas"},
         {"item": "Imagens essenciais", "ok": faltam_img == 0, "dica": f"faltam {faltam_img} na Biblioteca"},
+        {"item": f"Acervo de imagens ({ac['total']} catalogadas, {ac['ia']} de IA)", "ok": ac["total"] > 0,
+         "dica": "nenhuma imagem catalogada ainda: abra a Biblioteca e toque em Atualizar o acervo"},
+        {"item": "Logos em alta resolução", "ok": not ac["logos_baixas"],
+         "dica": "em baixa: " + ", ".join(ac["logos_baixas"]) + ". Ponha a versão grande na pasta Logos Divine HD"},
         {"item": "IA (Claude)", "ok": ok_ia, "dica": motivo_ia or ""},
         {"item": "Transcrição da fala", "ok": bool(motor_disponivel()), "dica": "pip3 install faster-whisper"},
         {"item": "Recorte da pessoa (parallax, vertigem)", "ok": importlib.util.find_spec("mediapipe") is not None,
@@ -1538,6 +1544,25 @@ class Painel(BaseHTTPRequestHandler):
             if u.path == "/api/biblioteca":
                 from .biblioteca import listar as listar_bib
                 return self._json(listar_bib())
+            if u.path == "/api/acervo":             # todas as imagens da pasta, por palavra e categoria
+                from . import acervo
+                if q.get("atualizar"):
+                    acervo.atualizar()
+                return self._json({"resumo": acervo.saude(),
+                                   "imagens": acervo.buscar(q.get("q", ""), q.get("cat") or None, int(q.get("n", 36)),
+                                                            so_ia=bool(q.get("ia")))})
+            if u.path == "/acervo.img":             # miniatura de uma imagem do acervo (só o que está no índice)
+                from . import acervo
+                rel = unquote(q["f"])
+                if rel not in (acervo.ler().get("imagens") or {}):
+                    return self._erro("imagem fora do acervo", 404)
+                import io
+                from PIL import Image
+                im = Image.open(ROOT / rel).convert("RGB")
+                im.thumbnail((int(q.get("w", 260)), 520))
+                b = io.BytesIO()
+                im.save(b, "JPEG", quality=82)
+                return self._bytes(b.getvalue(), "image/jpeg")
             if u.path == "/biblioteca.img":
                 from .biblioteca import miniatura
                 corpo = miniatura(q["cat"], unquote(q["f"]), int(q.get("w", 320)))
@@ -2254,6 +2279,13 @@ def rodar(porta: int = 8765, abrir: bool = True, celular: bool = False) -> None:
     except Exception as e:
         print(f"  aviso: kit de sons virais não criado ({e})")
     PROJETOS.mkdir(exist_ok=True)
+
+    def _acervo():                         # imagens da pasta toda catalogadas; logos e fundos novos vão para a Biblioteca
+        from . import acervo
+        r = acervo.atualizar()
+        if r.get("entraram"):
+            print("  acervo: entrou na Biblioteca: " + "; ".join(r["entraram"][:6]), flush=True)
+    threading.Thread(target=_acervo, daemon=True).start()
     Painel.codigo = codigo_celular() if celular else None
     try:                                   # automações (caixa de entrada, postar no horário, métricas, radar)
         from . import automacoes, entrada

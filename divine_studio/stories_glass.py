@@ -236,9 +236,16 @@ def conteudo(s: dict, c: dict, avatar: Path | None, larg: int, e: float) -> Imag
 
 # ---------------------------------------------------------------- fundo e vidro
 
+def _arquivo_do_fundo(nome: str) -> Path | None:
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        if (FUNDOS / f"{nome}{ext}").exists():
+            return FUNDOS / f"{nome}{ext}"
+    return None
+
+
 def fundo(nome: str, rnd: random.Random) -> Image.Image:
-    arq = FUNDOS / f"{nome}.jpg"
-    if not arq.exists():
+    arq = _arquivo_do_fundo(nome)
+    if not arq:
         base = Image.new("RGB", (W, H), hexrgb(cfg()["paleta"]["escura"]["preto_quente"]))
     else:
         base = Image.open(arq).convert("RGB")
@@ -351,6 +358,12 @@ def gerar(arquivo: Path, saida: Path | None = None) -> list:
                 print(f"  aviso {s.get('id')}: {p}")
         for versao in versoes:
             banco = list(cfg()["fundos"]["clara" if versao == "clara" else "escura"])
+            try:                                          # fundos novos do Canva que o acervo trouxe
+                from .acervo import fundos as fundos_do_acervo
+                banco += [n for n in fundos_do_acervo()[versao if versao == "clara" else "escura"] if n not in banco]
+            except Exception:
+                pass
+            banco = [n for n in banco if _arquivo_do_fundo(n)] or banco
             nome = s.get("fundo") if versao == "escura" and s.get("fundo") else None
             if not nome:                                  # nunca o mesmo fundo duas vezes seguidas
                 nome = banco[i % len(banco)]

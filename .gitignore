@@ -91,3 +91,6 @@ _arquivo/erros_painel/
 # torneio de agentes (/arena)
 .arena/
 projetos/.padroes_aprendidos.json
+assets/.acervo.json
+assets/.acervo.tmp
+assets/canva/

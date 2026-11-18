@@ -133,3 +133,26 @@ $("#ad-exportar").onclick = async () => {
   } catch (err) { alert(err.message); }
 };
 
+
+// Acervo: todas as imagens da pasta (config/acervo.yaml), com busca
+async function carregarAcervo(atualizar) {
+  const grade = document.querySelector("#ac-grade"); if (!grade) return;
+  const q = document.querySelector("#ac-busca").value.trim(), ia = document.querySelector("#ac-ia").checked;
+  let r;
+  try { r = await api(`/api/acervo?q=${encodeURIComponent(q)}${ia ? "&ia=1" : ""}${atualizar ? "&atualizar=1" : ""}`); }
+  catch (err) { grade.innerHTML = `<p class="dica">${esc(err.message)}</p>`; return; }
+  const s = r.resumo;
+  document.querySelector("#ac-resumo").textContent = `${s.total} imagens · ${s.ia} de IA${s.em ? " · atualizado " + s.em.slice(8, 10) + "/" + s.em.slice(5, 7) + s.em.slice(10) : ""}`;
+  grade.innerHTML = r.imagens.map((x) => `<figure title="${esc(x.arquivo)}"><img loading="lazy" src="/acervo.img?f=${encodeURIComponent(x.arquivo)}" alt="">
+      <figcaption>${esc(x.arquivo.split("/").pop())}<small>${x.w}×${x.h} · ${esc(x.cat)}${x.ia ? " · IA" : ""}</small></figcaption></figure>`).join("")
+    || '<p class="dica">Nada com essas palavras. Toque em Atualizar o acervo se acabou de pôr imagens novas na pasta.</p>';
+}
+(function () {
+  const b = document.querySelector("#ac-busca"); if (!b) return;
+  let t = null;
+  b.oninput = () => { clearTimeout(t); t = setTimeout(() => carregarAcervo(false), 350); };
+  document.querySelector("#ac-ia").onchange = () => carregarAcervo(false);
+  document.querySelector("#ac-atualizar").onclick = async () => { aviso("Atualizando o acervo…"); await carregarAcervo(true); aviso("Acervo atualizado ✓"); };
+  const antes = window.carregarBiblioteca;
+  window.carregarBiblioteca = async function () { const x = antes ? await antes.apply(this, arguments) : undefined; carregarAcervo(false); return x; };
+})();

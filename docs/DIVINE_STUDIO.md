@@ -38,6 +38,24 @@ Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 
   de...") nunca vira mensagem na tela nem hook; o dourado fica na palavra forte e não começa em "de", "com", "que" (a lista
   está em `destaque_nao_comeca_em`); o zoom no número só entra em frase que passa no revisor.
 
+## Acervo: as imagens da pasta toda ligadas ao app (18/11/2026)
+
+Toda vez que o painel abre, o app varre a pasta Divine Medical Spa Marketing (só relê o que mudou), cataloga cada
+imagem (tamanho, categoria, clara ou escura, feita com IA) e **abastece a Biblioteca sozinho**:
+- **Logos**: a maior versão de cada logo (a pasta "Logos Divine HD" tem prioridade) vai para `assets/marca`. Se
+  trocar uma menor por uma maior, a antiga fica em `_arquivo/assets/`. A Saúde do app avisa se alguma logo está em
+  baixa resolução.
+- **Fundos do Canva (IA)**: imagem vertical com "fundo" no nome ou na pasta, feita com IA, entra em `assets/fundos`
+  e passa a girar nos Stories Liquid Glass. Imagens novas do Canva: solte em **assets/canva** (ou em qualquer pasta
+  com "canva" no nome).
+- **Busca**: na tela Biblioteca, o cartão "Acervo" procura por palavras ("laser co2", "fundo esferas") e filtra as
+  feitas com IA. Pela linha de comando: `python3 -m divine_studio acervo --buscar "laser co2"`.
+- **No vídeo**: no campo Ideia e pedidos, "Aos 8 segundos coloca a foto do laser co2" acha a imagem no acervo e põe
+  no ponto. Sem imagem com essas palavras, o app avisa em vez de pôr um efeito vazio.
+
+Regras em `config/acervo.yaml` (pastas ignoradas, palavras de cada categoria, como reconhecer cada logo). O índice
+fica em `assets/.acervo.json`, só no Mac. Nada é movido nem apagado da pasta original.
+
 ## Ideia e pedidos: um campo só para o roteirinho e para as mudanças (18/11/2026)
 
 - **Antes de gerar**: na tela inicial, embaixo de "solte aqui o vídeo bruto", o campo **Ideia do vídeo**. Escreva ou

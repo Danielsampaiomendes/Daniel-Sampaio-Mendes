@@ -542,6 +542,19 @@ def cmd_instalar_fala(a):
     raise SystemExit(instalar_fala.main(preciso=bool(getattr(a, "preciso", False))))
 
 
+def cmd_acervo(a):
+    from . import acervo
+    r = acervo.atualizar()
+    if r.get("erro"):
+        raise SystemExit("Acervo: " + r["erro"])
+    print(f"Acervo: {r['total']} imagens catalogadas ({r['novas']} novas, {r['ia']} de IA).")
+    for x in r.get("entraram") or []:
+        print("  entrou na Biblioteca: " + x)
+    if a.buscar:
+        for x in acervo.buscar(a.buscar, n=12):
+            print(f"  {x['w']}x{x['h']}  {x['cat']:<12} {'IA ' if x.get('ia') else '   '}{x['arquivo']}")
+
+
 def cmd_stories_glass(a):
     from . import stories_glass
     feitos = stories_glass.gerar(Path(a.arquivo), Path(a.saida) if a.saida else None)
@@ -1204,6 +1217,9 @@ def main(argv=None):
     s.add_argument("projeto", nargs="?")
     s.add_argument("--preciso", action="store_true", help="baixa só o modelo preciso (~1,6 GB, uma vez)")
     s.set_defaults(f=cmd_instalar_fala)
+    s = sub.add_parser("acervo", help="cataloga as imagens da pasta toda e abastece a Biblioteca (logos, fundos de IA)")
+    s.add_argument("--buscar", help="palavras para procurar, ex.: \"laser co2\"")
+    s.set_defaults(f=cmd_acervo)
     s = sub.add_parser("stories-glass", help="Stories no liquid glass Divine a partir de um stories.yaml")
     s.add_argument("arquivo")
     s.add_argument("--saida")
