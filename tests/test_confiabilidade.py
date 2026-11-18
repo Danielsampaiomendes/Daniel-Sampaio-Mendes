@@ -231,3 +231,30 @@ def test_hdr_sem_zscale_usa_conversao_que_todo_ffmpeg_tem(monkeypatch, tmp_path)
     assert "zscale" in ingest.filtro_hdr()
     monkeypatch.setattr(ingest, "_FILTROS", {})
     assert ingest.tem_filtro("scale") and not ingest.tem_filtro("filtro_que_nao_existe")
+
+
+def test_filtro_de_acabamento_que_falta_e_pulado_sem_derrubar(monkeypatch, tmp_path):
+    """Mesma classe do erro do zscale: FFmpeg sem eq, vignette ou arnndn segue a edição sem o acabamento."""
+    import subprocess
+    from divine_studio import ingest
+    grafo = ("[0:v]scale=64:64,eq=contrast=1.1:saturation=1.2,vignette=angle=PI/5[v0];"
+             "[0:a]highpass=f=80,arnndn=m='a,b.rnnn':mix=0.8,loudnorm=I=-16[a0]")
+    monkeypatch.setattr(ingest, "_FILTROS", {})
+    assert ingest.filtros_seguros(grafo) == grafo                       # tudo existe: nada muda
+    monkeypatch.setattr(ingest, "_FILTROS", {"eq": False, "vignette": False, "arnndn": False, "highpass": True})
+    monkeypatch.setattr(ingest, "_AVISADOS", set())
+    seguro = ingest.filtros_seguros(grafo)
+    assert seguro == "[0:v]scale=64:64,null,null[v0];[0:a]highpass=f=80,anull,loudnorm=I=-16[a0]"
+    # essencial nunca é trocado, mesmo marcado como ausente
+    monkeypatch.setattr(ingest, "_FILTROS", {"scale": False})
+    assert ingest.filtros_seguros("scale=64:64") == "scale=64:64"
+    # o comando inteiro roda de verdade com os filtros pulados
+    monkeypatch.setattr(ingest, "_FILTROS", {"eq": False, "vignette": False})
+    saida = tmp_path / "o.mp4"
+    ingest.rodar(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=s=64x64:d=0.3:r=30",
+                  "-vf", "eq=contrast=1.1,vignette=angle=PI/5,format=yuv420p", str(saida)])
+    assert saida.stat().st_size > 0
+    # sem conseguir ler a lista de filtros, o app tenta com tudo (não tira filtro que existe)
+    monkeypatch.setattr(ingest, "_FILTROS", {})
+    monkeypatch.setattr(ingest, "_LISTA", [set()])
+    assert ingest.tem_filtro("eq") is True

@@ -335,6 +335,8 @@ def diagnostico() -> list:
     faltam_img = sum(c["faltam_obrigatorios"] for c in listar_bib())
     ruins = _config_com_erro()
     erros = erros_recentes()
+    from .ingest import ffmpeg_completo
+    ff = ffmpeg_completo() if _sh.which("ffmpeg") else {"faltam": [], "essenciais": []}
     return [
         {"item": "Regras do app (config)", "ok": not ruins,
          "dica": "erro de escrita em config/" + ", config/".join(ruins) if ruins else ""},
@@ -342,6 +344,11 @@ def diagnostico() -> list:
          "dica": (f"{len(erros)} erro(s); o último em {erros[0]['onde']}: {erros[0]['erro']} "
                   f"(detalhe em projetos/{ERROS.name})") if erros else ""},
         {"item": "FFmpeg", "ok": bool(_sh.which("ffmpeg")), "dica": "brew install ffmpeg"},
+        {"item": "FFmpeg exporta vídeo (libx264 e aac)", "ok": not ff["essenciais"],
+         "dica": "este FFmpeg não tem " + ", ".join(ff["essenciais"]) + ": nada exporta. No Terminal: brew install ffmpeg"},
+        {"item": "FFmpeg com todos os acabamentos", "ok": not ff["faltam"],
+         "dica": "faltam " + ", ".join(ff["faltam"]) + ": a edição sai, mas sem esses acabamentos (HDR do iPhone usa a "
+                 "conversão simples sem o zscale). No Terminal: brew install ffmpeg"},
         {"item": "Logo oficial", "ok": bool(__import__("divine_studio.biblioteca", fromlist=["logo"]).logo("divine-simbolo")),
          "dica": "Biblioteca > Logomarcas"},
         {"item": "Imagens essenciais", "ok": faltam_img == 0, "dica": f"faltam {faltam_img} na Biblioteca"},
@@ -612,7 +619,6 @@ def detalhe(nome: str) -> dict:
             "conta": _conta(d), "conta_definida": d.get("conta"),
             "perfis": _perfis(),
             "video": d.get("video", True), "camera_elegante": d.get("camera_elegante"), "qualidade": d.get("qualidade"),
-            "ritmo": d.get("ritmo"), "epico": d.get("epico"),
             "estilo_edicao": d.get("estilo_edicao") or "divine", "estilos_edicao": _estilos_edicao(),
             "qualidade_info": _qualidade_info() if d.get("qualidade") else "",
             "imagens": sorted(f"saida/{x.name}" for x in (pasta / "saida").glob("*") if x.suffix.lower() in (".png", ".mp4")
@@ -1520,6 +1526,8 @@ class Painel(BaseHTTPRequestHandler):
                 d = yaml.safe_load((pasta / "projeto.yaml").read_text(encoding="utf-8")) or {}
                 if q.get("fmt"):
                     d["formato"] = q["fmt"]
+                if not 0 <= int(q["i"]) < len(d.get("cards") or []):
+                    raise ValueError("este projeto não tem esse card")      # projeto de vídeo ou card removido
                 return self._bytes(png_card(d, int(q["i"]), pasta, int(q.get("w", 540))), "image/jpeg")
             if u.path == "/antesdepois.jpg":
                 from .antes_depois import previa

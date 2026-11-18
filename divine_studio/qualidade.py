@@ -58,7 +58,8 @@ def realesrgan() -> str | None:
 
 
 def _rodar(cmd: list) -> None:
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    from .ingest import cmd_seguro          # acabamento que este FFmpeg não tem é pulado, não derruba
+    r = subprocess.run(cmd_seguro(cmd), capture_output=True, text=True)
     if r.returncode != 0:
         raise SystemExit(f"Falha ao melhorar a qualidade do bruto:\n{r.stderr[-800:]}")
 

@@ -25,18 +25,104 @@ HDR_COM_ZSCALE = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
 HDR_SEM_ZSCALE = ("scale=in_color_matrix=bt2020:out_color_matrix=bt709:in_range=tv:out_range=tv,format=yuv420p,"
                   "eq=contrast=1.06:saturation=1.12,"
                   "setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709")
-_FILTROS: dict = {}
+_FILTROS: dict = {}          # respostas guardadas (e o que os testes forçam)
+_LISTA: list = []            # [conjunto dos filtros deste FFmpeg], lido uma vez
+_AVISADOS: set = set()
+
+# Filtros de ACABAMENTO: se o FFmpeg desta máquina não tiver um deles, a edição segue sem ele (com aviso) em vez de
+# parar com "No such filter". Os essenciais (scale, crop, concat, xfade, loudnorm...) existem em todo FFmpeg.
+ACABAMENTO_VIDEO = {"eq", "vignette", "noise", "hqdn3d", "nlmeans", "unsharp", "colorbalance", "curves", "hue",
+                    "deshake", "minterpolate", "vidstabtransform", "cas", "deflicker", "gblur", "lut3d"}
+ACABAMENTO_AUDIO = {"deesser", "afftdn", "arnndn", "acompressor", "alimiter", "equalizer", "highpass", "lowpass",
+                    "anlmdn", "speechnorm", "dynaudnorm", "agate"}
 
 
-def tem_filtro(nome: str) -> bool:
-    """O FFmpeg desta máquina tem o filtro? (a resposta fica guardada: a lista não muda com o app aberto)"""
-    if nome not in _FILTROS:
+def _filtros_do_ffmpeg() -> set:
+    if not _LISTA:
         try:
             saida = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, text=True, timeout=30).stdout
         except (OSError, subprocess.SubprocessError):
             saida = ""
-        _FILTROS[nome] = any(ln.split()[1:2] == [nome] for ln in saida.splitlines() if ln.strip())
+        _LISTA.append({ln.split()[1] for ln in saida.splitlines() if len(ln.split()) >= 3 and "->" in ln})
+    return _LISTA[0]
+
+
+def tem_filtro(nome: str) -> bool:
+    """O FFmpeg desta máquina tem o filtro? (a resposta fica guardada: a lista não muda com o app aberto)
+    Se não der para ler a lista, responde que tem: é melhor tentar do que tirar um filtro que existe."""
+    if nome not in _FILTROS:
+        lista = _filtros_do_ffmpeg()
+        _FILTROS[nome] = (nome in lista) if lista else True
     return _FILTROS[nome]
+
+
+def ffmpeg_completo() -> dict:
+    """O que este FFmpeg tem do que o app usa: {"faltam": [...], "essenciais": [...]} (para a Saúde do app).
+    Sem o codificador de vídeo (libx264) nada exporta; sem os filtros de acabamento a edição sai, mas mais simples."""
+    try:
+        cods = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {"faltam": [], "essenciais": []}
+    essenciais = [c for c in ("libx264", "aac") if cods and f" {c} " not in cods]
+    lista = _filtros_do_ffmpeg()
+    faltam = sorted(f for f in ({"zscale"} | ACABAMENTO_VIDEO | ACABAMENTO_AUDIO) - {"vidstabtransform", "arnndn", "lut3d"}
+                    if lista and f not in lista)
+    return {"faltam": faltam, "essenciais": essenciais}
+
+
+def _partes(grafo: str) -> list:
+    """Quebra o grafo de filtros em (texto, separador) nas vírgulas e ponto e vírgulas de verdade (fora de aspas
+    e sem barra de escape)."""
+    out, atual, aspas, k = [], "", False, 0
+    while k < len(grafo):
+        ch = grafo[k]
+        if ch == "\\" and k + 1 < len(grafo):
+            atual += grafo[k:k + 2]
+            k += 2
+            continue
+        if ch == "'":
+            aspas = not aspas
+        if ch in ",;" and not aspas:
+            out.append((atual, ch))
+            atual = ""
+        else:
+            atual += ch
+        k += 1
+    out.append((atual, ""))
+    return out
+
+
+def filtros_seguros(grafo: str) -> str:
+    """O mesmo grafo, com os filtros de acabamento que este FFmpeg não tem trocados por null/anull."""
+    import re
+    partes, mudou = [], False
+    for texto, sep in _partes(str(grafo)):
+        m = re.match(r"^(\s*(?:\[[^\]]*\]\s*)*)([A-Za-z0-9_]+)(.*?)((?:\s*\[[^\]]*\])*\s*)$", texto, re.S)
+        if m:
+            nome = m.group(2)
+            audio = nome in ACABAMENTO_AUDIO
+            if (audio or nome in ACABAMENTO_VIDEO) and not tem_filtro(nome):
+                if nome not in _AVISADOS:
+                    _AVISADOS.add(nome)
+                    print(f"  aviso: este FFmpeg não tem o filtro {nome}; a edição segue sem esse acabamento "
+                          "(para ter todos: brew install ffmpeg)", flush=True)
+                texto, mudou = m.group(1) + ("anull" if audio else "null") + m.group(4), True
+        partes.append(texto + sep)
+    return "".join(partes) if mudou else str(grafo)
+
+
+_OPCOES_DE_FILTRO = ("-vf", "-af", "-filter_complex", "-filter:v", "-filter:a", "-lavfi")
+
+
+def cmd_seguro(cmd: list) -> list:
+    """Comando do FFmpeg com os grafos de filtro passados por filtros_seguros."""
+    if not cmd or not str(cmd[0]).endswith("ffmpeg"):
+        return cmd
+    out = list(cmd)
+    for k in range(len(out) - 1):
+        if out[k] in _OPCOES_DE_FILTRO:
+            out[k + 1] = filtros_seguros(out[k + 1])
+    return out
 
 
 def filtro_hdr() -> str:
@@ -54,6 +140,7 @@ HDR_TRANSFERS = {"arib-std-b67", "smpte2084"}
 def com_threads(cmd: list) -> list:
     """FFmpeg com o limite de threads da prévia em paralelo (DIVINE_FFMPEG_THREADS); sem limite, igual."""
     import os
+    cmd = cmd_seguro(cmd)                      # filtro de acabamento que falta neste FFmpeg não derruba a edição
     n = os.environ.get("DIVINE_FFMPEG_THREADS")
     if n and cmd and str(cmd[0]).endswith("ffmpeg") and "-threads" not in cmd and len(cmd) > 2:
         return [*cmd[:-1], "-threads", n, cmd[-1]]
