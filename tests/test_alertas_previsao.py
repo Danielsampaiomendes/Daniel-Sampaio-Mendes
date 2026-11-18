@@ -203,7 +203,9 @@ def test_o_tipo_do_efeito_vem_do_que_a_frase_diz():
     meio = lambda ef: {round(e["inicio"]): e for e in ef if 2.0 < e["inicio"] < 18.0 and e.get("motivo")}
     v1 = meio(ritmo.planejar({"ritmo": "viral", "_fala": fala}, {"nome": "V1"}, 24.0))
     assert v1[3]["motivo"] == "pergunta" and v1[3]["tipo"] in ("zoom_digital", "foco_lente")
-    assert v1[11]["motivo"] == "alerta" and v1[11]["tipo"] == "zoom_batida"
+    # um zoom por vídeo (portfólio Liquid Glass): o segundo destaque vira desfoque de lente
+    assert v1[11]["motivo"] == "alerta" and v1[11]["tipo"] not in ritmo.ZOOMS       # o zoom do vídeo já foi usado
+    assert sum(1 for e in v1.values() if e["tipo"] in ritmo.ZOOMS) <= 1
     assert 7 not in v1                                     # "você" sozinho não é motivo: frase sem efeito
     assert v1 == meio(ritmo.planejar({"ritmo": "viral", "_fala": fala}, {"nome": "V1"}, 24.0))   # sem sorteio
     v2 = meio(ritmo.planejar({"ritmo": "viral", "_fala": fala}, {"nome": "V2"}, 24.0))

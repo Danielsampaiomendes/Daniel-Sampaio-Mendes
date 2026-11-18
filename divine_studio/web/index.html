@@ -59,8 +59,9 @@
           <span>ou toque para escolher (.mov, .mp4). Pode ser mais de um. O app corta, escreve os textos pela sua fala, põe legenda e entrega 3 versões.</span>
           <input type="file" id="ini-arquivos" multiple accept="video/*" hidden>
         </label>
-        <div class="linha ini-opcoes"><input id="ini-tema" placeholder="Sobre o que é o vídeo? (opcional, ex.: Endolaser nos braços)" autocomplete="off">
+        <div class="linha ini-opcoes"><input id="ini-tema" placeholder="Nome do vídeo (opcional, ex.: Endolaser nos braços)" autocomplete="off">
           <label class="check"><input type="checkbox" id="ini-epico"> ✦ Vídeo Épico</label></div>
+        <textarea id="ini-ideia" rows="3" placeholder="Ideia do vídeo (opcional): escreva ou dite o roteirinho, o que o vídeo aborda e o que você quer passar. A edição automática segue esta ideia."></textarea>
         <div id="ini-envio" class="dica"></div>
       </div>
       <div class="atalhos so-avancado" id="ini-atalhos"></div>
@@ -269,7 +270,7 @@
           <div class="pasta" id="p-pasta"></div>
         </div>
         <div class="acoes">
-          <button data-acao="auto" class="dourado" title="Monta o projeto sozinho a partir dos vídeos e gera as 3 prévias">✦ Edição automática</button>
+          <button data-acao="auto" class="dourado" title="Refaz TUDO do zero a partir do vídeo bruto e da ideia: cortes, textos, hooks e as 3 versões. Os ajustes feitos à mão são substituídos (o projeto anterior fica guardado no histórico)">✦ Edição automática (refaz do zero)</button>
           <button id="b-storyboard" class="dourado so-avancado" title="A edição em quadros reais, sem renderizar: aprove ou peça mudanças por código">▦ Storyboard</button>
           <button data-acao="previa" class="so-avancado" title="Prévia rápida das versões com os ajustes atuais">▶ Gerar prévias</button>
           <details class="mais"><summary>⋯ Mais</summary>
@@ -286,6 +287,18 @@
         </div>
       </div>
       <ol class="passos" id="p-passos"></ol>
+      <div id="ip" class="cartao ip">
+        <div class="linha-titulo"><h2>Ideia e pedidos</h2><span class="dica" id="ip-estado"></span></div>
+        <p class="ip-ideia" id="ip-ideia" hidden></p>
+        <textarea id="ip-texto" rows="3" placeholder=""></textarea>
+        <div class="linha ip-botoes">
+          <button id="ip-aplicar" class="dourado">Aplicar</button>
+          <button id="ip-guardar">Guardar como ideia do vídeo</button>
+          <button id="ip-ditar" title="Fale o pedido (no iPhone, use também o microfone do teclado)">🎙 Ditar</button>
+          <button id="ip-canva" title="Monta o pedido para o Claude gerar um elemento ou fundo no Canva, no padrão Liquid Glass">🎨 Elemento do Canva</button>
+        </div>
+        <div id="ip-retorno" class="ip-retorno"></div>
+      </div>
       <div id="proximo-passo" class="proximo-passo"></div>
       <div id="p-pedidos" class="so-avancado"></div>
 
@@ -422,7 +435,7 @@
         <div class="barra-salvar">
           <span id="ed-status" class="dica">Mudou alguma coisa? Salve e gere as prévias de novo.</span>
           <button id="ed-salvar">Salvar</button>
-          <button id="ed-salvar-previa" class="dourado">Salvar e gerar prévias</button>
+          <button id="ed-salvar-previa" class="dourado" title="Mantém os seus ajustes (textos, efeitos, legenda, cortes) e só renderiza de novo para você ver como ficou">▶ Ver como ficou (com meus ajustes)</button>
         </div>
 
         <div class="cartao">

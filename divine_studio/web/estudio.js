@@ -38,7 +38,7 @@ function esMontar() {
       <span class="es-estado" id="es-estado"></span>
       <label class="es-auto" title="Mexeu na linha do tempo? Salva sozinho e gera a prévia da versão que está na tela"><input type="checkbox" id="es-auto"> ⚡ Prévia automática</label>
       <span class="es-salvar" id="es-salvar"></span>
-      <button id="es-auto-edicao" class="dourado" title="Monta tudo pela fala e gera as 3 versões">✦ Edição automática</button>
+      <button id="es-auto-edicao" title="Refaz TUDO do zero a partir do vídeo bruto e da ideia. Os ajustes feitos à mão são substituídos (o anterior fica no histórico)">✦ Refazer do zero</button>
       <button id="es-aprovar" title="Aprova a versão que está no monitor e exporta a final">✓ Aprovar esta</button>
       <button id="es-sair" class="es-sair" title="Volta para a tela simples, passo a passo">◧ Tela simples</button>
     </div>
@@ -94,6 +94,7 @@ function esMontar() {
   mover($("#tl-versao-box"), q("#es-linha-topo")); mover($("#tl-auto-info"), q("#es-linha-topo"));
   mover($(".cc-sfx"), q("#es-linha-topo"));
   mover($(".cc-trilhas"), q(".es-linha")); mover($(".cc-ferramentas"), q(".es-linha"));
+  mover($("#ip"), q(".es-inspetor"), q(".es-abas"));            // Ideia e pedidos sempre à vista, acima das abas
   mover($("#tl-form"), q('[data-pane="ajuste"]'));
   mover($("#ed-filtro").closest(".cartao"), q('[data-pane="cor"]')); mover($("#ed-vol-orig").closest(".cartao"), q('[data-pane="cor"]'));
   mover($("#ed-versoes").closest(".cartao"), q('[data-pane="textos"]')); mover($("#ed-selo").closest(".cartao"), q('[data-pane="textos"]'));

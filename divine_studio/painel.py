@@ -589,6 +589,7 @@ def detalhe(nome: str) -> dict:
     usados = {c.get("arquivo", "").split("/")[-1] for c in d.get("clipes") or []}
     return {"nome": nome, "yaml": texto, "erro_yaml": erro_yaml, "titulo": d.get("titulo", nome),
             "template": d.get("template", "divine"), "formato": d.get("formato", "reels"),
+            "ideia": d.get("ideia") or "",
             "autorizacao_imagem": d.get("autorizacao_imagem", "pendente"),
             "versoes": [v.get("nome") for v in d.get("versoes") or []],
             "brutos": [{"nome": b, "no_projeto": b in usados, "fora": b in (d.get("brutos_fora") or []),
@@ -659,7 +660,7 @@ CAMPOS_EDITAVEIS = {"brutos_fora", "correcoes", "estilo_edicao", "efeitos_evitar
                     "qualidade", "ritmo", "epico", "validado", "copy_dublagem", "clipes", "cor",
                     "ritmo_fixo", "dissolve", "musica_licenciada", "conta",
                     "clipes_referencia", "layout", "credito", "divisoria", "anuncio", "posicao_texto",
-                    "remover_trechos", "alertas_ignorados"}
+                    "remover_trechos", "alertas_ignorados", "ideia", "cor_original", "fontes_livres"}
 
 
 def dados_projeto(nome: str) -> dict:
@@ -2082,6 +2083,17 @@ class Painel(BaseHTTPRequestHandler):
                 from . import higgsfield as hf, sugestoes
                 ped = sugestoes.pedir_higgsfield(dados["p"], _pasta(dados["p"]), dados["arquivo"])
                 return self._json({"pedido": ped, "instrucao": hf.instrucao_claude([ped["id"]])})
+            if u.path == "/api/pedido":               # campo "Ideia e pedidos": frases como "aos 10 s tira o efeito"
+                from . import pedidos
+                r = pedidos.aplicar_no_projeto(_pasta(dados["p"]), str(dados.get("texto") or ""), dados.get("versao") or "V1")
+                mudou = r.pop("dados")
+                if mudou:
+                    salvar_dados(dados["p"], mudou)
+                return self._json({**r, "mudou": bool(mudou)})
+            if u.path == "/api/canva_pedido":         # pedido pronto para o Claude gerar o elemento no Canva
+                from . import pedidos
+                return self._json({"instrucao": pedidos.pedido_canva(_pasta(dados["p"]), str(dados.get("texto") or ""),
+                                                                    dados.get("t"))})
             if u.path == "/api/capa":                 # capa com título do hook e logo no topo, no quadro escolhido
                 from . import identidade
                 arq = identidade.capa(_pasta(dados["p"]), dados.get("versao") or "V1", dados.get("t"), dados.get("arquivo"))

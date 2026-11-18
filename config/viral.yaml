@@ -73,6 +73,8 @@ sons:
 equilibrio:
   so_frases_com_motivo: true
   max_por_10s: 2
+  max_zoom_por_video: 1         # portfólio Liquid Glass: "um zoom por vídeo, no máximo" (0 = sem limite)
+  troca_do_zoom: [foco_lente, luz_dourada, revelar_foco, holofote]   # no lugar do segundo zoom em diante, um por versão
   longe_do_inicio_s: 2.0        # a abertura já tem o efeito dela
   longe_do_fim_s: 2.5           # o fim tem a pausa antes do CTA
   por_motivo:

@@ -4,12 +4,18 @@
 # elementos: peças que o estilo coloca sozinho. quando: abertura | fim | 0.0 a 1.0 (fração do vídeo).
 # Textos aceitam {titulo}, {selo}, {servico} (vêm do projeto).
 
-padrao: divine
+padrao: glass
 
 estilos:
   divine:
     nome: "Divine (suave)"
     descricao: "O padrão de hoje: elegante, texto dourado, câmera suave."
+
+  glass:
+    nome: "Glass Glow (padrão Divine)"
+    descricao: "Liquid Glass do portfólio: legenda em placa de vidro com a palavra-chave dourada, títulos nas duplas Vogue, Coroa e Revista, efeitos suaves e cor original da gravação."
+    legendas: {caixa: fundo, caixa_opacidade: 0.5, glow: dourado, cor_chave: dourado}
+    fontes: [Vogue, Coroa, Revista]        # uma dupla por versão (caixa alta + cursiva fina, no máximo 2 fontes)
 
   editorial:
     nome: "Editorial"

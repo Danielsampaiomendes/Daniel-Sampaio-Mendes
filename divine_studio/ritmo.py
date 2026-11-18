@@ -164,6 +164,11 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         from .instagram import conta_do_projeto
         tab = (preferencias(conta_do_projeto(projeto)).get("efeitos") or {})
         ruins = {e for e, (nota, n) in tab.items() if nota < -0.3 and n >= 2}
+        try:                                    # efeito que ele já tirou mais de uma vez pelo campo de pedidos
+            from .pedidos import efeitos_que_o_renato_tira
+            ruins |= efeitos_que_o_renato_tira()
+        except Exception:
+            pass
         bons = {e for e, (nota, n) in tab.items() if nota > 0.8 and n >= 2}
         if len([x for x in lista if x not in ruins]) >= 3:
             lista = [x for x in lista if x not in ruins]
@@ -184,8 +189,8 @@ def planejar(projeto: dict, versao: dict, fim: float, cortes: list | None = None
         eq = _cfg().get("equilibrio") or {}
         if eq.get("so_frases_com_motivo", True) and not projeto.get("_estilo_meio"):
             # equilíbrio: o efeito do meio nasce do que é dito (config/viral.yaml > equilibrio.por_motivo), sem sorteio
-            return sorted(out + _efeitos_pela_fala(fala, eq, lista, fim, por, versao, m, _giro(projeto, versao)),
-                          key=lambda e: e["inicio"])
+            return _um_zoom(sorted(out + _efeitos_pela_fala(fala, eq, lista, fim, por, versao, m, _giro(projeto, versao)),
+                                   key=lambda e: e["inicio"]), eq, versao)
         teto = int(eq.get("max_por_10s", 2))
     t, k = (2.2 if m == "viral" else 1.4), 0
     anterior = ((cfg.get("abertura") or [{}])[-1]).get("tipo")
@@ -297,3 +302,27 @@ def grade_epica(forca: float):
         out[..., 0], out[..., 1], out[..., 2] = r[q[..., 0]], g[q[..., 1]], b[q[..., 2]]
         return out
     return f
+
+
+ZOOMS = ("zoom_batida", "zoom_digital", "zoom_blur", "zoom_atravessa", "dolly_zoom", "congelar", "visor")
+
+
+def _um_zoom(efeitos: list, eq: dict, versao=None) -> list:
+    """No máximo N zooms por vídeo (config/viral.yaml > equilibrio.max_zoom_por_video): fica o primeiro."""
+    teto = int(eq.get("max_zoom_por_video", 0) or 0)
+    if teto <= 0:
+        return efeitos
+    out, n = [], 0
+    for e in efeitos:
+        if e.get("tipo") in ZOOMS:
+            n += 1
+            if n > teto:                       # a frase continua com destaque, só que sem outro zoom
+                trocas = eq.get("troca_do_zoom", "foco_lente")
+                trocas = [trocas] if isinstance(trocas, str) else list(trocas or [])
+                nome = str((versao or {}).get("nome", "") if isinstance(versao, dict) else versao or "")
+                troca = trocas[sum(map(ord, nome)) % len(trocas)] if trocas else None    # cada versão, um destaque
+                if not troca or any(x.get("tipo") == troca and abs(x["inicio"] - e["inicio"]) < 3.0 for x in out):
+                    continue
+                e = {**e, "tipo": troca}
+        out.append(e)
+    return out

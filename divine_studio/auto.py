@@ -86,6 +86,10 @@ def tema_do_projeto(projeto: dict, palavras: list | None = None) -> str:
     chave, _ = tema(str(projeto.get("titulo") or ""))
     if chave != "padrao":
         return chave
+    if projeto.get("ideia"):                      # a ideia que o Renato escreveu antes de gerar
+        chave, _ = tema(str(projeto["ideia"]))
+        if chave != "padrao":
+            return chave
     if palavras is not None:
         return tema_da_fala(" ".join(str(w.get("texto", "")) for w in palavras))
     guardado = str(projeto.get("tema") or "")

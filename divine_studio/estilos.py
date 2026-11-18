@@ -24,6 +24,19 @@ def nome_do(projeto: dict, versao: dict | None = None) -> str:
     return (versao or {}).get("estilo_edicao") or projeto.get("estilo_edicao") or _cfg().get("padrao", "divine")
 
 
+def fontes_do(projeto: dict) -> list:
+    """Códigos das combinações de fonte do estilo do projeto (pelo nome em config/fontes.yaml), uma por versão."""
+    est = (_cfg().get("estilos") or {}).get(nome_do(projeto)) or {}
+    nomes = est.get("fontes") or []
+    if not nomes:
+        return []
+    comb = load("fontes").get("combinacoes") or {}
+    por_nome = {}
+    for cod, c in comb.items():
+        por_nome.setdefault(str(c.get("nome", "")).lower(), cod)
+    return [por_nome.get(str(n).lower(), n) for n in nomes if str(n).lower() in por_nome or n in comb]
+
+
 def _texto(valor, projeto: dict):
     if isinstance(valor, list):
         return [_texto(v, projeto) for v in valor]

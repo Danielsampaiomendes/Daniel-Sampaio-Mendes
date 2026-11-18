@@ -1,0 +1,59 @@
+# Pedidos de edição escritos ou ditados no campo "Ideia e pedidos" do projeto (divine_studio/pedidos.py).
+# Cada frase vira uma mudança no projeto. Tempo: "aos 10 segundos", "em 0:10", "10 s", "no começo", "no final".
+raio_s: 2.5          # o pedido alcança o efeito, texto ou som mais perto do tempo dito, até esta distância
+passo_s: 0.5         # "mais cedo" e "mais tarde" movem meio segundo
+# Aprender: todo ajuste geral (legenda, ritmo, trilha, sons) vira padrão dos próximos vídeos, sem pedir de novo
+# (guardado em projetos/.padroes_aprendidos.json, só no Mac). Efeito tirado este número de vezes sai do sorteio.
+tirar_vira_regra: 2
+
+# verbos que o app entende (sem acento também vale)
+acoes:
+  tirar: [tira, tire, tirar, remove, remova, remover, apaga, apague, apagar, sem, exclui, exclua]
+  trocar: [troca, troque, trocar, muda, mude, mudar, substitui, substitua, melhora, melhore]
+  por: [coloca, coloque, colocar, poe, ponha, por um, adiciona, adicione, adicionar, insere, insira, bota, bote]
+  antes: [mais cedo, antes, adianta, adiante]
+  depois: [mais tarde, depois, atrasa, atrase]
+
+# apelidos de efeito -> tipo do catálogo (só efeitos equilibrados; os outros entram pelo nome do catálogo)
+efeitos:
+  zoom: zoom_batida
+  aproxima: zoom_batida
+  aproximacao: zoom_batida
+  luz dourada: luz_dourada
+  brilho: luz_dourada
+  foco: foco_lente
+  desfoque: foco_lente
+  texto em vidro: vidro
+  placa de vidro: vidro
+  vidro: vidro
+  titulo: frame_titulo
+  numero: contador
+  contador: contador
+  balao: balao
+  checklist: checklist
+  seta: seta_mao
+  foto: insert_foto
+  imagem: insert_foto
+
+# ajustes do vídeo inteiro (frase sem tempo). campo: caminho no projeto.yaml
+gerais:
+  - {padrao: "(tira|sem|remove).*(todos os efeitos|os efeitos)", campo: ritmo_fixo, valor: true, resposta: "Tirei os efeitos automáticos do meio"}
+  - {padrao: "menos efeito|mais calmo|mais suave|mais elegante", campo: ritmo, valor: calmo, resposta: "Ritmo calmo: menos efeitos e mais respiro"}
+  - {padrao: "mais dinamic|mais efeito|mais ritmo|mais agitad", campo: ritmo, valor: viral, resposta: "Ritmo viral: mais dinâmico"}
+  - {padrao: "legenda.*(mais )?(pra|para) baixo|abaixa.*legenda|desce.*legenda", campo: legendas.posicao, soma: 0.04, base: 0.66, min: 0.56, max: 0.78, resposta: "Legenda um pouco mais para baixo"}
+  - {padrao: "legenda.*(mais )?(pra|para) cima|sobe.*legenda", campo: legendas.posicao, soma: -0.04, base: 0.66, min: 0.56, max: 0.78, resposta: "Legenda um pouco mais para cima"}
+  - {padrao: "(aumenta|maior).*legenda|legenda.*maior", campo: legendas.tamanho, soma: 6, base: 58, min: 40, max: 84, resposta: "Legenda maior"}
+  - {padrao: "(diminui|menor).*legenda|legenda.*menor", campo: legendas.tamanho, soma: -6, base: 58, min: 40, max: 84, resposta: "Legenda menor"}
+  - {padrao: "(tira|sem|remove).*(musica|trilha)", campo: audio.trilha, valor: false, resposta: "Tirei a trilha de fundo"}
+  - {padrao: "(tira|sem|remove).*(sons|efeitos sonoros|sfx)", campo: sfx_automaticos, valor: false, resposta: "Tirei os sons automáticos"}
+
+  - {padrao: "(testa|teste|testar|varia|variar|experimenta).*(outras? )?(fontes?|letras?)|outras fontes", campo: fontes_livres, valor: true, aprende: false, resposta: "Neste vídeo as versões 2 e 3 testam outras combinações de fonte (a versão 1 fica na sua preferida)"}
+
+exemplos:
+  - "Aos 10 segundos tira o efeito"
+  - "Em 0:12 troca o texto por \"Pele firme\""
+  - "Coloca um zoom aos 8 segundos"
+  - "Aos 15 segundos coloca o texto \"Agende sua avaliação\""
+  - "Aos 6 segundos troca o efeito por luz dourada"
+  - "Legenda mais para baixo"
+  - "Menos efeitos"

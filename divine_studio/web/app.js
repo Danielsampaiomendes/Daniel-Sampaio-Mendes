@@ -290,7 +290,78 @@ $("#form-regra").onsubmit = async (e) => {
 };
 
 // ---------------------------------------------------------------- vídeos brutos: assistir, usar, tirar, descartar
+// ---------------------------------------------------------------- Ideia e pedidos (um campo só)
+// Antes de gerar: a ideia do vídeo (roteirinho). Depois: pedidos de edição ("aos 10 segundos tira o efeito").
+function desenharIdeia() {
+  const box = $("#ip"); if (!box || !dados) return;
+  const temVersao = dados.saidas.some((s) => s.previa) || dados.saidas.some((s) => !s.previa);
+  const ideia = (dados.ideia || "").trim();
+  $("#ip-ideia").hidden = !ideia;
+  $("#ip-ideia").innerHTML = ideia ? `<b>Ideia do vídeo:</b> ${esc(ideia)}` : "";
+  $("#ip-estado").textContent = temVersao ? "peça mudanças na edição" : "escreva a ideia antes de gerar";
+  $("#ip-texto").placeholder = temVersao
+    ? 'Escreva ou dite o que mudar. Ex.: "Aos 10 segundos tira o efeito" · "Em 0:12 troca o texto por Pele firme" · "Coloca um zoom aos 8 segundos" · "Legenda mais para baixo" · "Menos efeitos"'
+    : "Escreva ou dite a ideia do vídeo: o que ele aborda, o que você quer passar, o roteirinho. A edição automática segue esta ideia.";
+  $("#ip-aplicar").textContent = temVersao ? "Aplicar pedido" : (dados.brutos.length ? "Guardar a ideia e gerar a edição" : "Guardar a ideia");
+  $("#ip-guardar").hidden = !temVersao;
+  $("#ip-ditar").hidden = !(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+async function guardarIdeia(texto) {
+  await api("/api/dados", { p: atual, dados: { ideia: texto } });
+  dados.ideia = texto; $("#ip-texto").value = ""; desenharIdeia();
+}
+$("#ip-guardar").onclick = async () => {
+  const t = $("#ip-texto").value.trim(); if (!t) return aviso("Escreva a ideia no campo.", "erro");
+  try { await guardarIdeia(t); aviso("Ideia guardada. Ela guia a próxima edição automática."); } catch (err) { aviso(err.message, "erro"); }
+};
+$("#ip-aplicar").onclick = async () => {
+  const t = $("#ip-texto").value.trim(); if (!t) return aviso("Escreva no campo primeiro.", "erro");
+  const temVersao = dados.saidas.some((s) => s.previa) || dados.saidas.some((s) => !s.previa);
+  try {
+    if (!temVersao) {                                   // antes de gerar: o texto é a ideia
+      await guardarIdeia(t);
+      if (dados.brutos.length) return rodar("auto");
+      return aviso("Ideia guardada. Agora solte o vídeo bruto.");
+    }
+    const versao = (typeof ed !== "undefined" && ed.versao) || "V1";
+    const r = await api("/api/pedido", { p: atual, texto: t, versao });
+    const ret = $("#ip-retorno");
+    ret.innerHTML = r.aplicados.map((a) => `<div class="ip-ok">✓ ${esc(a.feito)}</div>`).join("") +
+      r.nao_entendi.map((n) => `<div class="ip-nao">Não entendi: "${esc(n)}"</div>`).join("") +
+      (r.aprendi || []).map((a) => `<div class="ip-aprendi">★ ${esc(a)}</div>`).join("") +
+      (r.nao_entendi.length ? `<div class="dica">Exemplos que eu entendo: ${r.exemplos.map(esc).join(" · ")}</div>` : "");
+    if (r.mudou) {
+      $("#ip-texto").value = r.nao_entendi.join("\n");
+      await abrir(atual);
+      ret.insertAdjacentHTML("beforeend", `<div class="linha"><button class="dourado" id="ip-previa">▶ Gerar a prévia da ${esc(versao)} com as mudanças</button></div>`);
+      $("#ip-previa").onclick = () => rodar("previa", [versao]);
+    }
+  } catch (err) { aviso(err.message, "erro"); }
+};
+$("#ip-canva").onclick = async () => {
+  try {
+    const t = (typeof ed !== "undefined" && $("#tl-video") && $("#tl-video").src) ? $("#tl-video").currentTime : undefined;
+    const r = await api("/api/canva_pedido", { p: atual, texto: $("#ip-texto").value, t });
+    try { await copiar(r.instrucao); } catch (e) { prompt("Copie e cole no Claude:", r.instrucao); }
+    aviso("Pedido copiado: cole no Claude (com o Canva conectado). A imagem volta para os vídeos brutos do projeto.");
+  } catch (err) { aviso(err.message, "erro"); }
+};
+(function ditado() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+  let rec = null;
+  $("#ip-ditar").onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = false; rec.continuous = true;
+    const campo = $("#ip-texto"), botao = $("#ip-ditar");
+    botao.textContent = "⏹ Parar"; botao.classList.add("dourado");
+    rec.onresult = (ev) => { for (let k = ev.resultIndex; k < ev.results.length; k++) if (ev.results[k].isFinal) campo.value = (campo.value + " " + ev.results[k][0].transcript).trim(); };
+    rec.onend = rec.onerror = () => { rec = null; botao.textContent = "🎙 Ditar"; botao.classList.remove("dourado"); };
+    try { rec.start(); } catch (e) { rec = null; }
+  };
+})();
+
 function desenharBrutos() {
+  desenharIdeia();
   const seg = (d) => d ? `${Math.floor(d / 60)}:${String(Math.round(d % 60)).padStart(2, "0")}` : "";
   $("#brutos").innerHTML = dados.brutos.map((b) => `<li class="bruto ${b.fora ? "fora" : ""}" data-nome="${esc(b.nome)}">
       <video preload="metadata" controls playsinline src="/arquivo?p=${encodeURIComponent(atual)}&f=${encodeURIComponent("bruto/" + b.nome)}#t=0.5"></video>
@@ -631,8 +702,14 @@ $("#b-copiar").onclick = async () => {
 const NOMES = { formatos: "Outros formatos (prévias)", formatos_final: "Outros formatos (final)", auto: "Edição automática (montagem + 3 prévias)", revisar: "Revisão de compliance", cortar: "Corte limpo", previa: "Gerando prévias", final: "Exportando a final", storyboard: "Montando o storyboard (nada é renderizado)",
   legenda: "Legenda do post", pacote: "Pacote por categorias", transcrever: "Transcrição" };
 
+let tituloDaTarefa = "";
+function tarefaOcupada() {
+  $("#tarefa").hidden = false; $("#tarefa").classList.remove("mini");
+  aviso(`Já tem uma tarefa rodando neste projeto${tituloDaTarefa ? " (" + tituloDaTarefa + ")" : ""}. Espere terminar ou toque em "parar" na janela da tarefa, no canto de baixo.`, "erro");
+}
 async function rodar(acao, versoes) {
   if (!atual) return;
+  if (jobAtivo) return tarefaOcupada();
   if (acao === "auto") {
     if (!dados.brutos.length) return alert("Solte os vídeos brutos primeiro.");
     if (!confirm("Montar a edição automaticamente a partir dos vídeos e gerar as 3 prévias?\n" +
@@ -644,7 +721,13 @@ async function rodar(acao, versoes) {
   try {
     const r = await api("/api/acao", { p: atual, acao, versoes });
     acompanhar(r.job, NOMES[acao] || acao);
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    if (/espere a tarefa/.test(err.message)) {          // o painel sabe de uma tarefa que esta tela não estava mostrando
+      await abrir(atual).catch(() => {});
+      return tarefaOcupada();
+    }
+    alert(err.message);
+  }
 }
 
 $("#t-detalhes").onclick = () => $("#tarefa").classList.toggle("com-detalhes");
@@ -666,10 +749,10 @@ async function reabrirPainel() {
 }
 
 function acompanhar(job, titulo) {
-  jobAtivo = job;
-  $("#tarefa").hidden = false;
+  jobAtivo = job; tituloDaTarefa = titulo;
+  $("#tarefa").hidden = false; $("#tarefa").classList.remove("mini");
   $("#t-titulo").textContent = titulo;
-  $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = true);
+  let ultimoLog = "", mudouEm = Date.now();
   const bParar = $("#t-parar");
   bParar.hidden = false; bParar.disabled = false; bParar.textContent = "parar";
   bParar.onclick = async () => {
@@ -680,7 +763,6 @@ function acompanhar(job, titulo) {
   const liberar = (msg) => {
     jobAtivo = null;
     bParar.hidden = true;
-    $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
     $("#t-tempo").innerHTML = `<span class="estado-erro">${esc(msg)}</span>`;
   };
   const tick = async () => {
@@ -694,7 +776,9 @@ function acompanhar(job, titulo) {
     }
     $("#t-log").textContent = e.log;
     $("#t-log").scrollTop = 1e9;
-    $("#t-tempo").innerHTML = e.estado === "rodando" ? `${e.segundos}s`
+    if (e.log !== ultimoLog) { ultimoLog = e.log; mudouEm = Date.now(); }
+    const parada = Math.floor((Date.now() - mudouEm) / 60000);      // minutos sem nenhuma linha nova
+    $("#t-tempo").innerHTML = e.estado === "rodando" ? `${e.segundos}s` + (parada >= 3 ? ` <span class="estado-erro">sem novidade há ${parada} min: se travou, toque em parar</span>` : "")
       : `<span class="estado-${e.estado === "parado" ? "erro" : e.estado}">${e.estado === "ok" ? "pronto" : e.estado === "parado" ? "parada por você" : "parou com erro"}</span> em ${e.segundos}s`;
     $("#t-barra").style.width = e.progresso ? `${Math.min(100, 100 * e.progresso[0] / e.progresso[1])}%` : (e.estado === "rodando" ? "8%" : "100%");
     if (e.estado === "rodando") setTimeout(tick, 1200);
@@ -702,8 +786,7 @@ function acompanhar(job, titulo) {
       jobAtivo = null;
       bParar.hidden = true;
       if (e.estado !== "parado") avisarFim(titulo, e.estado === "ok");
-      $$("[data-acao], #b-aprovar").forEach((b) => b.disabled = false);
-      if (atual) abrir(atual);
+        if (atual) abrir(atual);
       const simples = document.body.classList.contains("simples");
       if (e.estado === "ok" && ["previa", "final", "auto"].includes(e.acao)) {
         if (simples) { $('[data-aba="config"]').click(); $("#proximo-passo").scrollIntoView({ behavior: "smooth" }); setTimeout(() => { if (!jobAtivo) $("#tarefa").hidden = true; }, 4000); }
@@ -721,7 +804,10 @@ function acompanhar(job, titulo) {
   };
   tick();
 }
-$("#t-fechar").onclick = () => { $("#tarefa").hidden = true; };
+$("#t-fechar").onclick = () => {
+  if (jobAtivo) { $("#tarefa").classList.toggle("mini"); $("#t-fechar").textContent = $("#tarefa").classList.contains("mini") ? "abrir" : "fechar"; return; }
+  $("#tarefa").hidden = true;
+};
 
 window.addEventListener("hashchange", () => {
   const h = decodeURIComponent(location.hash.slice(1));

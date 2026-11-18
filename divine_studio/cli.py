@@ -330,7 +330,25 @@ def cmd_editar(a):
     def _g(campo):
         return [v.get(campo) or (guardado.get(v.get("nome", f"V{k + 1}")) or {}).get(campo)
                 for k, v in enumerate(versoes)]
-    fontes = escolher_fontes(len(versoes), _g("fontes"))
+    from .estilos import fontes_do
+    do_estilo = fontes_do(p)                   # o estilo (Glass Glow) traz as duplas de fonte do portfólio
+    favorita = None
+    try:                                       # a combinação de fontes que o Renato aprovou vira o padrão da V1
+        from .aprendizado import preferencias
+        from .instagram import conta_do_projeto
+        tab = preferencias(conta_do_projeto(p)).get("fontes") or {}
+        boas = sorted(((nota, n, cod) for cod, (nota, n) in tab.items() if nota > 0.3 and n >= 1), reverse=True)
+        favorita = boas[0][2] if boas else None
+    except Exception:
+        pass
+    if favorita and do_estilo:
+        do_estilo = [favorita] + [c for c in do_estilo if c != favorita]
+    if p.get("fontes_livres"):                 # "testa outras fontes": V2 e V3 saem do rodízio geral
+        do_estilo = do_estilo[:1]
+    fixas = [f or (do_estilo[k] if k < len(do_estilo) else None) for k, f in enumerate(_g("fontes"))]
+    if favorita:
+        print(f"  fontes: V1 na sua combinação preferida ({favorita}); as outras versões testam alternativas")
+    fontes = escolher_fontes(len(versoes), fixas)
     sfx_a = escolher_sfx("abertura", len(versoes), _g("sfx_abertura"))
     sfx_f = escolher_sfx("fechamento", len(versoes), _g("sfx_fechamento"))
     sfx_t = escolher_sfx("transicao", len(versoes), _g("sfx_transicao"),
@@ -978,6 +996,15 @@ def cmd_auto(a):
     fn = _transcritor(p["_pasta"]) if (motor_disponivel() or tem_cache) else None
     semente = sum(map(ord, p["_pasta"].name))
     novo = auto.montar(p, a.template, fn, semente)
+    if p.get("ideia"):
+        novo["ideia"] = p["ideia"]             # o roteirinho escrito antes de gerar guia a edição
+    try:                                       # o que ele já pediu em outros vídeos vale neste, sem pedir de novo
+        from . import pedidos
+        ja = pedidos.aplicar_padroes(novo)
+        if ja:
+            print("• Padrões que você já pediu antes: " + "; ".join(ja))
+    except Exception as e:
+        print(f"  aviso: padrões aprendidos indisponíveis ({e})")
     # roteirista: as 3 versões escritas EM CIMA da fala (como o Claude faz no chat), não pelo título
     falados = [c for c in novo.get("clipes") or [] if not c.get("mudo")]
     palavras = []
@@ -993,6 +1020,14 @@ def cmd_auto(a):
                       f"{len(novo.get('mensagens') or [])} mensagem(ns), {len(novo.get('efeitos') or [])} efeito(s) no ponto da fala")
         except SystemExit as e:
             print(f"  aviso: roteiro pela fala indisponível ({e})")
+    if not palavras and novo.get("ideia"):
+        from . import pedidos, roteirista
+        plano = pedidos.plano_da_ideia(novo)
+        if plano:
+            novo = roteirista.aplicar(novo, plano)
+            print(f"• Roteiro pela sua ideia: {len(novo.get('mensagens') or [])} mensagem(ns) na tela")
+    if fn and falados:
+        pass
     elif not fn:
         print("  aviso: SEM TRANSCRIÇÃO. O app não entende a fala e usa textos genéricos do tema. "
               "Instale com: pip3 install faster-whisper (o Divine Studio.command instala sozinho ao atualizar).")
@@ -1007,7 +1042,7 @@ def cmd_auto(a):
     # tema: o título manda; se ele não cita tratamento (IMG_4032), vale o que a fala diz. Selo, fechamento e
     # mensagens genéricas passam a ser os do assunto do vídeo, e o tema fica guardado para hooks, copy e anúncio
     # (recalculado a cada edição automática: o tema guardado de uma edição anterior não decide esta)
-    chave = auto.tema_do_projeto({"titulo": novo.get("titulo")}, palavras or None)
+    chave = auto.tema_do_projeto({"titulo": novo.get("titulo"), "ideia": novo.get("ideia")}, palavras or None)
     novo = auto.aplicar_tema(novo, chave)
     (p["_pasta"] / "trabalho" / "versao_ia.json").unlink(missing_ok=True)   # edição nova: a aposta IA é refeita
     arq = auto.salvar(p, novo)

@@ -97,7 +97,7 @@ def _sem_marca(t: str) -> str:
 def planejar_regras(projeto: dict, palavras: list) -> dict:
     """Sem IA: hooks, mensagens e efeitos tirados da própria fala."""
     from .auto import mensagens_da_fala
-    chave = _assunto(palavras, projeto.get("titulo", ""))
+    chave = _assunto(palavras, f"{projeto.get('titulo', '')} {projeto.get('ideia') or ''}")
     msgs = mensagens_da_fala(palavras, chave, 3)
     na_tela = {_sem_marca(m["titulo"]) for m in msgs}
     # o hook não repete uma mensagem que já vai aparecer no meio; se faltar frase boa, a versão fica com o hook do banco
@@ -137,6 +137,8 @@ def planejar_ia(projeto: dict, palavras: list) -> dict | None:
         "dito, também presos à fala (na_fala). Português do Brasil, sem travessões, CFM e Anvisa (sem antes e depois, sem "
         "promessa de resultado, sem porcentagem de resultado).\n"
         f"Título do projeto: {projeto.get('titulo')}\n"
+        + (f"IDEIA DO VÍDEO escrita pelo Renato (o que ele quer passar; a edição segue esta ideia, usando a fala): "
+           f"{str(projeto.get('ideia'))[:1500]}\n" if projeto.get("ideia") else "") +
         f"Formatos virais possíveis: {', '.join(formatos())}\n"
         f"Efeitos possíveis (tipo): {', '.join(sorted(NOMES))}\n\n"
         f"TRANSCRIÇÃO:\n{fala}\n\n"

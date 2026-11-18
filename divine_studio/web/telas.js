@@ -333,6 +333,8 @@ async function edicaoRapida(arquivos) {
   const msg = $("#ini-envio");
   try {
     const { nome } = await api("/api/nova_edicao", { tipo: $("#ini-epico").checked ? "epico" : "video", titulo });
+    const ideia = ($("#ini-ideia") ? $("#ini-ideia").value : "").trim();     // o roteirinho guia a edição automática
+    if (ideia) { await api("/api/dados", { p: nome, dados: { ideia } }); $("#ini-ideia").value = ""; }
     for (const [k, f] of arquivos.entries()) {
       const mb = (f.size / 1e6).toFixed(0);
       await enviarArquivo(nome, f, (x) => {

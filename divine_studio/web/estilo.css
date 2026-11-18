@@ -867,3 +867,19 @@ body.estudio .tarefa { width: min(440px, calc(100vw - 40px)); bottom: 12px; righ
 .pp-marca ul { margin: 6px 0 0; padding-left: 18px; } .pp-marca small { color: var(--apagado); }
 .es-capa a, .es-capa a:visited { color: var(--dourado); }
 .pp-marca ul { text-align: left; }
+
+/* Ideia e pedidos: um campo só para o roteirinho (antes de gerar) e para os pedidos de edição (depois) */
+.ip { margin: 12px 0; } .ip textarea { min-height: 64px; }
+.ip-ideia { font-size: 13px; color: var(--texto); border-left: 2px solid var(--dourado2); padding-left: 10px; margin: 0 0 8px; }
+.ip-botoes { flex-wrap: wrap; gap: 8px; margin-top: 8px; } .ip-botoes button { padding: 6px 14px; font-size: 13px; }
+.ip-retorno { margin-top: 8px; font-size: 13px; display: grid; gap: 4px; }
+.ip-ok { color: var(--ok); } .ip-nao { color: #E8A15A; }
+#ini-ideia { margin-top: 8px; min-height: 70px; }
+.es-inspetor .ip { background: none; border: 0; border-bottom: 1px solid var(--es-borda); border-radius: 0; padding: 10px 0; margin: 0; }
+.es-inspetor .ip h2 { margin: 0; font-size: 11px; }
+.es-inspetor .ip textarea { min-height: 56px; font-size: 13px; }
+.es-inspetor .ip-botoes button { padding: 4px 10px; font-size: 12px; }
+
+/* janela da tarefa encolhida (fechar com tarefa rodando): nunca some enquanto algo roda */
+.tarefa.mini { width: auto; max-width: 420px; padding: 8px 12px; } .tarefa.mini .barra, .tarefa.mini #t-log, .tarefa.mini #t-detalhes { display: none; }
+.ip-aprendi { color: var(--dourado); }

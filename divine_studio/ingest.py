@@ -332,7 +332,11 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
     if amp > 0:
         pos.append(f"scale=w='trunc({W}*(1+{amp}*(1-cos(2*PI*t/{ciclo}))/2)/2)*2':h=-2:eval=frame:flags=bicubic")
         pos.append(f"crop={W}:{H}")
-    if not hq_geral:
+    acab = pref.get("acabamento") or {}
+    original = bool(projeto.get("cor_original", acab.get("cor_original", False)))
+    if original:
+        pass                                  # cor original da gravação: sem correção automática
+    elif not hq_geral:
         pos.append("eq=contrast=1.03:saturation=1.04,colorbalance=rs=0.02:bs=-0.02")
     else:
         pos.append("eq=contrast=1.02:saturation=1.02")
@@ -347,8 +351,9 @@ def construir_base(projeto: dict, W: int, H: int, saida: Path, forcar_hq: bool |
         if ajustes["temperatura"]:
             t = ajustes["temperatura"] * 0.08
             pos.append(f"colorbalance=rs={t:.3f}:bs={-t:.3f}:rm={t / 2:.3f}:bm={-t / 2:.3f}")
-    pos.append("vignette=angle=PI/5")
-    grao = int((pref.get("acabamento") or {}).get("grao", 0))
+    if not original:
+        pos.append("vignette=angle=PI/5")
+    grao = 0 if original else int(acab.get("grao", 0))
     if grao > 0:
         pos.append(f"noise=alls={grao}:allf=u")       # grão fixo: acabamento sem inflar o arquivo
     pos.append("format=yuv420p")

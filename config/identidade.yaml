@@ -114,3 +114,15 @@ liquid_glass:
     avatar: 92
   logo_topo: false                 # nos Stories o cabeçalho do cartão assina; ligue para posts sem cabeçalho
   rodape: "CRM/SP 186.470 · RQE 105302 · RQE 130995 · Resultados variam de pessoa para pessoa."
+  # Elementos e fundos gerados no Canva para os vídeos (botão "🎨 Elemento do Canva" no campo Ideia e pedidos).
+  # O app monta o pedido; quem gera é o Claude com o conector do Canva. A imagem volta para a pasta bruto/ do projeto.
+  canva:
+    abertura: "Gere no Canva (com IA) uma imagem para um vídeo vertical da Divine Medical Spa. Sem texto e sem pessoas."
+    receita: |
+      Fundo preto puro, ouro líquido, vidro temperado, diamantes ou pérolas só nos cantos, reflexos dourados suaves,
+      centro escuro e vazio (livre para o texto), render 3D realista, estética de anúncio de joalheria.
+      Vertical 9:16 (1080x1920). O dourado é destaque, nunca o fundo inteiro. Nada de rococó nem de logo de outra marca.
+      Sem promessa de resultado, sem antes e depois, sem nome de medicamento (CFM 2.336/2023 e Anvisa RDC 96/2008).
+    entrega: |
+      Exporte em PNG ou JPG e salve em {pasta} (ou me devolva o link para eu baixar). Ao publicar o vídeo, marcar
+      "Feito com IA".

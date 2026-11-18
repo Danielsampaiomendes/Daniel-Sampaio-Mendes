@@ -118,6 +118,10 @@ aprendizado:                      # gostei / postei / métricas viram preferênc
 
 acabamento:                       # skill divine-video-pro: grão fino unifica celular e gráficos
   grao: 3                         # 0 desliga (grão fixo, não pesa no arquivo)
+  # Portfólio Liquid Glass (nov/2026): "cor original da gravação, sem filtro". Com true, o app não aplica a correção
+  # automática de contraste e saturação, a vinheta nem o grão. O filtro e os ajustes que VOCÊ escolher em
+  # "Cor e áudio" continuam valendo. No projeto: cor_original: false volta ao acabamento antigo.
+  cor_original: true
 
 progresso:
   altura_px: 6

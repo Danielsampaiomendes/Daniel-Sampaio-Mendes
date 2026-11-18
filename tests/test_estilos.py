@@ -30,7 +30,8 @@ def test_aplicar_respeita_o_projeto():
 def test_estilo_por_versao_e_padrao():
     p = {"titulo": "x", "estilo_edicao": "glow"}
     assert estilos.nome_do(p, {"estilo_edicao": "papel"}) == "papel"
-    assert estilos.aplicar({"titulo": "x"}, {}, 10)[0].get("_estilo") is None
+    assert estilos.aplicar({"titulo": "x"}, {}, 10)[0].get("_estilo") == "glass"      # padrão: Glass Glow (Liquid Glass)
+    assert estilos.aplicar({"titulo": "x", "estilo_edicao": "divine"}, {}, 10)[0].get("_estilo") is None
 
 
 def test_legenda_caixa_e_glow():

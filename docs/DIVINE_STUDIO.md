@@ -38,6 +38,31 @@ Ferramenta de edição de vídeo da Divine Medical Spa. Transforma os brutos em 
   de...") nunca vira mensagem na tela nem hook; o dourado fica na palavra forte e não começa em "de", "com", "que" (a lista
   está em `destaque_nao_comeca_em`); o zoom no número só entra em frase que passa no revisor.
 
+## Ideia e pedidos: um campo só para o roteirinho e para as mudanças (18/11/2026)
+
+- **Antes de gerar**: na tela inicial, embaixo de "solte aqui o vídeo bruto", o campo **Ideia do vídeo**. Escreva ou
+  dite o roteirinho (o que o vídeo aborda, o que quer passar). A edição automática segue a ideia: reconhece o tema,
+  escolhe as frases da fala que têm a ver e, em vídeo sem fala, escreve os textos da tela a partir dela. Com a chave
+  do Claude, a ideia vai junto com a transcrição para ele escrever as 3 versões.
+- **Depois de gerar**: o mesmo campo fica no projeto como **Ideia e pedidos** (no Estúdio, no alto da coluna da
+  direita). Escreva ou dite o que mudar, uma frase por pedido: "Aos 10 segundos tira o efeito", "Em 0:12 troca o texto
+  por Pele firme", "Coloca um zoom aos 8 segundos", "Aos 6 segundos troca o efeito por luz dourada", "Legenda mais
+  para baixo", "Legenda maior", "Menos efeitos", "Tira a trilha", "Testa outras fontes". O app diz o que fez, o que
+  não entendeu e oferece **▶ Gerar a prévia** com as mudanças. Palavras e apelidos em `config/pedidos.yaml`.
+- **Aprende**: todo ajuste geral (legenda, ritmo, trilha, sons) vira padrão dos próximos vídeos, sem pedir de novo.
+  Efeito tirado duas vezes sai do sorteio. A combinação de fontes da versão que você aprova vira a da V1 nos
+  próximos; V2 e V3 seguem testando as outras duplas (ou outras ainda, com "testa outras fontes").
+- **🎨 Elemento do Canva**: monta o pedido no padrão Liquid Glass (com a ideia e o segundo do vídeo) e copia para
+  colar no Claude com o Canva conectado. A imagem volta para os vídeos brutos do projeto e entra pelo efeito "Foto que
+  entra na fala". O app não fala com o Canva sozinho.
+- **Padrão Glass Glow**: toda edição nova sai no estilo `glass` (legenda em placa de vidro com a palavra-chave
+  dourada, títulos nas duplas Vogue, Coroa e Revista), com a **cor original da gravação** (sem correção automática,
+  vinheta nem grão; `config/preferencias.yaml`, `acabamento.cor_original`) e **um zoom por vídeo, no máximo**
+  (`config/viral.yaml`).
+- **Botões**: "▶ Ver como ficou (com meus ajustes)" mantém o que você mexeu e só renderiza de novo. "✦ Edição
+  automática (refaz do zero)" recomeça do vídeo bruto e da ideia e substitui os ajustes. Com uma tarefa rodando, os
+  botões avisam e a janelinha da tarefa não some mais (fechar só encolhe).
+
 ## Stories no Liquid Glass Divine (14/11/2026)
 
 Segue o portfólio de identidade visual (resumo em `docs/IDENTIDADE_VISUAL.md`). Fundo de joalheria 3D do banco
